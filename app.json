@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "Identra",
+    "slug": "identra",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "identra",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.identra.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Identra cần camera để quét mã QR của thực chứng.",
+        "NSFaceIDUsageDescription": "Identra sử dụng Face ID để bảo vệ ví và dữ liệu của bạn."
+      }
+    },
+    "android": {
+      "package": "com.identra.app",
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "backgroundColor": "#5B6CFF"
+      },
+      "predictiveBackGestureEnabled": true,
+      "permissions": [
+        "CAMERA",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Cho phép Identra truy cập camera để quét mã QR."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Cho phép Identra sử dụng Face ID để bảo vệ ví."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

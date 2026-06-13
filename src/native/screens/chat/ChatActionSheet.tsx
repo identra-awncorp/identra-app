@@ -1,0 +1,254 @@
+import { useEffect, useRef, useState } from 'react';
+import {
+  Alert,
+  Animated,
+  Easing,
+  Modal,
+  PanResponder,
+  Platform,
+  Pressable,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import type { AppColors } from '../../theme';
+import { ChatActionMenu } from './ChatActionMenu';
+import { AddBankAccountSheet, BankAccountSheet } from './flows/BankAccountSheets';
+import { ContractSetupSheet } from './flows/ContractSetupSheet';
+import { PaymentQrSheet } from './flows/PaymentQrSheet';
+import { ReminderSheet } from './flows/ReminderSheet';
+import { DirectTransferSheet, TransferConfirmationSheet } from './flows/TransferSheets';
+import { formatAmount, type TransferDraft } from './paymentUtils';
+
+type ActionSheetMode =
+  | 'actions'
+  | 'contract'
+  | 'payment-qr'
+  | 'transfer'
+  | 'transfer-confirm'
+  | 'reminder'
+  | 'bank-account'
+  | 'add-bank-account';
+type ExpandedActionSheetMode = Exclude<ActionSheetMode, 'actions'>;
+const COLLAPSED_SHEET_HEIGHT = 445;
+
+export function ChatActionSheet({
+  colors,
+  onClose,
+  visible,
+}: {
+  colors: AppColors;
+  onClose: () => void;
+  visible: boolean;
+}) {
+  const { height: windowHeight } = useWindowDimensions();
+  const [actionSheetMode, setActionSheetMode] = useState<ActionSheetMode>('actions');
+  const [pendingTransfer, setPendingTransfer] = useState<TransferDraft | null>(null);
+  const sheetTranslateY = useRef(new Animated.Value(520)).current;
+  const sheetExpansion = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!visible) return;
+
+    sheetTranslateY.setValue(520);
+    Animated.timing(sheetTranslateY, {
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
+      toValue: 0,
+      useNativeDriver: true,
+    }).start();
+  }, [sheetTranslateY, visible]);
+
+  const openExpandedSheet = (mode: ExpandedActionSheetMode) => {
+    setActionSheetMode(mode);
+    Animated.timing(sheetExpansion, {
+      duration: 320,
+      easing: Easing.out(Easing.cubic),
+      toValue: 1,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const openContractSetup = () => openExpandedSheet('contract');
+  const openPaymentQr = () => openExpandedSheet('payment-qr');
+  const openTransfer = () => openExpandedSheet('transfer');
+  const openReminder = () => openExpandedSheet('reminder');
+  const openBankAccount = () => openExpandedSheet('bank-account');
+
+  const closeActionSheet = (onClosed?: () => void) => {
+    Animated.timing(sheetTranslateY, {
+      duration: 210,
+      easing: Easing.in(Easing.cubic),
+      toValue: actionSheetMode === 'actions' ? 520 : windowHeight,
+      useNativeDriver: true,
+    }).start(() => {
+      setActionSheetMode('actions');
+      setPendingTransfer(null);
+      sheetExpansion.setValue(0);
+      onClose();
+      onClosed?.();
+    });
+  };
+
+  const handleAction = (title: string, description: string) => {
+    closeActionSheet(() => Alert.alert(title, description));
+  };
+
+  const sheetPanResponder = PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gestureState) =>
+      actionSheetMode === 'actions' && gestureState.dy > 6 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
+    onPanResponderMove: (_, gestureState) => {
+      sheetTranslateY.setValue(Math.max(0, gestureState.dy));
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      if (gestureState.dy > 110 || gestureState.vy > 0.75) {
+        closeActionSheet();
+        return;
+      }
+
+      Animated.spring(sheetTranslateY, {
+        damping: 24,
+        stiffness: 240,
+        toValue: 0,
+        useNativeDriver: true,
+      }).start();
+    },
+    onPanResponderTerminate: () => {
+      Animated.spring(sheetTranslateY, {
+        damping: 24,
+        stiffness: 240,
+        toValue: 0,
+        useNativeDriver: true,
+      }).start();
+    },
+  });
+  const expandedSheetHeight = Math.max(COLLAPSED_SHEET_HEIGHT, windowHeight);
+  const sheetCollapsedOffset = Math.max(0, expandedSheetHeight - COLLAPSED_SHEET_HEIGHT);
+  const actionSheetExpandTranslateY = sheetExpansion.interpolate({
+    inputRange: [0, 1],
+    outputRange: [sheetCollapsedOffset, 0],
+  });
+  const actionSheetRadius = sheetExpansion.interpolate({
+    inputRange: [0, 1],
+    outputRange: [30, 0],
+  });
+
+  return (
+    <Modal
+      animationType="none"
+      navigationBarTranslucent
+      onRequestClose={() => closeActionSheet()}
+      statusBarTranslucent
+      transparent
+      visible={visible}
+    >
+      <View style={styles.actionSheetOverlay}>
+        <Pressable
+          accessibilityLabel="Đóng bảng hành động"
+          accessibilityRole="button"
+          onPress={() => closeActionSheet()}
+          style={StyleSheet.absoluteFill}
+        />
+        <Animated.View
+          {...sheetPanResponder.panHandlers}
+          style={[
+            styles.actionSheetMotion,
+            {
+              height: actionSheetMode === 'actions' ? COLLAPSED_SHEET_HEIGHT : expandedSheetHeight,
+              transform: [{ translateY: sheetTranslateY }],
+            },
+          ]}
+        >
+          <Animated.View
+            nativeID="screen-chat-action-sheet"
+            testID="screen-chat-action-sheet"
+            style={[
+              styles.actionSheet,
+              {
+                backgroundColor: colors.surface,
+                borderTopLeftRadius: actionSheetRadius,
+                borderTopRightRadius: actionSheetRadius,
+                height: actionSheetMode === 'actions' ? COLLAPSED_SHEET_HEIGHT : expandedSheetHeight,
+                transform: actionSheetMode === 'actions' ? [{ translateY: 0 }] : [{ translateY: actionSheetExpandTranslateY }],
+              },
+            ]}
+          >
+            {actionSheetMode === 'actions' ? <View style={[styles.actionSheetHandle, { backgroundColor: colors.border }]} /> : null}
+            {actionSheetMode === 'contract' ? (
+                <ContractSetupSheet
+                  colors={colors}
+                  onCancel={() => closeActionSheet()}
+                  onCreate={() => closeActionSheet(() => Alert.alert('Đã khởi tạo', 'Hợp đồng đã được gửi tới Minh Anh.'))}
+                />
+              ) : actionSheetMode === 'payment-qr' ? (
+                <PaymentQrSheet
+                  colors={colors}
+                  onCancel={() => closeActionSheet()}
+                  onShare={() => Alert.alert('Chia sẻ QR', 'Mã QR IDPay đã sẵn sàng để chia sẻ.')}
+                />
+              ) : actionSheetMode === 'transfer' ? (
+                <DirectTransferSheet
+                  colors={colors}
+                  initialTransfer={pendingTransfer}
+                  onCancel={() => closeActionSheet()}
+                  onTransfer={(amount, unit, note) => {
+                    setPendingTransfer({ amount, unit, note });
+                    setActionSheetMode('transfer-confirm');
+                  }}
+                />
+              ) : actionSheetMode === 'transfer-confirm' && pendingTransfer ? (
+                <TransferConfirmationSheet
+                  colors={colors}
+                  note={pendingTransfer.note}
+                  onBack={() => setActionSheetMode('transfer')}
+                  onCancel={() => closeActionSheet()}
+                  onConfirm={() => closeActionSheet(() => Alert.alert('Chuyển khoản thành công', `${formatAmount(pendingTransfer.amount)} ${pendingTransfer.unit} đã được gửi tới Minh Anh.`))}
+                  rawAmount={pendingTransfer.amount}
+                  unit={pendingTransfer.unit}
+                />
+              ) : actionSheetMode === 'reminder' ? (
+                <ReminderSheet
+                  colors={colors}
+                  onCancel={() => closeActionSheet()}
+                  onCreate={(title) => closeActionSheet(() => Alert.alert('Đã tạo nhắc hẹn', `Nhắc hẹn "${title}" đã được tạo.`))}
+                />
+              ) : actionSheetMode === 'bank-account' ? (
+                <BankAccountSheet
+                  colors={colors}
+                  onAdd={() => setActionSheetMode('add-bank-account')}
+                  onCancel={() => closeActionSheet()}
+                  onShare={(bank) => closeActionSheet(() => Alert.alert('Đã chia sẻ', `Thông tin tài khoản ${bank} đã được gửi trong cuộc trò chuyện.`))}
+                />
+              ) : actionSheetMode === 'add-bank-account' ? (
+                <AddBankAccountSheet
+                  colors={colors}
+                  onBack={() => setActionSheetMode('bank-account')}
+                  onSave={(bank) => {
+                    Alert.alert('Đã lưu tài khoản', `Tài khoản ${bank} đã được lưu vào ví IDPay.`);
+                    setActionSheetMode('bank-account');
+                  }}
+                />
+              ) : (
+                <ChatActionMenu
+                  colors={colors}
+                  onOpenBankAccount={openBankAccount}
+                  onOpenContract={openContractSetup}
+                  onOpenPaymentQr={openPaymentQr}
+                  onOpenReminder={openReminder}
+                  onOpenTransfer={openTransfer}
+                  onShareCredential={() => handleAction('Chia sẻ thực chứng', 'Gửi thực chứng từ ví của bạn')}
+                />
+            )}
+          </Animated.View>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  actionSheetOverlay: { backgroundColor: 'rgba(12, 20, 45, 0.32)', flex: 1, justifyContent: 'flex-end' },
+  actionSheetMotion: { width: '100%' },
+  actionSheet: { minHeight: 445, overflow: 'hidden', paddingBottom: Platform.OS === 'ios' ? 30 : 24, paddingHorizontal: 12, paddingTop: 14 },
+  actionSheetHandle: { alignSelf: 'center', borderRadius: 99, height: 5, marginBottom: 18, opacity: 0.85, width: 52 },
+});

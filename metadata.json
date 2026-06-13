@@ -1,0 +1,9 @@
+{
+  "name": "Identra",
+  "description": "Ví danh tính số tự chủ dành cho Android và iOS.",
+  "framework": "Expo React Native",
+  "requestDevicePermissions": [
+    "camera",
+    "biometric"
+  ]
+}
