@@ -21,7 +21,6 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { AppBrandLogo } from '../components/AppLogo';
 import type { AppColors } from '../theme';
 
 interface Props {
@@ -96,14 +95,15 @@ export function PhoneAuthScreen({
           >
             <ArrowLeft color={colors.text} size={27} strokeWidth={1.9} />
           </Pressable>
-          <AppBrandLogo colors={colors} logoSize={48} wordmarkSize={29} style={styles.brand} />
+          <View style={{ flex: 1, justifyContent: 'center' }} pointerEvents="none">
+            <Text accessibilityRole="header" style={[styles.title, { color: colors.text }]}>
+              {title}
+            </Text>
+          </View>
           <View style={styles.headerSpacer} />
         </View>
 
         <View style={styles.intro}>
-          <Text accessibilityRole="header" style={[styles.title, { color: colors.text }]}>
-            {title}
-          </Text>
           <Text style={[styles.description, { color: colors.textSecondary }]}>{description}</Text>
         </View>
 
@@ -336,12 +336,12 @@ const styles = StyleSheet.create({
   content: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 26 },
   contentCompact: { paddingHorizontal: 16 },
   registerContent: { paddingBottom: 34 },
-  header: { minHeight: 58, flexDirection: 'row', alignItems: 'center', marginBottom: 38 },
+  header: { minHeight: 58, flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   backButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   headerSpacer: { width: 44, height: 44 },
   brand: { flex: 1, justifyContent: 'center' },
   intro: { alignItems: 'center', marginBottom: 36 },
-  title: { fontSize: 36, lineHeight: 44, fontWeight: '800', letterSpacing: -0.9 },
+  title: { fontSize: 36, fontWeight: '800', letterSpacing: -0.9, textAlign: 'center' },
   description: { marginTop: 14, textAlign: 'center', fontSize: 16, lineHeight: 24, fontWeight: '400' },
   formCard: {
     borderWidth: 1,
@@ -403,9 +403,9 @@ const styles = StyleSheet.create({
   continueGradient: { flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center' },
   continueText: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
   switchRow: { minHeight: 70, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' },
-  switchText: { fontSize: 15, lineHeight: 22, fontWeight: '400' },
+  switchText: { fontSize: 15, lineHeight: 22, fontWeight: '400', marginTop: 30 },
   switchLink: { fontSize: 15, lineHeight: 22, fontWeight: '600' },
-  securityCard: { minHeight: 116, borderWidth: 1, borderRadius: 18, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 12 },
+  securityCard: { minHeight: 116, borderWidth: 1, borderRadius: 18, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 16},
   securityIllustration: { width: 76, height: 76, borderRadius: 38, alignItems: 'center', justifyContent: 'center' },
   securityShield: { width: 54, height: 62, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   securityDivider: { width: 1, height: 66 },
