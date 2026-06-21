@@ -26,6 +26,7 @@ import type { AppColors } from '../theme';
 interface Props {
   colors: AppColors;
   description: string;
+  initialPhoneNumber?: string;
   mode: 'login' | 'register';
   onBack: () => void;
   onContinue: (phoneNumber: string) => void;
@@ -38,6 +39,7 @@ interface Props {
 export function PhoneAuthScreen({
   colors,
   description,
+  initialPhoneNumber = '',
   mode,
   onBack,
   onContinue,
@@ -48,7 +50,9 @@ export function PhoneAuthScreen({
 }: Props) {
   const { width } = useWindowDimensions();
   const compactWidth = width <= 360;
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState(() =>
+    initialPhoneNumber.replace(/^\+84/, '0').replace(/\D/g, '').slice(0, 10),
+  );
   const [focused, setFocused] = useState(false);
   const [acceptedUsageTerms, setAcceptedUsageTerms] = useState(false);
   const [acceptedSocialTerms, setAcceptedSocialTerms] = useState(false);
@@ -341,7 +345,7 @@ const styles = StyleSheet.create({
   headerSpacer: { width: 44, height: 44 },
   brand: { flex: 1, justifyContent: 'center' },
   intro: { alignItems: 'center', marginBottom: 36 },
-  title: { fontSize: 36, fontWeight: '800', letterSpacing: -0.9, textAlign: 'center' },
+  title: { fontSize: 30, fontWeight: '800', letterSpacing: -0.9, textAlign: 'center' },
   description: { marginTop: 14, textAlign: 'center', fontSize: 16, lineHeight: 24, fontWeight: '400' },
   formCard: {
     borderWidth: 1,

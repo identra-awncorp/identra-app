@@ -1,4 +1,9 @@
+import { LinearGradient } from 'expo-linear-gradient';
+import { MessageSquareText, Phone } from 'lucide-react-native';
+import { useState } from 'react';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { AppColors } from '../theme';
+import { OtpVerificationScreen } from './OtpVerificationScreen';
 import { PhoneAuthScreen } from './PhoneAuthScreen';
 
 interface Props {
@@ -9,17 +14,166 @@ interface Props {
 }
 
 export function RegisterScreen({ colors, onBack, onContinue, onLogin }: Props) {
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [confirmationVisible, setConfirmationVisible] = useState(false);
+  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+
+  const requestVerification = (value: string) => {
+    setPhoneNumber(value);
+    setConfirmationVisible(true);
+  };
+
+  if (step === 'otp') {
+    return (
+      <OtpVerificationScreen
+        colors={colors}
+        phoneNumber={phoneNumber}
+        onBack={() => setStep('phone')}
+        onChangePhone={() => setStep('phone')}
+        onVerified={() => onContinue(phoneNumber)}
+      />
+    );
+  }
+
   return (
-    <PhoneAuthScreen
-      colors={colors}
-      description="Sử dụng số điện thoại để tạo ví định tính của bạn."
-      mode="register"
-      onBack={onBack}
-      onContinue={onContinue}
-      onSwitch={onLogin}
-      switchAction="Đăng nhập ngay"
-      switchPrompt="Bạn đã có tài khoản?"
-      title="Đăng ký"
-    />
+    <>
+      <PhoneAuthScreen
+        colors={colors}
+        description="Sử dụng số điện thoại để tạo ví định tính của bạn."
+        initialPhoneNumber={phoneNumber}
+        mode="register"
+        onBack={onBack}
+        onContinue={requestVerification}
+        onSwitch={onLogin}
+        switchAction="Đăng nhập ngay"
+        switchPrompt="Bạn đã có tài khoản?"
+        title="Đăng ký"
+      />
+      <PhoneConfirmationModal
+        colors={colors}
+        phoneNumber={phoneNumber}
+        visible={confirmationVisible}
+        onChangeNumber={() => setConfirmationVisible(false)}
+        onContinue={() => {
+          setConfirmationVisible(false);
+          setStep('otp');
+        }}
+      />
+    </>
   );
 }
+
+function PhoneConfirmationModal({
+  colors,
+  phoneNumber,
+  visible,
+  onChangeNumber,
+  onContinue,
+}: {
+  colors: AppColors;
+  phoneNumber: string;
+  visible: boolean;
+  onChangeNumber: () => void;
+  onContinue: () => void;
+}) {
+  return (
+    <Modal
+      animationType="fade"
+      onRequestClose={onChangeNumber}
+      statusBarTranslucent
+      transparent
+      visible={visible}
+    >
+      <View style={styles.modalRoot}>
+        <Pressable accessibilityLabel="Đóng xác nhận số điện thoại" onPress={onChangeNumber} style={styles.backdrop} />
+        <View style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.modalIcon, { backgroundColor: colors.surfaceMuted }]}>
+            <MessageSquareText color={colors.primaryDark} size={28} strokeWidth={1.9} />
+          </View>
+          <Text accessibilityRole="header" style={[styles.modalTitle, { color: colors.text }]}>
+            Xác thực số điện thoại
+          </Text>
+          <Text style={[styles.modalDescription, { color: colors.textSecondary }]}>
+            Identra sẽ gửi mã xác minh qua số
+          </Text>
+          <View style={[styles.phonePill, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
+            <Phone color={colors.primaryDark} size={20} strokeWidth={1.9} />
+            <Text style={[styles.phoneNumber, { color: colors.text }]}>{formatPhoneNumber(phoneNumber)}</Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onContinue}
+            style={({ pressed }) => [styles.primaryButton, { opacity: pressed ? 0.78 : 1 }]}
+          >
+            <LinearGradient
+              colors={[colors.primaryDark, '#4B86FF', colors.primaryDark]}
+              end={{ x: 1, y: 0 }}
+              start={{ x: 0, y: 0 }}
+              style={styles.primaryGradient}
+            >
+              <Text style={styles.primaryText}>Tiếp tục</Text>
+            </LinearGradient>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onChangeNumber}
+            style={({ pressed }) => [
+              styles.secondaryButton,
+              { borderColor: colors.primaryDark, opacity: pressed ? 0.65 : 1 },
+            ]}
+          >
+            <Text style={[styles.secondaryText, { color: colors.primaryDark }]}>Đổi số khác</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function formatPhoneNumber(phoneNumber: string) {
+  const digits = phoneNumber.replace(/\D/g, '');
+  if (digits.startsWith('84')) {
+    const local = digits.slice(2);
+    return `+84 ${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6)}`.trim();
+  }
+  return phoneNumber;
+}
+
+const styles = StyleSheet.create({
+  modalRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
+  backdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(7, 15, 42, 0.55)' },
+  modalCard: {
+    width: '100%',
+    maxWidth: 350,
+    borderWidth: 1,
+    borderRadius: 24,
+    paddingHorizontal: 22,
+    paddingVertical: 26,
+    alignItems: 'center',
+    shadowColor: '#07102A',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.22,
+    shadowRadius: 30,
+    elevation: 12,
+  },
+  modalIcon: { width: 58, height: 58, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
+  modalTitle: { fontSize: 22, lineHeight: 28, fontWeight: '800', textAlign: 'center' },
+  modalDescription: { marginTop: 8, fontSize: 14, lineHeight: 21, fontWeight: '400', textAlign: 'center' },
+  phonePill: {
+    width: '100%',
+    minHeight: 56,
+    marginTop: 18,
+    borderWidth: 1,
+    borderRadius: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  phoneNumber: { fontSize: 17, lineHeight: 23, fontWeight: '700', letterSpacing: 0.2 },
+  primaryButton: { width: '100%', minHeight: 52, marginTop: 24, borderRadius: 15, overflow: 'hidden' },
+  primaryGradient: { flex: 1, minHeight: 52, alignItems: 'center', justifyContent: 'center' },
+  primaryText: { color: '#FFFFFF', fontSize: 16, lineHeight: 22, fontWeight: '700' },
+  secondaryButton: { width: '100%', minHeight: 52, marginTop: 12, borderWidth: 1, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  secondaryText: { fontSize: 16, lineHeight: 22, fontWeight: '700' },
+});
