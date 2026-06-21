@@ -29,6 +29,7 @@ import {
   ShareScreen,
 } from './screens/SecondaryScreens';
 import { ScannerScreen } from './screens/ScannerScreens';
+import { ChatListScreen } from './screens/ChatListScreen';
 import { ChatScreen } from './screens/ChatScreen';
 import { OnboardingScreen } from './screens/OnboardingScreen';
 import { LoginScreen } from './screens/LoginScreen';
@@ -63,6 +64,7 @@ export function IdentraApp() {
   const [connectionInvitation, setConnectionInvitation] = useState<{ id: string; createdAt: number } | null>(null);
   const [returnScreen, setReturnScreen] = useState<ScreenKey>('wallet');
   const [chatReturnScreen, setChatReturnScreen] = useState<ScreenKey>('wallet');
+  const [selectedChatId, setSelectedChatId] = useState('minh-anh');
   const [authCompleted, setAuthCompleted] = useState(false);
   const [authEntry, setAuthEntry] = useState<'onboarding' | 'login' | 'register'>('onboarding');
   const previousScreen = useRef<ScreenKey>('wallet');
@@ -124,7 +126,7 @@ export function IdentraApp() {
             onOpenScan={() => setScreen('scan')}
             onOpenChat={() => {
               setChatReturnScreen('wallet');
-              setScreen('chat');
+              setScreen('chat-list');
             }}
           />
         );
@@ -246,7 +248,7 @@ export function IdentraApp() {
             onOpenActivity={() => setScreen('activity')}
             onOpenChat={() => {
               setChatReturnScreen('scan');
-              setScreen('chat');
+              setScreen('chat-list');
             }}
             onOpenMyQr={() => {
               const activeInvitation = connectionInvitation
@@ -307,7 +309,7 @@ export function IdentraApp() {
             onOpenActivity={() => setScreen('activity')}
             onOpenChat={() => {
               setChatReturnScreen('scan');
-              setScreen('chat');
+              setScreen('chat-list');
             }}
             onOpenMyQr={() => setScreen('scan')}
           />
@@ -319,12 +321,29 @@ export function IdentraApp() {
             logs={store.logs}
             onOpenChat={() => {
               setChatReturnScreen('activity');
-              setScreen('chat');
+              setScreen('chat-list');
             }}
           />
         );
+      case 'chat-list':
+        return (
+          <ChatListScreen
+            colors={colors}
+            onOpenFeed={() => setScreen('activity')}
+            onOpenIDPay={() => setScreen('wallet')}
+            onOpenConversation={(conversationId) => {
+              setSelectedChatId(conversationId);
+              setScreen('chat');
+            }}
+            onOpenProfile={() => {
+              setReturnScreen('chat-list');
+              setScreen('profile');
+            }}
+            onOpenScan={() => setScreen('scan')}
+          />
+        );
       case 'chat':
-        return <ChatScreen colors={colors} onBack={() => setScreen(chatReturnScreen)} />;
+        return <ChatScreen colors={colors} conversationId={selectedChatId} onBack={() => setScreen('chat-list')} />;
       case 'settings':
         return (
           <SettingsScreen
@@ -347,7 +366,7 @@ export function IdentraApp() {
             onOpenAbout={() => setScreen('settings-about')}
             onOpenChat={() => {
               setChatReturnScreen('settings');
-              setScreen('chat');
+              setScreen('chat-list');
             }}
           />
         );
@@ -421,7 +440,7 @@ export function IdentraApp() {
       case 'settings-about':
         return <AboutScreen colors={colors} onBack={() => setScreen('settings')} />;
     }
-  }, [chatReturnScreen, colors, connectionInvitation, returnScreen, screen, selectedCredential, sharePayload, store]);
+  }, [chatReturnScreen, colors, connectionInvitation, returnScreen, screen, selectedChatId, selectedCredential, sharePayload, store]);
 
   if (!store.hydrated) {
     return (

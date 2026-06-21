@@ -12,6 +12,7 @@ export type ScreenKey =
   | 'share'
   | 'share-qr'
   | 'connection-qr'
+  | 'chat-list'
   | 'chat'
   | 'notifications'
   | 'scan'

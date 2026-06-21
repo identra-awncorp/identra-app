@@ -6,6 +6,7 @@ import {
   CircleDollarSign,
   Clock3,
   FileCheck2,
+  FileText,
   ImageIcon,
   Info,
   MapPin,
@@ -16,22 +17,34 @@ import {
   Ticket,
   X,
 } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import type { ImageStyle, StyleProp } from 'react-native';
 import Reanimated, { Extrapolation, interpolate, useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppLogo } from '../../components/AppLogo';
 import { IconButton } from '../../components/ui';
+import { mediaPreviewImage } from '../../data/chatDemoData';
+import type {
+  ChatMediaPreview,
+  ChatMessage,
+  ChatThread,
+  ContractChatPayload,
+  CredentialChatPayload,
+  DeliveryStatus,
+} from '../../data/chatDemoData';
 import type { AppColors } from '../../theme';
 
-const avatar = require('../../../assets/images/student_avatar_png_1781051105999.png');
 const QUICK_ACTIONS_HEIGHT = 49;
 
 export function ChatConversation({
   colors,
+  thread,
   onBack,
   onOpenActionSheet,
 }: {
   colors: AppColors;
+  thread: ChatThread;
   onBack: () => void;
   onOpenActionSheet: () => void;
 }) {
@@ -40,6 +53,10 @@ export function ChatConversation({
   const [noticeVisible, setNoticeVisible] = useState(true);
   const [messageInputFocused, setMessageInputFocused] = useState(false);
   const keyboard = useAnimatedKeyboard();
+  useEffect(() => {
+    setNoticeVisible(true);
+  }, [thread.id]);
+
   const composerKeyboardStyle = useAnimatedStyle(() => {
     const keyboardProgress = interpolate(keyboard.height.value, [0, 160], [0, 1], Extrapolation.CLAMP);
     return {
@@ -63,12 +80,12 @@ export function ChatConversation({
         <IconButton label="Quay lại" colors={colors} onPress={onBack}>
           <ArrowLeft color={colors.text} size={25} />
         </IconButton>
-        <Image source={avatar} style={styles.headerAvatar} />
+        <ThreadAvatar colors={colors} thread={thread} size={48} style={styles.headerAvatar} />
         <View style={styles.headerMain}>
-          <Text style={[styles.headerName, { color: colors.text }]}>Minh Anh</Text>
+          <Text numberOfLines={1} style={[styles.headerName, { color: colors.text }]}>{thread.name}</Text>
           <View style={styles.verifiedRow}>
             <ShieldCheck color={colors.success} fill={colors.success} size={15} />
-            <Text style={[styles.verifiedText, { color: colors.success }]}>Kết nối SSI đã xác minh</Text>
+            <Text numberOfLines={1} style={[styles.verifiedText, { color: colors.success }]}>{thread.subtitle}</Text>
           </View>
         </View>
         <View style={[styles.headerShield, { backgroundColor: colors.surfaceMuted }]}>
@@ -86,26 +103,14 @@ export function ChatConversation({
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.conversation}
       >
-        <IncomingMessage colors={colors} text="Chào bạn, mình muốn mua vé xem phim Dune 2 suất 20:00 tối nay." time="10:30" />
-        <OutgoingMessage
-          colors={colors}
-          text="Mình còn 1 vé. Mình sẽ gửi thực chứng vé và hợp đồng để giao dịch an toàn."
-          time="10:32"
-        />
-        <View style={styles.outgoingWrap}>
-          <CredentialMessage colors={colors} />
-          <MessageTime colors={colors} time="10:33" outgoing />
-        </View>
-        <IncomingMessage colors={colors} text="Cảm ơn bạn! Gửi mình hợp đồng nhé." time="10:34" />
-        <View style={styles.outgoingWrap}>
-          <ContractMessage colors={colors} />
-          <MessageTime colors={colors} time="10:35" outgoing />
-        </View>
-        {noticeVisible ? (
+        {thread.messages.map((item) => (
+          <ChatMessageItem key={item.id} colors={colors} message={item} thread={thread} />
+        ))}
+        {thread.notice && noticeVisible ? (
           <View style={[styles.notice, { backgroundColor: colors.surfaceMuted }]}>
             <ShieldCheck color={colors.primaryDark} size={27} />
             <Text style={[styles.noticeText, { color: colors.textSecondary }]}>
-              Thực chứng và khoản thanh toán sẽ được xử lý theo hợp đồng thông minh để giảm rủi ro lừa đảo.
+              {thread.notice}
             </Text>
             <Pressable accessibilityRole="button" accessibilityLabel="Đóng cảnh báo" onPress={() => setNoticeVisible(false)} style={styles.noticeClose}>
               <X color={colors.textSecondary} size={20} />
@@ -152,11 +157,106 @@ export function ChatConversation({
   );
 }
 
-function IncomingMessage({ colors, text, time }: { colors: AppColors; text: string; time: string }) {
+function ChatMessageItem({
+  colors,
+  message,
+  thread,
+}: {
+  colors: AppColors;
+  message: ChatMessage;
+  thread: ChatThread;
+}) {
+  if (message.type === 'text') {
+    return message.direction === 'incoming' ? (
+      <IncomingMessage colors={colors} text={message.text} time={message.time} thread={thread} senderName={message.senderName} />
+    ) : (
+      <OutgoingMessage colors={colors} text={message.text} time={message.time} deliveryStatus={message.deliveryStatus} />
+    );
+  }
+
+  if (message.type === 'media') {
+    return <MediaMessage colors={colors} message={message} thread={thread} />;
+  }
+
+  if (message.type === 'credential') {
+    return (
+      <View style={styles.outgoingWrap}>
+        <CredentialMessage colors={colors} credential={message.credential} />
+        <MessageTime colors={colors} time={message.time} outgoing deliveryStatus={message.deliveryStatus} />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.outgoingWrap}>
+      <ContractMessage colors={colors} contract={message.contract} />
+      <MessageTime colors={colors} time={message.time} outgoing deliveryStatus={message.deliveryStatus} />
+    </View>
+  );
+}
+
+function ThreadAvatar({
+  colors,
+  thread,
+  size,
+  style,
+}: {
+  colors: AppColors;
+  thread: ChatThread;
+  size: number;
+  style?: StyleProp<ImageStyle>;
+}) {
+  if (thread.avatarSource) {
+    return <Image source={thread.avatarSource} style={[{ width: size, height: size, borderRadius: size / 2 }, style]} />;
+  }
+
+  if (thread.avatar === 'identra') {
+    return (
+      <View
+        style={[
+          styles.fallbackAvatar,
+          { width: size, height: size, borderRadius: size / 2, backgroundColor: colors.surfaceMuted },
+          style,
+        ]}
+      >
+        <AppLogo size={Math.floor(size * 0.62)} />
+      </View>
+    );
+  }
+
+  return (
+    <View
+      style={[
+        styles.fallbackAvatar,
+        { width: size, height: size, borderRadius: size / 2, backgroundColor: colors.surfaceMuted },
+        style,
+      ]}
+    >
+      <Text style={[styles.fallbackAvatarText, { color: colors.primaryDark, fontSize: Math.max(12, size * 0.32) }]}>
+        {thread.initials ?? thread.name.slice(0, 2).toUpperCase()}
+      </Text>
+    </View>
+  );
+}
+
+function IncomingMessage({
+  colors,
+  text,
+  time,
+  thread,
+  senderName,
+}: {
+  colors: AppColors;
+  text: string;
+  time: string;
+  thread: ChatThread;
+  senderName?: string;
+}) {
   return (
     <View style={styles.incomingRow}>
-      <Image source={avatar} style={styles.messageAvatar} />
+      <ThreadAvatar colors={colors} thread={thread} size={34} style={styles.messageAvatar} />
       <View style={styles.incomingMain}>
+        {senderName ? <Text style={[styles.senderName, { color: colors.textSecondary }]}>{senderName}</Text> : null}
         <View style={[styles.incomingBubble, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.messageText, { color: colors.text }]}>{text}</Text>
         </View>
@@ -166,43 +266,150 @@ function IncomingMessage({ colors, text, time }: { colors: AppColors; text: stri
   );
 }
 
-function OutgoingMessage({ colors, text, time }: { colors: AppColors; text: string; time: string }) {
+function OutgoingMessage({
+  colors,
+  text,
+  time,
+  deliveryStatus,
+}: {
+  colors: AppColors;
+  text: string;
+  time: string;
+  deliveryStatus?: DeliveryStatus;
+}) {
   return (
     <View style={styles.outgoingWrap}>
       <View style={[styles.outgoingBubble, { backgroundColor: colors.surfaceMuted, borderColor: '#BFD1FF' }]}>
         <Text style={[styles.messageText, { color: colors.text }]}>{text}</Text>
       </View>
-      <MessageTime colors={colors} time={time} outgoing />
+      <MessageTime colors={colors} time={time} outgoing deliveryStatus={deliveryStatus} />
     </View>
   );
 }
 
-function MessageTime({ colors, time, outgoing = false }: { colors: AppColors; time: string; outgoing?: boolean }) {
+function MediaMessage({
+  colors,
+  message,
+  thread,
+}: {
+  colors: AppColors;
+  message: Extract<ChatMessage, { type: 'media' }>;
+  thread: ChatThread;
+}) {
+  const content = (
+    <View style={[styles.mediaBubble, { backgroundColor: message.direction === 'outgoing' ? colors.surfaceMuted : colors.surface, borderColor: message.direction === 'outgoing' ? '#BFD1FF' : colors.border }]}>
+      <MediaPreview colors={colors} media={message.media} />
+      <Text numberOfLines={2} style={[styles.mediaMessageText, { color: message.media.type === 'photo' && !message.text ? colors.primaryDark : colors.text }]}>
+        {message.text || getMediaLabel(message.media)}
+      </Text>
+    </View>
+  );
+
+  if (message.direction === 'incoming') {
+    return (
+      <View style={styles.incomingRow}>
+        <ThreadAvatar colors={colors} thread={thread} size={34} style={styles.messageAvatar} />
+        <View style={styles.incomingMain}>
+          {message.senderName ? <Text style={[styles.senderName, { color: colors.textSecondary }]}>{message.senderName}</Text> : null}
+          {content}
+          <MessageTime colors={colors} time={message.time} />
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.outgoingWrap}>
+      {content}
+      <MessageTime colors={colors} time={message.time} outgoing deliveryStatus={message.deliveryStatus} />
+    </View>
+  );
+}
+
+function MediaPreview({ colors, media }: { colors: AppColors; media: ChatMediaPreview }) {
+  const count = Math.min(media.count ?? 1, 4);
+  const overflowCount = Math.max((media.count ?? 1) - count, 0);
+
+  return (
+    <View style={styles.mediaPreviewStack}>
+      {Array.from({ length: count }).map((_, index) => {
+        const showOverflow = index === count - 1 && overflowCount > 0;
+        return (
+          <View
+            key={`${media.type}-${index}`}
+            style={[
+              styles.mediaPreviewThumb,
+              index > 0 && styles.mediaPreviewOverlap,
+              { backgroundColor: media.type === 'file' ? colors.surfaceMuted : '#EAF2FF', borderColor: colors.surface },
+            ]}
+          >
+            {media.type === 'photo' ? (
+              <Image source={mediaPreviewImage} style={styles.mediaPreviewImage} />
+            ) : media.type === 'gif' ? (
+              <Text style={[styles.gifPreviewText, { color: colors.primaryDark }]}>GIF</Text>
+            ) : (
+              <FileText color={colors.primaryDark} size={20} strokeWidth={2} />
+            )}
+            {showOverflow ? (
+              <View style={styles.mediaPreviewOverlay}>
+                <Text style={styles.mediaPreviewOverlayText}>+{overflowCount}</Text>
+              </View>
+            ) : null}
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+function MessageTime({
+  colors,
+  time,
+  outgoing = false,
+  deliveryStatus,
+}: {
+  colors: AppColors;
+  time: string;
+  outgoing?: boolean;
+  deliveryStatus?: DeliveryStatus;
+}) {
   return (
     <View style={[styles.timeRow, outgoing && styles.timeRowOutgoing]}>
       <Text style={[styles.timeText, { color: colors.textSecondary }]}>{time}</Text>
-      {outgoing ? <CheckCheck color={colors.primaryDark} size={15} /> : null}
+      {outgoing && deliveryStatus ? <DeliveryStatusIcon colors={colors} status={deliveryStatus} /> : null}
     </View>
   );
 }
 
-function CredentialMessage({ colors }: { colors: AppColors }) {
+function DeliveryStatusIcon({ colors, status }: { colors: AppColors; status: DeliveryStatus }) {
+  if (status === 'pending') return <Clock3 color="#F59E0B" size={14} strokeWidth={2.2} />;
+  if (status === 'seen') return <CheckCheck color={colors.primaryDark} size={15} strokeWidth={2.2} />;
+  return <Check color={colors.textSecondary} size={14} strokeWidth={2.2} />;
+}
+
+function getMediaLabel(media: ChatMediaPreview) {
+  if (media.type === 'photo') return 'Photo';
+  if (media.type === 'gif') return 'GIF';
+  return media.fileName ?? 'File';
+}
+
+function CredentialMessage({ colors, credential }: { colors: AppColors; credential: CredentialChatPayload }) {
   return (
     <View style={[styles.richCard, { backgroundColor: colors.surface, borderColor: '#BFD1FF' }]}>
       <View style={styles.richHeader}>
         <View style={styles.ticketIcon}><Ticket color="#FFFFFF" size={25} /></View>
         <View style={styles.richHeaderMain}>
-          <Text style={[styles.richTitle, { color: colors.text }]}>Thực chứng vé xem phim</Text>
-          <Text style={[styles.richSubtitle, { color: colors.textSecondary }]}>CGV Vincom</Text>
+          <Text style={[styles.richTitle, { color: colors.text }]}>{credential.title}</Text>
+          <Text style={[styles.richSubtitle, { color: colors.textSecondary }]}>{credential.issuer}</Text>
         </View>
         <View style={[styles.miniVerified, { backgroundColor: colors.surfaceMuted }]}><ShieldCheck color={colors.success} fill={colors.success} size={17} /></View>
       </View>
       <View style={[styles.ticketDetails, { borderColor: colors.border }]}>
-        <DetailRow colors={colors} icon={Ticket} label="Phim:" value="Dune 2" />
-        <DetailRow colors={colors} icon={Clock3} label="Suất chiếu:" value="20:00, 22/06/2024" />
-        <DetailRow colors={colors} icon={MapPin} label="Ghế:" value="A12" />
+        {credential.details.map((item) => (
+          <DetailRow key={`${item.label}-${item.value}`} colors={colors} icon={detailIconMap[item.icon]} label={item.label} value={item.value} />
+        ))}
       </View>
-      <Pressable accessibilityRole="button" onPress={() => Alert.alert('Thực chứng vé xem phim', 'Thực chứng đã được xác minh bởi CGV Vincom.')} style={[styles.richFooter, { borderTopColor: colors.border }]}>
+      <Pressable accessibilityRole="button" onPress={() => Alert.alert(credential.title, `Thực chứng đã được xác minh bởi ${credential.issuer}.`)} style={[styles.richFooter, { borderTopColor: colors.border }]}>
         <View style={styles.verifiedRow}><Check color={colors.success} size={15} /><Text style={[styles.verifiedText, { color: colors.success }]}>Đã xác minh</Text></View>
         <Text style={[styles.richLink, { color: colors.primaryDark }]}>Xem thực chứng</Text>
         <ChevronRight color={colors.primaryDark} size={18} />
@@ -211,22 +418,28 @@ function CredentialMessage({ colors }: { colors: AppColors }) {
   );
 }
 
-function ContractMessage({ colors }: { colors: AppColors }) {
+const detailIconMap = {
+  ticket: Ticket,
+  clock: Clock3,
+  map: MapPin,
+};
+
+function ContractMessage({ colors, contract }: { colors: AppColors; contract: ContractChatPayload }) {
   return (
     <View style={[styles.contractCard, { backgroundColor: colors.surface, borderColor: '#BFD1FF' }]}>
       <View style={styles.contractHeader}>
         <View style={[styles.contractIcon, { backgroundColor: colors.surfaceMuted }]}><FileCheck2 color={colors.primaryDark} size={22} /></View>
-        <Text style={[styles.contractTitle, { color: colors.text }]}>Hợp đồng trao đổi an toàn</Text>
-        <View style={styles.pendingPill}><Clock3 color="#F57900" size={13} /><Text style={styles.pendingText}>Đang chờ phản hồi</Text></View>
+        <Text style={[styles.contractTitle, { color: colors.text }]}>{contract.title}</Text>
+        <View style={styles.pendingPill}><Clock3 color="#F57900" size={13} /><Text style={styles.pendingText}>{contract.status}</Text></View>
       </View>
       <View style={[styles.exchangeBox, { borderColor: colors.border }]}>
         <View style={styles.exchangeColumn}>
           <Text style={[styles.exchangeLabel, { color: colors.textSecondary }]}>Vật phẩm giao dịch</Text>
-          <View style={styles.exchangeValueRow}><Ticket color={colors.primaryDark} size={20} /><Text style={[styles.exchangeValue, { color: colors.text }]}>Thực chứng vé xem phim Dune 2</Text></View>
+          <View style={styles.exchangeValueRow}><Ticket color={colors.primaryDark} size={20} /><Text style={[styles.exchangeValue, { color: colors.text }]}>{contract.asset}</Text></View>
         </View>
         <View style={[styles.exchangeColumn, styles.exchangeDivider, { borderLeftColor: colors.border }]}>
           <Text style={[styles.exchangeLabel, { color: colors.textSecondary }]}>Đối ứng</Text>
-          <View style={styles.exchangeValueRow}><CircleDollarSign color={colors.success} size={22} /><Text style={[styles.exchangeValue, { color: colors.text }]}>450.000 VND</Text></View>
+          <View style={styles.exchangeValueRow}><CircleDollarSign color={colors.success} size={22} /><Text style={[styles.exchangeValue, { color: colors.text }]}>{contract.amount}</Text></View>
         </View>
         <View style={[styles.paymentRow, { borderTopColor: colors.border }]}><CircleDollarSign color={colors.textSecondary} size={17} /><Text style={[styles.paymentText, { color: colors.textSecondary }]}>Thanh toán: Tiền pháp định hoặc USDT</Text></View>
       </View>
@@ -265,10 +478,39 @@ const styles = StyleSheet.create({
   incomingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, maxWidth: '72%' },
   messageAvatar: { width: 34, height: 34, borderRadius: 17 },
   incomingMain: { flex: 1, minWidth: 0 },
+  senderName: { marginBottom: 3, paddingHorizontal: 4, fontSize: 10, lineHeight: 13, fontWeight: '800' },
   incomingBubble: { borderWidth: 1, borderRadius: 16, borderTopLeftRadius: 5, paddingHorizontal: 13, paddingVertical: 10 },
   outgoingWrap: { alignSelf: 'flex-end', width: '82%' },
   outgoingBubble: { borderWidth: 1, borderRadius: 16, borderTopRightRadius: 5, paddingHorizontal: 13, paddingVertical: 11 },
   messageText: { fontSize: 13, lineHeight: 19, fontWeight: '500' },
+  fallbackAvatar: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  fallbackAvatarText: { fontWeight: '900' },
+  mediaBubble: { borderWidth: 1, borderRadius: 16, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  mediaMessageText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: '800' },
+  mediaPreviewStack: { flexDirection: 'row', alignItems: 'center', paddingRight: 2 },
+  mediaPreviewThumb: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  mediaPreviewOverlap: { marginLeft: -14 },
+  mediaPreviewImage: { width: '100%', height: '100%' },
+  gifPreviewText: { fontSize: 11, lineHeight: 13, fontWeight: '900' },
+  mediaPreviewOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.56)',
+  },
+  mediaPreviewOverlayText: { color: '#FFFFFF', fontSize: 11, lineHeight: 13, fontWeight: '900' },
   timeRow: { marginTop: 4, paddingHorizontal: 4, flexDirection: 'row', alignItems: 'center', gap: 4 },
   timeRowOutgoing: { justifyContent: 'flex-end' },
   timeText: { fontSize: 10, fontWeight: '600' },
