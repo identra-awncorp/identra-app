@@ -36,6 +36,7 @@ import type {
 import type { AppColors } from '../../theme';
 
 const QUICK_ACTIONS_HEIGHT = 49;
+const verifiedBadgeIcon = require('../../../assets/images/verified-badge-icon.png');
 
 export function ChatConversation({
   colors,
@@ -53,6 +54,7 @@ export function ChatConversation({
   const [noticeVisible, setNoticeVisible] = useState(true);
   const [messageInputFocused, setMessageInputFocused] = useState(false);
   const keyboard = useAnimatedKeyboard();
+  const contactVerified = Boolean(thread.verified || thread.subtitle.toLocaleLowerCase('vi-VN').includes('xác minh'));
   useEffect(() => {
     setNoticeVisible(true);
   }, [thread.id]);
@@ -80,9 +82,12 @@ export function ChatConversation({
         <IconButton label="Quay lại" colors={colors} onPress={onBack}>
           <ArrowLeft color={colors.text} size={25} />
         </IconButton>
-        <ThreadAvatar colors={colors} thread={thread} size={48} style={styles.headerAvatar} />
+        <ThreadAvatar colors={colors} thread={thread} size={42} style={styles.headerAvatar} />
         <View style={styles.headerMain}>
-          <Text numberOfLines={1} style={[styles.headerName, { color: colors.text }]}>{thread.name}</Text>
+          <View style={styles.headerNameRow}>
+            <Text numberOfLines={1} style={[styles.headerName, { color: colors.text }]}>{thread.name}</Text>
+            {contactVerified ? <VerifiedBadgeIcon size={20} /> : null}
+          </View>
           <View style={styles.verifiedRow}>
             <ShieldCheck color={colors.success} fill={colors.success} size={15} />
             <Text numberOfLines={1} style={[styles.verifiedText, { color: colors.success }]}>{thread.subtitle}</Text>
@@ -155,6 +160,10 @@ export function ChatConversation({
       </Reanimated.View>
     </>
   );
+}
+
+function VerifiedBadgeIcon({ size = 20 }: { size?: number }) {
+  return <Image source={verifiedBadgeIcon} style={{ width: size, height: size }} resizeMode="contain" />;
 }
 
 function ChatMessageItem({
@@ -466,13 +475,14 @@ function QuickChatAction({ colors, icon: Icon, label, success }: { colors: AppCo
 }
 
 const styles = StyleSheet.create({
-  header: { minHeight: 72, borderBottomWidth: 1, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerAvatar: { width: 48, height: 48, borderRadius: 24 },
+  header: { minHeight: 66, borderBottomWidth: 1, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  headerAvatar: { width: 38, height: 38, borderRadius: 21 },
   headerMain: { flex: 1, minWidth: 0 },
-  headerName: { fontSize: 20, fontWeight: '900' },
+  headerNameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  headerName: { flexShrink: 1, fontSize: 16, lineHeight: 20, fontWeight: '900' },
   verifiedRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   verifiedText: { fontSize: 11, fontWeight: '800' },
-  headerShield: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
+  headerShield: { width: 38, height: 38, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   conversationScroll: { flex: 1 },
   conversation: { paddingHorizontal: 12, paddingTop: 14, paddingBottom: 18, gap: 9 },
   incomingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, maxWidth: '72%' },
