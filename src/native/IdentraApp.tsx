@@ -3,20 +3,31 @@ import {
   BellRing,
   Building2,
   FileCheck2,
+  House,
+  MessageCircle,
   NotebookPen,
-  ScanLine,
   Settings,
   Share2,
   ShieldCheck,
+  UserRound,
   UserCheck,
-  WalletCards,
+  X,
 } from 'lucide-react-native';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type ComponentType, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { border, darkColors, layout, lightColors, palette, spacing, typography } from './theme';
-import type { Credential, ScreenKey, TabKey } from './types';
+import { border, darkColors, layout, lightColors, palette, radius, shadows, spacing, touchTarget, typography } from './theme';
+import type { Credential, ScreenKey, SmartContractFeedPost, TabKey } from './types';
 import { useAppStore } from './store';
+import { AppBrandLogo } from './components/AppLogo';
+import {
+  ChatNavIcon,
+  IdentityNavIcon,
+  NewsFeedNavIcon,
+  PaymentNavIcon,
+  ScanQrNavIcon,
+  type BottomNavIconProps,
+} from './components/icons/bottom-nav';
 import { WalletScreen } from './screens/WalletScreen';
 import { CredentialsScreen } from './screens/CredentialsScreen';
 import {
@@ -27,10 +38,14 @@ import {
   SecurityScreen,
   ShareQrScreen,
   ShareScreen,
+  SmartContractDetailScreen,
 } from './screens/SecondaryScreens';
 import { ScannerScreen } from './screens/ScannerScreens';
 import { ChatListScreen } from './screens/ChatListScreen';
 import { ChatScreen } from './screens/ChatScreen';
+import { NewsFeedScreen } from './screens/NewsFeedScreen';
+import { LiveStreamScreen } from './screens/LiveStreamScreen';
+import { PaymentScreen } from './screens/PaymentScreen';
 import { OnboardingScreen } from './screens/OnboardingScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { RegisterScreen } from './screens/RegisterScreen';
@@ -46,44 +61,50 @@ import {
 } from './screens/MainScreens';
 
 const tabScreens: Record<TabKey, ScreenKey> = {
-  wallet: 'wallet',
+  chat: 'chat-list',
+  feed: 'news-feed',
   scan: 'scan',
-  activity: 'activity',
-  settings: 'settings',
+  payment: 'payment',
+  identity: 'wallet',
 };
 
-const bottomNavScreens = new Set<ScreenKey>(['wallet', 'credentials', 'notifications', 'scan', 'activity', 'settings']);
+const bottomNavScreens = new Set<ScreenKey>(['chat-list', 'news-feed', 'scan', 'payment', 'wallet', 'credentials', 'notifications']);
 
 export function IdentraApp() {
   const store = useAppStore();
   const systemScheme = useColorScheme();
   const insets = useSafeAreaInsets();
-  const [screen, setScreen] = useState<ScreenKey>('wallet');
+  const [screen, setScreen] = useState<ScreenKey>('chat-list');
   const [selectedCredential, setSelectedCredential] = useState<Credential | null>(null);
+  const [selectedSmartContractPost, setSelectedSmartContractPost] = useState<SmartContractFeedPost | null>(null);
   const [sharePayload, setSharePayload] = useState<{ credential: Credential; attributes: Credential['attributes'] } | null>(null);
   const [connectionInvitation, setConnectionInvitation] = useState<{ id: string; createdAt: number } | null>(null);
-  const [returnScreen, setReturnScreen] = useState<ScreenKey>('wallet');
-  const [chatReturnScreen, setChatReturnScreen] = useState<ScreenKey>('wallet');
+  const [returnScreen, setReturnScreen] = useState<ScreenKey>('chat-list');
+  const [chatReturnScreen, setChatReturnScreen] = useState<ScreenKey>('chat-list');
   const [selectedChatId, setSelectedChatId] = useState('minh-anh');
+  const [sideMenuOpen, setSideMenuOpen] = useState(false);
   const [authCompleted, setAuthCompleted] = useState(false);
   const [authEntry, setAuthEntry] = useState<'onboarding' | 'login' | 'register'>('onboarding');
-  const previousScreen = useRef<ScreenKey>('wallet');
+  const previousScreen = useRef<ScreenKey>('chat-list');
 
   const isDark = store.settings.theme === 'dark' || (store.settings.theme === 'system' && systemScheme === 'dark');
   const colors = isDark ? darkColors : lightColors;
   const activeTab: TabKey | null =
-    screen === 'notifications'
-      ? null
-      : screen === 'scan'
-      ? 'scan'
-      : screen === 'activity'
-        ? 'activity'
-        : screen.startsWith('settings')
-          ? 'settings'
-          : 'wallet';
+    screen === 'chat-list'
+      ? 'chat'
+      : screen === 'news-feed'
+        ? 'feed'
+        : screen === 'scan'
+          ? 'scan'
+          : screen === 'payment'
+            ? 'payment'
+            : screen === 'wallet' || screen === 'credentials'
+              ? 'identity'
+              : null;
 
   const showBottomNav = bottomNavScreens.has(screen);
   const unreadActivityCount = store.logs.filter((log) => log.unread).length;
+  const openSideMenu = useCallback(() => setSideMenuOpen(true), []);
 
   useEffect(() => {
     if (screen === 'activity' && unreadActivityCount) store.markAllActivityLogsRead();
@@ -101,6 +122,44 @@ export function IdentraApp() {
     };
 
     switch (screen) {
+      case 'news-feed':
+        return (
+          <NewsFeedScreen
+            colors={colors}
+            onOpenLiveStream={() => setScreen('live-stream')}
+            onOpenMenu={openSideMenu}
+            onOpenNotifications={() => {
+              setReturnScreen('news-feed');
+              setScreen('notifications');
+            }}
+            onOpenSmartContractDetail={(post) => {
+              setSelectedSmartContractPost(post);
+              setScreen('smart-contract-detail');
+            }}
+          />
+        );
+      case 'live-stream':
+        return <LiveStreamScreen colors={colors} onBack={() => setScreen('news-feed')} />;
+      case 'smart-contract-detail':
+        return selectedSmartContractPost ? (
+          <SmartContractDetailScreen colors={colors} post={selectedSmartContractPost} onBack={() => setScreen('news-feed')} />
+        ) : (
+          <NewsFeedScreen
+            colors={colors}
+            onOpenLiveStream={() => setScreen('live-stream')}
+            onOpenMenu={openSideMenu}
+            onOpenNotifications={() => {
+              setReturnScreen('news-feed');
+              setScreen('notifications');
+            }}
+            onOpenSmartContractDetail={(post) => {
+              setSelectedSmartContractPost(post);
+              setScreen('smart-contract-detail');
+            }}
+          />
+        );
+      case 'payment':
+        return <PaymentScreen colors={colors} />;
       case 'wallet':
         return (
           <WalletScreen
@@ -128,6 +187,7 @@ export function IdentraApp() {
               setChatReturnScreen('wallet');
               setScreen('chat-list');
             }}
+            onOpenMenu={openSideMenu}
           />
         );
       case 'credentials':
@@ -329,17 +389,11 @@ export function IdentraApp() {
         return (
           <ChatListScreen
             colors={colors}
-            onOpenFeed={() => setScreen('activity')}
-            onOpenIDPay={() => setScreen('wallet')}
             onOpenConversation={(conversationId) => {
               setSelectedChatId(conversationId);
               setScreen('chat');
             }}
-            onOpenProfile={() => {
-              setReturnScreen('chat-list');
-              setScreen('profile');
-            }}
-            onOpenScan={() => setScreen('scan')}
+            onOpenMenu={openSideMenu}
           />
         );
       case 'chat':
@@ -440,7 +494,7 @@ export function IdentraApp() {
       case 'settings-about':
         return <AboutScreen colors={colors} onBack={() => setScreen('settings')} />;
     }
-  }, [chatReturnScreen, colors, connectionInvitation, returnScreen, screen, selectedChatId, selectedCredential, sharePayload, store]);
+  }, [chatReturnScreen, colors, connectionInvitation, openSideMenu, returnScreen, screen, selectedChatId, selectedCredential, selectedSmartContractPost, sharePayload, store]);
 
   if (!store.hydrated) {
     return (
@@ -497,10 +551,23 @@ export function IdentraApp() {
             colors={colors}
             activeTab={activeTab}
             bottomInset={insets.bottom}
-            unreadActivityCount={unreadActivityCount}
             onSelect={(tab) => setScreen(tabScreens[tab])}
           />
         ) : null}
+        <SideMenu
+          colors={colors}
+          currentScreen={screen}
+          unreadActivityCount={unreadActivityCount}
+          visible={sideMenuOpen}
+          onClose={() => setSideMenuOpen(false)}
+          onNavigate={(target) => {
+            setSideMenuOpen(false);
+            if (target === 'credentials' || target === 'notifications' || target === 'profile' || target === 'security') {
+              setReturnScreen(screen);
+            }
+            setScreen(target);
+          }}
+        />
       </SafeAreaView>
     </View>
   );
@@ -510,20 +577,19 @@ function BottomNavigation({
   colors,
   activeTab,
   bottomInset,
-  unreadActivityCount,
   onSelect,
 }: {
   colors: typeof lightColors;
   activeTab: TabKey | null;
   bottomInset: number;
-  unreadActivityCount: number;
   onSelect: (tab: TabKey) => void;
 }) {
-  const tabs = [
-    { key: 'wallet' as const, label: 'Ví', icon: WalletCards },
-    { key: 'scan' as const, label: 'Quét', icon: ScanLine },
-    { key: 'activity' as const, label: 'Hoạt động', icon: NotebookPen },
-    { key: 'settings' as const, label: 'Cài đặt', icon: Settings },
+  const tabs: Array<{ key: TabKey; label: string; icon: ComponentType<BottomNavIconProps> }> = [
+    { key: 'chat', label: 'Chat', icon: ChatNavIcon },
+    { key: 'feed', label: 'News Feed', icon: NewsFeedNavIcon },
+    { key: 'scan', label: 'Scan QR', icon: ScanQrNavIcon },
+    { key: 'payment', label: 'Payment', icon: PaymentNavIcon },
+    { key: 'identity', label: 'Identity', icon: IdentityNavIcon },
   ];
 
   return (
@@ -551,25 +617,95 @@ function BottomNavigation({
             onPress={() => onSelect(tab.key)}
             style={({ pressed }) => [styles.bottomNavItem, { opacity: pressed ? 0.55 : 1 }]}
           >
-            <View style={styles.bottomNavIcon}>
+            <View style={[styles.bottomNavIcon, !active && styles.bottomNavIconInactive]}>
               <Icon
-                color={active ? colors.primaryDark : colors.textSecondary}
-                fill={active && tab.key === 'wallet' ? 'rgba(53, 92, 255, 0.12)' : 'none'}
-                size={22}
-                strokeWidth={active ? 2.4 : 1.9}
+                color={active ? colors.primaryDark : colors.text}
+                backgroundColor={colors.surface}
+                size={28}
               />
-              {tab.key === 'activity' && unreadActivityCount > 0 ? (
-                <View style={[styles.activityBadge, { borderColor: colors.surface }]}>
-                  <Text style={styles.activityBadgeText}>{unreadActivityCount > 99 ? '99+' : unreadActivityCount}</Text>
-                </View>
-              ) : null}
             </View>
-            <Text style={[styles.bottomNavLabel, { color: active ? colors.primaryDark : colors.textSecondary }]}>
-              {tab.label}
-            </Text>
           </Pressable>
         );
       })}
+    </View>
+  );
+}
+
+function SideMenu({
+  colors,
+  currentScreen,
+  onClose,
+  onNavigate,
+  unreadActivityCount,
+  visible,
+}: {
+  colors: typeof lightColors;
+  currentScreen: ScreenKey;
+  onClose: () => void;
+  onNavigate: (screen: ScreenKey) => void;
+  unreadActivityCount: number;
+  visible: boolean;
+}) {
+  if (!visible) return null;
+
+  const items: Array<{ target: ScreenKey; label: string; description: string; icon: typeof MessageCircle; badge?: number }> = [
+    { target: 'news-feed', label: 'Bảng tin', description: 'Cập nhật từ Identra và cộng đồng', icon: House },
+    { target: 'wallet', label: 'Danh tính', description: 'Ví danh tính và thực chứng của bạn', icon: UserRound },
+    { target: 'credentials', label: 'Thực chứng của tôi', description: 'Danh sách VC đã nhận', icon: FileCheck2 },
+    { target: 'activity', label: 'Hoạt động', description: 'Xác minh và chia sẻ dữ liệu', icon: NotebookPen, badge: unreadActivityCount },
+    { target: 'settings', label: 'Cài đặt', description: 'Quản lý tài khoản và quyền riêng tư', icon: Settings },
+    { target: 'notifications', label: 'Thông báo', description: 'Cảnh báo và cập nhật quan trọng', icon: BellRing },
+    { target: 'profile', label: 'Hồ sơ cá nhân', description: 'Thông tin hiển thị của bạn', icon: UserCheck },
+    { target: 'security', label: 'Bảo mật', description: 'Mã khóa, xác thực và bảo vệ ví', icon: ShieldCheck },
+  ];
+
+  return (
+    <View nativeID="identra-side-menu" testID="identra-side-menu" style={styles.sideMenuLayer}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Đóng menu" onPress={onClose} style={[styles.sideMenuBackdrop, { backgroundColor: colors.overlay }]} />
+      <View style={[styles.sideMenuPanel, shadows.floating, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.sideMenuHeader}>
+          <AppBrandLogo colors={colors} logoSize={30} wordmarkSize={21} style={styles.sideMenuBrand} />
+          <Pressable accessibilityRole="button" accessibilityLabel="Đóng menu" onPress={onClose} style={styles.sideMenuClose}>
+            <X color={colors.text} size={24} strokeWidth={2} />
+          </Pressable>
+        </View>
+        <Text style={[styles.sideMenuEyebrow, { color: colors.textSecondary }]}>Điều hướng</Text>
+        <View style={styles.sideMenuList}>
+          {items.map((item) => {
+            const Icon = item.icon;
+            const active = item.target === currentScreen;
+            return (
+              <Pressable
+                key={item.target}
+                accessibilityRole="button"
+                accessibilityLabel={item.label}
+                accessibilityState={{ selected: active }}
+                onPress={() => onNavigate(item.target)}
+                style={({ pressed }) => [
+                  styles.sideMenuItem,
+                  {
+                    backgroundColor: active ? colors.surfaceMuted : 'transparent',
+                    opacity: pressed ? 0.66 : 1,
+                  },
+                ]}
+              >
+                <View style={[styles.sideMenuItemIcon, { backgroundColor: active ? palette.blue[100] : colors.surfaceMuted }]}>
+                  <Icon color={active ? colors.primaryDark : colors.textSecondary} size={22} strokeWidth={1.9} />
+                </View>
+                <View style={styles.sideMenuItemCopy}>
+                  <Text style={[styles.sideMenuItemTitle, { color: colors.text }]}>{item.label}</Text>
+                  <Text numberOfLines={1} style={[styles.sideMenuItemDescription, { color: colors.textSecondary }]}>{item.description}</Text>
+                </View>
+                {item.badge ? (
+                  <View style={styles.sideMenuBadge}>
+                    <Text style={styles.sideMenuBadgeText}>{item.badge > 99 ? '99+' : item.badge}</Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
     </View>
   );
 }
@@ -583,13 +719,17 @@ const styles = StyleSheet.create({
   bottomNav: {
     minHeight: layout.bottomNavHeight,
     borderTopWidth: border.thin,
+    borderTopLeftRadius: radius.xxl,
+    borderTopRightRadius: radius.xxl,
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingTop: spacing.xs + 1,
-    paddingHorizontal: spacing.sm + spacing.xxs,
+    alignItems: 'center',
+    paddingTop: spacing.xs,
+    paddingHorizontal: spacing.md,
+    ...shadows.subtle,
   },
-  bottomNavItem: { flex: 1, minHeight: 46, alignItems: 'center', justifyContent: 'flex-start', gap: 1 },
-  bottomNavIcon: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+  bottomNavItem: { flex: 1, minHeight: touchTarget.large, alignItems: 'center', justifyContent: 'center' },
+  bottomNavIcon: { width: touchTarget.minimum, height: touchTarget.minimum, alignItems: 'center', justifyContent: 'center' },
+  bottomNavIconInactive: { opacity: 0.8 },
   activityBadge: {
     position: 'absolute',
     top: -3,
@@ -605,4 +745,34 @@ const styles = StyleSheet.create({
   },
   activityBadgeText: { color: palette.white, fontSize: 8, lineHeight: 10, fontWeight: typography.weight.black, textAlign: 'center' },
   bottomNavLabel: { fontSize: 11, lineHeight: 13, fontWeight: typography.weight.medium, textAlign: 'center' },
+  sideMenuLayer: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 20 },
+  sideMenuBackdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
+  sideMenuPanel: {
+    width: '82%',
+    maxWidth: 342,
+    height: '100%',
+    borderRightWidth: border.thin,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+  },
+  sideMenuHeader: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  sideMenuBrand: { flex: 1 },
+  sideMenuClose: { width: touchTarget.minimum, height: touchTarget.minimum, borderRadius: radius.round, alignItems: 'center', justifyContent: 'center' },
+  sideMenuEyebrow: { marginTop: spacing.lg, marginBottom: spacing.sm, fontSize: typography.size.xs, fontWeight: typography.weight.black, textTransform: 'uppercase', letterSpacing: 0.8 },
+  sideMenuList: { gap: spacing.xs },
+  sideMenuItem: { minHeight: 68, borderRadius: radius.lg, paddingHorizontal: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  sideMenuItemIcon: { width: touchTarget.minimum, height: touchTarget.minimum, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  sideMenuItemCopy: { flex: 1, minWidth: 0 },
+  sideMenuItemTitle: { fontSize: typography.size.sm, fontWeight: typography.weight.black },
+  sideMenuItemDescription: { marginTop: spacing.xxs, fontSize: typography.size.xs, lineHeight: typography.lineHeight.xs, fontWeight: typography.weight.medium },
+  sideMenuBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: palette.red[500],
+    paddingHorizontal: spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sideMenuBadgeText: { color: palette.white, fontSize: 10, fontWeight: typography.weight.black },
 });

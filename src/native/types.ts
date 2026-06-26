@@ -1,10 +1,15 @@
 export type Language = 'vi' | 'en';
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type CredentialStatus = 'verified' | 'pending' | 'expired';
-export type TabKey = 'wallet' | 'scan' | 'activity' | 'settings';
+export type SmartContractAvailability = 'available' | 'soldOut';
+export type TabKey = 'chat' | 'feed' | 'scan' | 'payment' | 'identity';
 
 export type ScreenKey =
   | 'wallet'
+  | 'news-feed'
+  | 'live-stream'
+  | 'smart-contract-detail'
+  | 'payment'
   | 'credentials'
   | 'credential-detail'
   | 'profile'
@@ -57,6 +62,49 @@ export interface Credential {
   signature: string;
   attributes: CredentialAttribute[];
   isDemo?: boolean;
+}
+
+export interface SmartContractPayload {
+  id: string;
+  title: string;
+  status: string;
+  availability: SmartContractAvailability;
+  assetTitle: string;
+  assetSubtitle: string;
+  assetCode: string;
+  assetStateLabel: string;
+  remainingLabel: string;
+  remainingCount: number;
+  limitMessage?: string;
+  amount: string;
+  paymentLabel: string;
+  deadline: string;
+  condition: string;
+  security: string;
+  eventDate: string;
+  location: string;
+  owner: string;
+  issuer: string;
+  itemType: string;
+  transferability: string;
+  verificationMethod: string;
+  transactionStatus: string;
+}
+
+export interface SmartContractFeedPost {
+  id: string;
+  authorName: string;
+  handle: string;
+  time: string;
+  text: string;
+  authorKind: 'person' | 'organization';
+  contract: SmartContractPayload;
+  stats: {
+    comments: string;
+    reposts: string;
+    likes: string;
+    views: string;
+  };
 }
 
 export interface ActivityLog {

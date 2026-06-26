@@ -32,8 +32,9 @@ The rules in this document must be applied when designing, editing, or comparing
 - The interface must start with the app bar or the first app content.
 - Respect safe areas with `SafeAreaView` and `useSafeAreaInsets`; do not redraw system UI.
 - The app's bottom navigation may be shown, but it must not contain a fake home indicator.
-- Bottom navigation must show icons and text labels below them exactly like the approved design image.
-- The active bottom navigation item uses the primary color for both icon and text; do not add rounded backgrounds or pills if the design does not include them.
+- The latest approved bottom navigation is icon-only: Chat, News Feed, Scan QR, Payment, Identity.
+- Do not render text labels inside the bottom navigation unless a later approved design explicitly brings them back.
+- The active bottom navigation item uses the primary color for the icon; do not add rounded backgrounds or pills if the design does not include them.
 - When the bottom navigation design image changes, prioritize matching the latest image's icon, label, color, spacing, border, and height.
 - Bottom navigation must continue to be shown on `screen-credentials-library`.
 - Card shadow, elevation, and border must match the latest design image; do not automatically use a shared shadow if it makes the UI heavier than the image.
@@ -180,7 +181,7 @@ Demo data must be replaceable by real API data without changing rendering logic.
 - [ ] There is no phone frame unless the user requested a mockup.
 - [ ] The app bar and content start at the correct position.
 - [ ] Bottom navigation contains only app navigation.
-- [ ] Bottom navigation icon, text label, and active state match the latest design image.
+- [ ] Bottom navigation icons and active state match the latest design image.
 - [ ] Card shadow and elevation are not heavier than the design image.
 - [ ] Content is not covered and can scroll fully.
 - [ ] The interface matches the app-UI portion of the reference image.

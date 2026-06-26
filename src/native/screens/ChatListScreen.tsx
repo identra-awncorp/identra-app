@@ -1,4 +1,4 @@
-import { Box, ChevronLeft, Grid2X2, MessageCircle, Plus, Search, SquarePen, UserRound } from 'lucide-react-native';
+import { Box, ChevronLeft, Grid2X2, Menu, MessageCircle, Plus, Search, SquarePen, UserRound } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,7 +8,6 @@ import type { ChatPreview } from '../data/chatDemoData';
 import { IconButton } from '../components/ui';
 import type { AppColors } from '../theme';
 import {
-  ChatListBottomMenu,
   ConnectedPersonRow,
   ConversationRow,
   MiniAppRow,
@@ -25,18 +24,12 @@ import { ThoughtViewerScreen } from './chat-list/ThoughtViewerScreen';
 
 export function ChatListScreen({
   colors,
-  onOpenFeed,
-  onOpenIDPay,
   onOpenConversation,
-  onOpenProfile,
-  onOpenScan,
+  onOpenMenu,
 }: {
   colors: AppColors;
-  onOpenFeed: () => void;
-  onOpenIDPay: () => void;
   onOpenConversation: (conversationId: string) => void;
-  onOpenProfile: () => void;
-  onOpenScan: () => void;
+  onOpenMenu: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
@@ -244,6 +237,9 @@ export function ChatListScreen({
     >
       <View pointerEvents="auto" style={styles.defaultLayer}>
         <View style={styles.header}>
+          <IconButton colors={colors} label="Mở menu" onPress={onOpenMenu} style={styles.headerAction}>
+            <Menu color={colors.text} size={27} strokeWidth={1.9} />
+          </IconButton>
           <AppBrandLogo colors={colors} logoSize={28} wordmarkSize={20} style={styles.brand} />
           <View style={styles.headerActions}>
             <IconButton colors={colors} label="Chia sẻ suy nghĩ" onPress={openShareThought} style={styles.headerAction}>
@@ -410,16 +406,6 @@ export function ChatListScreen({
           </ScrollView>
         )}
 
-        {searchActive ? null : (
-          <ChatListBottomMenu
-            bottomInset={insets.bottom}
-            colors={colors}
-            onOpenFeed={onOpenFeed}
-            onOpenIDPay={onOpenIDPay}
-            onOpenProfile={onOpenProfile}
-            onOpenScan={onOpenScan}
-          />
-        )}
       </View>
     </View>
   );

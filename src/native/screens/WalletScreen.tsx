@@ -37,6 +37,7 @@ interface Props {
   onOpenActivity: () => void;
   onOpenScan: () => void;
   onOpenChat: () => void;
+  onOpenMenu: () => void;
 }
 
 export function WalletScreen({
@@ -52,6 +53,7 @@ export function WalletScreen({
   onOpenActivity,
   onOpenScan,
   onOpenChat,
+  onOpenMenu,
 }: Props) {
   const featured =
     credentials.find((item) => item.id === 'cred-degree') ??
@@ -81,7 +83,7 @@ export function WalletScreen({
       contentStyle={styles.screenContent}
     >
       <View style={styles.brandHeader}>
-        <IconButton label="Mở menu" colors={colors}>
+        <IconButton label="Mở menu" colors={colors} onPress={onOpenMenu}>
           <Menu color={colors.text} size={26} />
         </IconButton>
         <AppBrandLogo colors={colors} style={styles.brandLogo} />

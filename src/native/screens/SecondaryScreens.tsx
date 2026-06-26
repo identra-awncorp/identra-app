@@ -31,15 +31,16 @@ import {
   Settings,
   Share2,
   ShieldCheck,
+  Ticket,
   Trash2,
   UserRound,
   X,
   type LucideIcon,
 } from 'lucide-react-native';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import type { AppColors } from '../theme';
 import { border, componentSize, palette, radius, spacing, typography } from '../theme';
-import type { AppSettings, Credential, PersonalInfo } from '../types';
+import type { AppSettings, Credential, PersonalInfo, SmartContractFeedPost } from '../types';
 import {
   AppHeader,
   Card,
@@ -52,6 +53,8 @@ import {
   SectionHeading,
   StatusPill,
 } from '../components/ui';
+
+const verifiedBadgeIcon = require('../../assets/images/verified-badge-icon.png');
 
 export function CredentialDetailScreen({
   colors,
@@ -244,6 +247,244 @@ export function CredentialDetailScreen({
         </Pressable>
       ))}
     </ScreenScroll>
+  );
+}
+
+export function SmartContractDetailScreen({
+  colors,
+  onBack,
+  post,
+}: {
+  colors: AppColors;
+  onBack: () => void;
+  post: SmartContractFeedPost;
+}) {
+  const { contract } = post;
+  const isSoldOut = contract.availability === 'soldOut';
+  const statusTone = isSoldOut
+    ? { label: 'Đã bán hết', color: colors.danger, background: palette.red[100] }
+    : { label: contract.status, color: colors.success, background: palette.green[100] };
+  const screenId = isSoldOut ? 'screen-smart-contract-detail-sold-out' : 'screen-smart-contract-detail-available';
+
+  return (
+    <ScreenScroll id={screenId} colors={colors} contentStyle={styles.contractDetailScreenContent}>
+      <AppHeader
+        colors={colors}
+        title={contract.title}
+        onBack={onBack}
+        right={
+          <View style={[styles.contractHeaderShield, { backgroundColor: colors.surfaceMuted }]}>
+            <ShieldCheck color={colors.text} size={25} strokeWidth={2} />
+          </View>
+        }
+      />
+
+      <View style={[styles.contractHeroCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.contractHeroTop}>
+          <LinearTicketArt />
+          <View style={styles.contractHeroMain}>
+            <View style={styles.contractTitleRow}>
+              <Text style={[styles.contractTicketTitle, { color: colors.text }]}>{contract.assetTitle}</Text>
+              <Image source={verifiedBadgeIcon} style={styles.contractVerifiedBadge} resizeMode="contain" />
+            </View>
+            <Text style={[styles.contractTicketSubtitle, { color: colors.textSecondary }]}>Hạng: VIP A</Text>
+            <ContractMetaLine colors={colors} icon={CalendarDays} label="Ngày diễn:" value={contract.eventDate} />
+            <ContractMetaLine colors={colors} icon={MapPin} label="Địa điểm:" value={contract.location} />
+            <ContractMetaLine colors={colors} icon={IdCard} label="Mã vé:" value={contract.assetCode.replace('Mã vé: ', '')} />
+            <ContractMetaLine colors={colors} icon={UserRound} label="Quyền sở hữu:" value={contract.owner} valueColor={colors.primaryDark} />
+          </View>
+        </View>
+
+        <View style={[styles.contractHeroFooter, { borderTopColor: colors.border }]}>
+          <View style={styles.contractBelongsRow}>
+            <ShieldCheck color={colors.textSecondary} size={23} strokeWidth={2} />
+            <Text style={[styles.contractBelongsText, { color: colors.textSecondary }]}>Thuộc hợp đồng thông minh</Text>
+          </View>
+          <View style={[styles.contractStateBadge, { backgroundColor: statusTone.background }]}>
+            {isSoldOut ? <X color={statusTone.color} size={15} strokeWidth={2.3} /> : <CheckCircle2 color={statusTone.color} size={15} strokeWidth={2.3} />}
+            <Text style={[styles.contractStateBadgeText, { color: statusTone.color }]}>{statusTone.label}</Text>
+          </View>
+        </View>
+      </View>
+
+      <Text style={[styles.contractSectionTitle, { color: colors.text }]}>Thông tin vật phẩm</Text>
+      <View style={[styles.contractTableCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <ContractTableRow colors={colors} icon={FileCheck2} label="Loại vật phẩm" value={contract.itemType} />
+        <ContractTableRow colors={colors} icon={Medal} label="Số lượng còn lại" value={`${contract.remainingCount}`} />
+        <ContractTableRow colors={colors} icon={RefreshCw} label="Khả năng chuyển nhượng" value={contract.transferability} />
+        <ContractTableRow colors={colors} icon={Building2} label="Tổ chức phát hành" value={contract.issuer} />
+        <ContractTableRow colors={colors} icon={ShieldCheck} label="Hình thức xác minh" value={contract.verificationMethod} />
+        <ContractTableRow
+          colors={colors}
+          icon={isSoldOut ? X : CheckCircle2}
+          label="Tình trạng"
+          value={contract.transactionStatus}
+          valueColor={isSoldOut ? colors.textSecondary : colors.success}
+          last
+        />
+      </View>
+
+      {isSoldOut ? (
+        <>
+          <Text style={[styles.contractSectionTitle, { color: colors.text }]}>Điều kiện chuyển giao</Text>
+          <View style={[styles.contractTableCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <ContractTableRow colors={colors} icon={FileCheck2} label="Thanh toán đối ứng" value={`${contract.amount.replace('₫ ', '')} qua Identra Pay`} />
+            <ContractTableRow colors={colors} icon={IdCard} label="Thực thi" value={contract.condition} />
+            <ContractTableRow colors={colors} icon={ShieldCheck} label="An toàn" value={contract.security} last />
+          </View>
+        </>
+      ) : (
+        <>
+          <Text style={[styles.contractSectionTitle, { color: colors.text }]}>Quy trình giao dịch</Text>
+          <View style={[styles.contractFlowCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={[styles.contractFlowPanel, { borderColor: colors.primaryDark, backgroundColor: colors.surface }]}>
+              <View style={styles.contractFlowTitleRow}>
+                <UserRound color={colors.primaryDark} size={18} />
+                <Text style={[styles.contractFlowTitle, { color: colors.primaryDark }]}>Người bán chuyển giao</Text>
+              </View>
+              <View style={[styles.contractFlowInner, { borderColor: colors.border }]}>
+                <LinearTicketIcon />
+                <View style={styles.contractFlowCopy}>
+                  <Text style={[styles.contractFlowItemTitle, { color: colors.text }]}>Vé concert GENfest 2025</Text>
+                  <Text style={[styles.contractFlowItemMeta, { color: colors.textSecondary }]}>Hạng: VIP A</Text>
+                  <Text style={[styles.contractFlowItemMeta, { color: colors.textSecondary }]}>Số lượng: {contract.remainingCount}</Text>
+                </View>
+              </View>
+            </View>
+            <View style={[styles.contractFlowSwap, { backgroundColor: colors.surfaceMuted }]}>
+              <RefreshCw color={colors.primaryDark} size={22} strokeWidth={2.2} />
+            </View>
+            <View style={[styles.contractFlowPanel, { borderColor: colors.success, backgroundColor: palette.green[100] }]}>
+              <View style={styles.contractFlowTitleRow}>
+                <UserRound color={colors.success} size={18} />
+                <Text style={[styles.contractFlowTitle, { color: colors.success }]}>Bạn thanh toán</Text>
+              </View>
+              <View style={[styles.contractFlowInner, { borderColor: '#BFEFD2', backgroundColor: colors.surface }]}>
+                <View style={[styles.contractPayIcon, { backgroundColor: palette.green[100] }]}>
+                  <FileCheck2 color={colors.success} size={28} />
+                </View>
+                <View style={styles.contractFlowCopy}>
+                  <Text style={[styles.contractFlowItemTitle, { color: colors.text }]}>{contract.amount.replace('₫ ', '')}</Text>
+                  <Text style={[styles.contractFlowItemMeta, { color: colors.textSecondary }]}>qua Identra Pay</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          <Text style={[styles.contractSectionTitle, { color: colors.text }]}>Trạng thái hiện tại</Text>
+          <View style={[styles.contractTableCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <ContractTableRow colors={colors} icon={CheckCircle2} label="Trạng thái" value={contract.transactionStatus} valueColor={colors.success} />
+            <ContractTableRow colors={colors} icon={Clock3} label="Thời hạn phản hồi" value={contract.deadline} />
+            <ContractTableRow colors={colors} icon={ShieldCheck} label="Điều kiện giao dịch" value={contract.condition} />
+            <ContractTableRow colors={colors} icon={ShieldCheck} label="An toàn & minh bạch" value={contract.security} last />
+          </View>
+        </>
+      )}
+
+      <View style={[styles.contractIssuerCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.contractIssuerLogo}>
+          <Text style={styles.contractIssuerLogoText}>GENFEST</Text>
+        </View>
+        <View style={styles.contractIssuerMain}>
+          <View style={styles.contractIssuerNameRow}>
+            <Text style={[styles.contractIssuerName, { color: colors.text }]}>{contract.issuer}</Text>
+            <Image source={verifiedBadgeIcon} style={styles.contractIssuerBadge} resizeMode="contain" />
+          </View>
+          <Text style={[styles.contractIssuerDescription, { color: colors.textSecondary }]}>Đơn vị phát hành vé và thực chứng sự kiện.</Text>
+        </View>
+        <ChevronRight color={colors.textSecondary} size={23} />
+      </View>
+
+      <View style={styles.contractDetailActions}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Xem thực chứng"
+          accessibilityState={{ disabled: true }}
+          disabled
+          style={[styles.contractDetailSecondaryButton, { borderColor: colors.border, backgroundColor: colors.surfaceMuted }]}
+        >
+          <ShieldCheck color={colors.textSecondary} size={18} />
+          <Text style={[styles.contractDetailSecondaryText, { color: colors.textSecondary }]}>Xem thực chứng</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Giao dịch hợp đồng"
+          accessibilityState={{ disabled: isSoldOut }}
+          disabled={isSoldOut}
+          style={({ pressed }) => [
+            styles.contractDetailPrimaryButton,
+            { backgroundColor: isSoldOut ? colors.surfaceMuted : colors.primaryDark, opacity: pressed && !isSoldOut ? 0.78 : 1 },
+          ]}
+        >
+          <Text style={[styles.contractDetailPrimaryText, isSoldOut && { color: colors.textSecondary }]}>Giao dịch</Text>
+        </Pressable>
+      </View>
+    </ScreenScroll>
+  );
+}
+
+function LinearTicketArt() {
+  return (
+    <View style={styles.contractTicketArt}>
+      <Text style={styles.contractTicketSmall}>identra</Text>
+      <Text style={styles.contractTicketBrand}>GENFEST</Text>
+      <Text style={styles.contractTicketYear}>2025</Text>
+      <Text style={styles.contractTicketDate}>08.06.2025</Text>
+    </View>
+  );
+}
+
+function LinearTicketIcon() {
+  return (
+    <View style={styles.contractFlowTicketIcon}>
+      <Ticket color={palette.white} size={24} strokeWidth={2.2} />
+    </View>
+  );
+}
+
+function ContractMetaLine({
+  colors,
+  icon: Icon,
+  label,
+  value,
+  valueColor,
+}: {
+  colors: AppColors;
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  valueColor?: string;
+}) {
+  return (
+    <View style={styles.contractMetaLine}>
+      <Icon color={colors.textSecondary} size={17} strokeWidth={2} />
+      <Text style={[styles.contractMetaLabel, { color: colors.textSecondary }]}>{label}</Text>
+      <Text numberOfLines={1} style={[styles.contractMetaValue, { color: valueColor ?? colors.text }]}>{value}</Text>
+    </View>
+  );
+}
+
+function ContractTableRow({
+  colors,
+  icon: Icon,
+  label,
+  last = false,
+  value,
+  valueColor,
+}: {
+  colors: AppColors;
+  icon: LucideIcon;
+  label: string;
+  last?: boolean;
+  value: string;
+  valueColor?: string;
+}) {
+  return (
+    <View style={[styles.contractTableRow, !last && { borderBottomColor: colors.border, borderBottomWidth: border.thin }]}>
+      <Icon color={colors.primaryDark} size={18} strokeWidth={2} />
+      <Text style={[styles.contractTableLabel, { color: colors.textSecondary }]}>{label}</Text>
+      <Text numberOfLines={2} style={[styles.contractTableValue, { color: valueColor ?? colors.text }]}>{value}</Text>
+    </View>
   );
 }
 
@@ -1162,6 +1403,65 @@ const styles = StyleSheet.create({
   detailActionMain: { flex: 1 },
   detailActionTitle: { fontSize: 13, fontWeight: typography.weight.black },
   detailActionDescription: { marginTop: 3, fontSize: 11, lineHeight: 16, fontWeight: '600' },
+  contractDetailScreenContent: { gap: spacing.md, paddingBottom: spacing.xl },
+  contractHeaderShield: { width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  contractHeroCard: { borderWidth: border.thin, borderRadius: radius.lg + 2, padding: spacing.md, gap: spacing.md },
+  contractHeroTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  contractTicketArt: {
+    width: 118,
+    height: 128,
+    borderRadius: radius.lg,
+    backgroundColor: '#172B76',
+    overflow: 'hidden',
+    padding: spacing.md,
+    justifyContent: 'center',
+  },
+  contractTicketSmall: { position: 'absolute', top: 11, left: 12, color: 'rgba(255,255,255,0.78)', fontSize: 8, fontWeight: typography.weight.bold },
+  contractTicketBrand: { color: palette.white, fontSize: 21, lineHeight: 25, fontWeight: typography.weight.black, letterSpacing: -0.7 },
+  contractTicketYear: { color: 'rgba(255,255,255,0.9)', fontSize: 18, lineHeight: 22, fontWeight: typography.weight.medium, letterSpacing: 2 },
+  contractTicketDate: { position: 'absolute', left: 13, bottom: 12, color: 'rgba(255,255,255,0.86)', fontSize: 9, fontWeight: typography.weight.bold },
+  contractHeroMain: { flex: 1, minWidth: 0, gap: 7 },
+  contractTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  contractTicketTitle: { flex: 1, minWidth: 0, fontSize: 19, lineHeight: 24, fontWeight: typography.weight.black },
+  contractVerifiedBadge: { width: 18, height: 18, flexShrink: 0 },
+  contractTicketSubtitle: { fontSize: typography.size.md, lineHeight: typography.lineHeight.md, fontWeight: typography.weight.medium },
+  contractMetaLine: { minHeight: 22, flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  contractMetaLabel: { fontSize: 12, fontWeight: typography.weight.semibold },
+  contractMetaValue: { flex: 1, minWidth: 0, fontSize: 12, fontWeight: typography.weight.extraBold },
+  contractHeroFooter: { borderTopWidth: border.thin, paddingTop: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  contractBelongsRow: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  contractBelongsText: { flex: 1, minWidth: 0, fontSize: 13, lineHeight: 18, fontWeight: typography.weight.semibold },
+  contractStateBadge: { minHeight: 34, borderRadius: radius.md + 2, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  contractStateBadgeText: { fontSize: 12, fontWeight: typography.weight.extraBold },
+  contractSectionTitle: { marginTop: spacing.xs, fontSize: typography.size.lg - 2, lineHeight: 24, fontWeight: typography.weight.black },
+  contractTableCard: { borderWidth: border.thin, borderRadius: radius.lg, overflow: 'hidden' },
+  contractTableRow: { minHeight: 48, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  contractTableLabel: { flex: 1, minWidth: 0, fontSize: 13, lineHeight: 18, fontWeight: typography.weight.semibold },
+  contractTableValue: { flex: 1, minWidth: 0, textAlign: 'right', fontSize: 13, lineHeight: 18, fontWeight: typography.weight.extraBold },
+  contractFlowCard: { borderWidth: border.thin, borderRadius: radius.lg, padding: spacing.md, gap: spacing.md },
+  contractFlowPanel: { borderWidth: border.thin, borderRadius: radius.md + 2, padding: spacing.md, gap: spacing.sm },
+  contractFlowTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  contractFlowTitle: { fontSize: 13, lineHeight: 18, fontWeight: typography.weight.black },
+  contractFlowInner: { minHeight: 80, borderWidth: border.thin, borderRadius: radius.md, padding: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  contractFlowTicketIcon: { width: 52, height: 52, borderRadius: radius.md, backgroundColor: palette.blue[700], alignItems: 'center', justifyContent: 'center' },
+  contractPayIcon: { width: 52, height: 52, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  contractFlowCopy: { flex: 1, minWidth: 0 },
+  contractFlowItemTitle: { fontSize: 13, lineHeight: 18, fontWeight: typography.weight.black },
+  contractFlowItemMeta: { marginTop: 2, fontSize: 11, lineHeight: 15, fontWeight: typography.weight.semibold },
+  contractFlowSwap: { alignSelf: 'center', width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  contractIssuerCard: { minHeight: 76, borderWidth: border.thin, borderRadius: radius.lg, padding: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  contractIssuerLogo: { width: 54, height: 54, borderRadius: 27, backgroundColor: '#3B00E8', alignItems: 'center', justifyContent: 'center' },
+  contractIssuerLogoText: { color: palette.white, fontSize: 10, fontWeight: typography.weight.black, letterSpacing: -0.4 },
+  contractIssuerMain: { flex: 1, minWidth: 0 },
+  contractIssuerNameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  contractIssuerName: { flexShrink: 1, minWidth: 0, fontSize: 14, lineHeight: 19, fontWeight: typography.weight.black },
+  contractIssuerBadge: { width: 15, height: 15 },
+  contractIssuerDescription: { marginTop: 3, fontSize: 11.5, lineHeight: 16, fontWeight: typography.weight.semibold },
+  contractDetailActions: { flexDirection: 'row', gap: spacing.sm },
+  contractDetailSecondaryButton: { flex: 1, minHeight: 50, borderWidth: border.thin, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
+  contractDetailPrimaryButton: { flex: 1, minHeight: 50, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  contractDetailSecondaryText: { fontSize: typography.size.sm, fontWeight: typography.weight.black },
+  contractDetailPrimaryText: { color: palette.white, fontSize: typography.size.sm, fontWeight: typography.weight.black },
   shareScreenContent: { paddingTop: 8, paddingBottom: 26, gap: 14 },
   shareStatusIntro: { alignItems: 'flex-start', gap: 7, marginTop: -2, marginBottom: 2 },
   shareVerifiedPill: { alignSelf: 'flex-start', minHeight: 27, borderRadius: radius.md + 2, paddingHorizontal: spacing.sm + spacing.xxs, flexDirection: 'row', alignItems: 'center', gap: spacing.xs + spacing.xxs, backgroundColor: palette.green[100] },
