@@ -16,6 +16,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppBrandLogo } from '../components/AppLogo';
 import { IconButton, ScreenScroll } from '../components/ui';
 import type { AppColors } from '../theme';
+import { border, palette, radius, spacing, typography } from '../theme';
 
 export function ScannerScreen({
   colors,
@@ -68,7 +69,7 @@ export function ScannerScreen({
           <CameraView style={StyleSheet.absoluteFill} enableTorch={torchEnabled} zoom={zoom} />
         ) : (
           <View style={styles.permissionFallback}>
-            <ScanLine color="#FFFFFF" size={48} strokeWidth={1.6} />
+            <ScanLine color={palette.white} size={48} strokeWidth={1.6} />
             <Text style={styles.permissionTitle}>Cho phép truy cập camera</Text>
             <Text style={styles.permissionText}>Camera được dùng để hiển thị mã QR trong khung quét.</Text>
             <Pressable
@@ -93,7 +94,7 @@ export function ScannerScreen({
               { opacity: pressed ? 0.75 : 1 },
             ]}
           >
-            <Flashlight color="#FFFFFF" size={19} fill={torchEnabled ? '#FFFFFF' : 'none'} />
+            <Flashlight color={palette.white} size={19} fill={torchEnabled ? palette.white : 'none'} />
             <Text style={styles.torchText}>{torchEnabled ? 'Tắt đèn pin' : 'Bật đèn pin'}</Text>
           </Pressable>
 
@@ -112,7 +113,7 @@ export function ScannerScreen({
               onPress={() => setZoom((current) => Math.max(0, current - 0.1))}
               style={({ pressed }) => [styles.zoomButton, { opacity: pressed ? 0.6 : 1 }]}
             >
-              <Minus color="#FFFFFF" size={18} />
+              <Minus color={palette.white} size={18} />
             </Pressable>
             <Text style={styles.zoomText}>{(1 + zoom * 4).toFixed(1)}x</Text>
             <Pressable
@@ -121,7 +122,7 @@ export function ScannerScreen({
               onPress={() => setZoom((current) => Math.min(1, current + 0.1))}
               style={({ pressed }) => [styles.zoomButton, { opacity: pressed ? 0.6 : 1 }]}
             >
-              <Plus color="#FFFFFF" size={18} />
+              <Plus color={palette.white} size={18} />
             </Pressable>
           </View>
         </View>
@@ -154,7 +155,7 @@ export function ScannerScreen({
 
       <View style={[styles.securityCard, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
         <View style={styles.securityIcon}>
-          <ShieldCheck color="#FFFFFF" size={28} strokeWidth={2} />
+          <ShieldCheck color={palette.white} size={28} strokeWidth={2} />
         </View>
         <View style={styles.securityText}>
           <Text style={[styles.securityTitle, { color: colors.text }]}>An toàn & bảo mật</Text>
@@ -205,13 +206,13 @@ function QuickAction({
 }
 
 const styles = StyleSheet.create({
-  screenContent: { paddingTop: 2, paddingBottom: 24, gap: 14 },
-  brandHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  screenContent: { paddingTop: spacing.xxs, paddingBottom: spacing.xl, gap: spacing.md + spacing.xxs },
+  brandHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: spacing.sm - 1 },
   brandLogo: { flex: 1 },
   intro: { paddingHorizontal: 1, gap: 3 },
-  title: { fontSize: 28, lineHeight: 34, fontWeight: '900', letterSpacing: -0.65 },
-  subtitle: { fontSize: 14, lineHeight: 20 },
-  cameraCard: { width: '100%', aspectRatio: 0.94, borderRadius: 18, overflow: 'hidden', backgroundColor: '#11151D' },
+  title: { fontSize: typography.size.xl, lineHeight: 34, fontWeight: typography.weight.black, letterSpacing: -0.65 },
+  subtitle: { fontSize: typography.size.sm, lineHeight: typography.lineHeight.sm },
+  cameraCard: { width: '100%', aspectRatio: 0.94, borderRadius: radius.lg + 2, overflow: 'hidden', backgroundColor: '#11151D' },
   cameraOverlay: {
     position: 'absolute',
     top: 0,
@@ -225,13 +226,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(3, 7, 14, 0.26)',
   },
   permissionFallback: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 36, backgroundColor: '#252B35' },
-  permissionTitle: { color: '#FFFFFF', marginTop: 14, fontSize: 17, fontWeight: '800', textAlign: 'center' },
+  permissionTitle: { color: palette.white, marginTop: 14, fontSize: 17, fontWeight: typography.weight.extraBold, textAlign: 'center' },
   permissionText: { color: 'rgba(255,255,255,0.72)', marginTop: 7, fontSize: 12, lineHeight: 18, textAlign: 'center' },
-  permissionButton: { marginTop: 16, minHeight: 44, borderRadius: 999, backgroundColor: '#355CFF', paddingHorizontal: 22, justifyContent: 'center' },
-  permissionButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
-  torchButton: { minHeight: 44, borderRadius: 999, paddingHorizontal: 17, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(4, 7, 12, 0.62)' },
+  permissionButton: { marginTop: spacing.lg, minHeight: 44, borderRadius: radius.round, backgroundColor: palette.blue[700], paddingHorizontal: 22, justifyContent: 'center' },
+  permissionButtonText: { color: palette.white, fontSize: 13, fontWeight: typography.weight.extraBold },
+  torchButton: { minHeight: 44, borderRadius: radius.round, paddingHorizontal: 17, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: 'rgba(4, 7, 12, 0.62)' },
   torchButtonActive: { backgroundColor: 'rgba(53, 92, 255, 0.88)' },
-  torchText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  torchText: { color: palette.white, fontSize: 13, fontWeight: typography.weight.bold },
   scannerFrame: { width: '70%', aspectRatio: 1, justifyContent: 'center' },
   corner: { position: 'absolute', width: 32, height: 32, borderColor: '#4F73FF' },
   cornerTopLeft: { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 12 },
@@ -239,18 +240,18 @@ const styles = StyleSheet.create({
   cornerBottomLeft: { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 12 },
   cornerBottomRight: { right: 0, bottom: 0, borderRightWidth: 3, borderBottomWidth: 3, borderBottomRightRadius: 12 },
   scanLine: { height: 2, marginHorizontal: -3, borderRadius: 2, backgroundColor: '#4F73FF' },
-  zoomControl: { minHeight: 44, borderRadius: 999, paddingHorizontal: 5, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(4, 7, 12, 0.66)' },
+  zoomControl: { minHeight: 44, borderRadius: radius.round, paddingHorizontal: 5, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: 'rgba(4, 7, 12, 0.66)' },
   zoomButton: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.25)' },
-  zoomText: { minWidth: 36, color: '#FFFFFF', fontSize: 14, fontWeight: '700', textAlign: 'center' },
-  sectionTitle: { marginTop: 2, fontSize: 17, fontWeight: '800', letterSpacing: -0.25 },
-  actions: { flexDirection: 'row', gap: 8 },
-  actionCard: { flex: 1, minWidth: 0, minHeight: 132, borderWidth: 1, borderRadius: 16, paddingHorizontal: 7, paddingVertical: 12, alignItems: 'center' },
+  zoomText: { minWidth: 36, color: palette.white, fontSize: typography.size.sm, fontWeight: typography.weight.bold, textAlign: 'center' },
+  sectionTitle: { marginTop: spacing.xxs, fontSize: 17, fontWeight: typography.weight.extraBold, letterSpacing: -0.25 },
+  actions: { flexDirection: 'row', gap: spacing.sm },
+  actionCard: { flex: 1, minWidth: 0, minHeight: 132, borderWidth: border.thin, borderRadius: radius.lg, paddingHorizontal: 7, paddingVertical: spacing.md, alignItems: 'center' },
   actionIcon: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
-  actionTitle: { marginTop: 9, fontSize: 11, lineHeight: 15, fontWeight: '800', textAlign: 'center' },
+  actionTitle: { marginTop: 9, fontSize: 11, lineHeight: 15, fontWeight: typography.weight.extraBold, textAlign: 'center' },
   actionDescription: { marginTop: 4, fontSize: 9.5, lineHeight: 13, fontWeight: '500', textAlign: 'center' },
-  securityCard: { minHeight: 92, borderWidth: 1, borderRadius: 18, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  securityIcon: { width: 54, height: 54, borderRadius: 27, backgroundColor: '#355CFF', alignItems: 'center', justifyContent: 'center' },
+  securityCard: { minHeight: 92, borderWidth: border.thin, borderRadius: radius.lg + 2, padding: 13, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  securityIcon: { width: 54, height: 54, borderRadius: 27, backgroundColor: palette.blue[700], alignItems: 'center', justifyContent: 'center' },
   securityText: { flex: 1 },
-  securityTitle: { fontSize: 14, fontWeight: '900' },
+  securityTitle: { fontSize: typography.size.sm, fontWeight: typography.weight.black },
   securityDescription: { marginTop: 4, fontSize: 10.5, lineHeight: 16 },
 });

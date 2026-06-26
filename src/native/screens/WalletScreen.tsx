@@ -10,8 +10,9 @@ import {
   Share2,
   ShieldCheck,
 } from 'lucide-react-native';
-import { Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { AppColors } from '../theme';
+import { border, palette, radius, shadows, spacing, typography } from '../theme';
 import type { Credential } from '../types';
 import { AppBrandLogo } from '../components/AppLogo';
 import {
@@ -129,7 +130,7 @@ export function WalletScreen({
               <Text style={styles.walletTitle}>Sinh viên</Text>
               <Text style={styles.walletIssuer}>Đại học Công nghệ</Text>
               <View style={styles.walletVerified}>
-                <Check color="#FFFFFF" size={14} strokeWidth={3} />
+                <Check color={palette.white} size={14} strokeWidth={3} />
                 <Text style={styles.walletVerifiedText}>Đã xác minh</Text>
               </View>
               <Text style={styles.walletDate}>Ngày cấp {featured?.issueDate ?? '20/06/2024'}</Text>
@@ -152,7 +153,7 @@ export function WalletScreen({
                   style={({ pressed }) => [styles.quickButton, { opacity: pressed ? 0.65 : 1 }]}
                 >
                   <View style={styles.quickIcon}>
-                    <Icon color="#4B63F4" size={20} strokeWidth={1.9} />
+                    <Icon color={palette.blue[600]} size={20} strokeWidth={1.9} />
                   </View>
                   <Text style={[styles.quickText, { color: colors.textSecondary }]}>{item.label}</Text>
                 </Pressable>
@@ -209,11 +210,11 @@ export function WalletScreen({
         </Card>
       )}
 
-      <LinearGradient colors={['#F1F5FF', '#FFFFFF']} style={[styles.banner, { borderColor: '#CAD4FF' }]}>
+      <LinearGradient colors={['#F1F5FF', palette.white]} style={[styles.banner, { borderColor: '#CAD4FF' }]}>
         <View style={styles.bannerShield}>
-          <ShieldCheck color="#5B6CFF" fill="#6F7FFF" size={32} strokeWidth={1.7} />
+          <ShieldCheck color={palette.blue[500]} fill="#6F7FFF" size={32} strokeWidth={1.7} />
           <View style={styles.bannerCheck}>
-            <Check color="#FFFFFF" size={11} strokeWidth={3} />
+            <Check color={palette.white} size={11} strokeWidth={3} />
           </View>
         </View>
         <View style={styles.bannerText}>
@@ -233,17 +234,17 @@ export function WalletScreen({
 }
 
 const styles = StyleSheet.create({
-  screenContent: { paddingTop: 2, paddingBottom: 24, gap: 12 },
-  brandHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  screenContent: { paddingTop: spacing.xxs, paddingBottom: spacing.xl, gap: spacing.md },
+  brandHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: spacing.sm - 1 },
   brandLogo: { flex: 1 },
-  titleRow: { minHeight: 67, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4 },
-  screenTitle: { fontSize: 21, fontWeight: '800', letterSpacing: -0.45 },
-  did: { marginTop: 3, fontSize: 14, fontWeight: '500' },
+  titleRow: { minHeight: 67, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.xs },
+  screenTitle: { fontSize: typography.size.lg + 1, fontWeight: typography.weight.extraBold, letterSpacing: -0.45 },
+  did: { marginTop: spacing.xs - 1, fontSize: typography.size.sm, fontWeight: typography.weight.medium },
   notification: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    borderWidth: 1,
+    borderWidth: border.thin,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -254,13 +255,13 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#FF3D47',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+    backgroundColor: palette.red[500],
+    borderWidth: border.thick,
+    borderColor: palette.white,
   },
   walletCard: {
     height: 170,
-    borderRadius: 18,
+    borderRadius: radius.lg + 2,
     padding: 18,
     flexDirection: 'row',
     overflow: 'hidden',
@@ -270,7 +271,7 @@ const styles = StyleSheet.create({
     width: 190,
     height: 190,
     borderRadius: 95,
-    borderWidth: 1,
+    borderWidth: border.thin,
     borderColor: 'rgba(255,255,255,0.13)',
     right: -42,
     top: -5,
@@ -296,8 +297,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#8ED8F7',
   },
   walletAvatar: { position: 'absolute', width: 120, height: 120, left: -25, top: -3 },
-  walletTitle: { color: '#FFFFFF', fontSize: 20, fontWeight: '800' },
-  walletIssuer: { color: 'rgba(255,255,255,0.92)', fontSize: 14, fontWeight: '500', marginTop: 5 },
+  walletTitle: { color: palette.white, fontSize: typography.size.lg, fontWeight: typography.weight.extraBold },
+  walletIssuer: { color: 'rgba(255,255,255,0.92)', fontSize: typography.size.sm, fontWeight: typography.weight.medium, marginTop: spacing.xs + 1 },
   walletVerified: {
     alignSelf: 'flex-start',
     marginTop: 16,
@@ -305,47 +306,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
     backgroundColor: 'rgba(62,215,165,0.82)',
-    borderRadius: 999,
-    paddingHorizontal: 10,
+    borderRadius: radius.round,
+    paddingHorizontal: spacing.sm + 2,
     height: 29,
   },
-  walletVerifiedText: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
-  walletDate: { color: 'rgba(255,255,255,0.92)', fontSize: 12, fontWeight: '500', marginTop: 13 },
+  walletVerifiedText: { color: palette.white, fontSize: typography.size.xs, fontWeight: typography.weight.semibold },
+  walletDate: { color: 'rgba(255,255,255,0.92)', fontSize: typography.size.xs, fontWeight: typography.weight.medium, marginTop: spacing.md + 1 },
   walletShield: { position: 'absolute', right: 23, top: 55 },
   quickMenu: { paddingHorizontal: 5, paddingVertical: 10 },
-  subtleCardShadow: Platform.select({
-    ios: {
-      shadowColor: '#27375F',
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.035,
-      shadowRadius: 9,
-    },
-    android: { elevation: 1 },
-    default: {},
-  }),
+  subtleCardShadow: shadows.subtle,
   quickMenuInner: { minHeight: 76, flexDirection: 'row', alignItems: 'stretch' },
   quickSlot: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  quickButton: { flex: 1, minHeight: 72, alignItems: 'center', justifyContent: 'center', gap: 7 },
-  quickIcon: { width: 36, height: 36, borderRadius: 11, backgroundColor: '#F0F2FF', alignItems: 'center', justifyContent: 'center' },
-  quickText: { fontSize: 11, lineHeight: 14, fontWeight: '500', textAlign: 'center' },
-  quickDivider: { width: 1, height: 62 },
-  sectionHeading: { minHeight: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 2 },
-  sectionTitle: { fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
-  sectionAction: { fontSize: 13, fontWeight: '600' },
+  quickButton: { flex: 1, minHeight: 72, alignItems: 'center', justifyContent: 'center', gap: spacing.sm - 1 },
+  quickIcon: { width: 36, height: 36, borderRadius: radius.md - 1, backgroundColor: '#F0F2FF', alignItems: 'center', justifyContent: 'center' },
+  quickText: { fontSize: 11, lineHeight: 14, fontWeight: typography.weight.medium, textAlign: 'center' },
+  quickDivider: { width: border.thin, height: 62 },
+  sectionHeading: { minHeight: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.xxs },
+  sectionTitle: { fontSize: 17, fontWeight: typography.weight.extraBold, letterSpacing: -0.3 },
+  sectionAction: { fontSize: 13, fontWeight: typography.weight.semibold },
   credentialList: { paddingHorizontal: 14, paddingVertical: 0, overflow: 'hidden' },
   credentialRow: { minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: 12 },
   credentialText: { flex: 1, gap: 3 },
-  credentialTitle: { fontSize: 14, fontWeight: '800' },
-  credentialIssuer: { fontSize: 12, fontWeight: '500' },
-  walletEmpty: { alignItems: 'center', gap: 8 },
-  walletEmptyTitle: { fontSize: 16, fontWeight: '800' },
+  credentialTitle: { fontSize: typography.size.sm, fontWeight: typography.weight.extraBold },
+  credentialIssuer: { fontSize: typography.size.xs, fontWeight: typography.weight.medium },
+  walletEmpty: { alignItems: 'center', gap: spacing.sm },
+  walletEmptyTitle: { fontSize: typography.size.md, fontWeight: typography.weight.extraBold },
   walletEmptyText: { textAlign: 'center', fontSize: 13, lineHeight: 19 },
-  walletEmptyButton: { minHeight: 44, marginTop: 7, backgroundColor: '#5B6CFF', paddingHorizontal: 20, borderRadius: 12, justifyContent: 'center' },
-  walletEmptyButtonText: { color: '#FFFFFF', fontWeight: '800' },
+  walletEmptyButton: { minHeight: 44, marginTop: spacing.sm - 1, backgroundColor: palette.blue[500], paddingHorizontal: 20, borderRadius: radius.md, justifyContent: 'center' },
+  walletEmptyButtonText: { color: palette.white, fontWeight: typography.weight.extraBold },
   banner: {
     minHeight: 76,
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: radius.lg,
+    borderWidth: border.thin,
     paddingHorizontal: 13,
     paddingVertical: 10,
     flexDirection: 'row',
@@ -367,21 +359,21 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#5B6CFF',
+    backgroundColor: palette.blue[500],
     alignItems: 'center',
     justifyContent: 'center',
   },
   bannerText: { flex: 1 },
-  bannerTitle: { color: '#17203B', fontSize: 12, fontWeight: '800' },
-  bannerDescription: { color: '#596684', fontSize: 10, lineHeight: 15, marginTop: 3 },
+  bannerTitle: { color: '#17203B', fontSize: typography.size.xs, fontWeight: typography.weight.extraBold },
+  bannerDescription: { color: palette.slate[600], fontSize: 10, lineHeight: 15, marginTop: spacing.xs - 1 },
   bannerButton: {
     minHeight: 38,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#5B6CFF',
+    borderRadius: radius.round,
+    borderWidth: border.thin,
+    borderColor: palette.blue[500],
     paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bannerButtonText: { color: '#355CFF', fontSize: 11, fontWeight: '600' },
+  bannerButtonText: { color: palette.blue[700], fontSize: 11, fontWeight: typography.weight.semibold },
 });

@@ -16,7 +16,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { useRef, useState } from 'react';
 import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { AppColors } from '../../../theme';
+import { border, palette, radius, spacing, touchTarget, typography, type AppColors } from '../../../theme';
 import { formatAmount, IDPAY_BALANCES, parseRawAmount, type PaymentUnit, type TransferDraft } from '../paymentUtils';
 
 const avatar = require('../../../../assets/images/student_avatar_png_1781051105999.png');
@@ -184,8 +184,8 @@ export function DirectTransferSheet({
           <Text style={[styles.counter, { color: colors.textSecondary }]}>{note.length}/100</Text>
         </View>
 
-        <View style={[styles.notice, { backgroundColor: colors.surfaceMuted, borderColor: '#BFD1FF' }]}>
-          <View style={[styles.noticeIcon, { borderColor: '#BFD1FF' }]}><ShieldCheck color={colors.primaryDark} size={25} /></View>
+        <View style={[styles.notice, { backgroundColor: colors.surfaceMuted, borderColor: colors.secondary }]}>
+          <View style={[styles.noticeIcon, { borderColor: colors.secondary }]}><ShieldCheck color={colors.primaryDark} size={25} /></View>
           <Text style={[styles.noticeText, { color: colors.textSecondary }]}>
             Khoản chuyển sẽ được gửi qua IDPay.{'\n'}Hãy kiểm tra đúng người nhận và số tiền trước khi xác nhận.
           </Text>
@@ -197,7 +197,7 @@ export function DirectTransferSheet({
           <Text style={[styles.cancelText, { color: colors.text }]}>Hủy bỏ</Text>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={submitTransfer} style={[styles.submitButton, { backgroundColor: colors.primaryDark }]}>
-          <CircleDollarSign color="#FFFFFF" size={23} />
+          <CircleDollarSign color={palette.white} size={23} />
           <Text style={styles.submitText}>Chuyển khoản</Text>
         </Pressable>
       </View>
@@ -331,7 +331,7 @@ export function TransferConfirmationSheet({
           </Text>
         </Pressable>
 
-        <View style={[styles.confirmNotice, { backgroundColor: colors.surfaceMuted, borderColor: '#BFD1FF' }]}>
+        <View style={[styles.confirmNotice, { backgroundColor: colors.surfaceMuted, borderColor: colors.secondary }]}>
           <Info color={colors.primaryDark} size={24} />
           <Text style={[styles.confirmNoticeText, { color: colors.text }]}>
             Giao dịch sẽ được xác nhận sau khi mã bảo mật hoặc sinh trắc học hợp lệ.
@@ -388,84 +388,84 @@ function IdPayBrand({ colors }: { colors: AppColors }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, marginHorizontal: -12, marginTop: -14, marginBottom: Platform.OS === 'ios' ? -30 : -24 },
-  header: { minHeight: 56, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center' },
-  headerButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  header: { minHeight: 56, paddingHorizontal: spacing.sm + spacing.xs, flexDirection: 'row', alignItems: 'center' },
+  headerButton: { width: touchTarget.minimum, height: touchTarget.minimum, alignItems: 'center', justifyContent: 'center' },
   headerShield: { marginLeft: 'auto' },
-  title: { flex: 1, fontSize: 25, fontWeight: '900', textAlign: 'center' },
-  content: { paddingHorizontal: 16, paddingBottom: 24 },
-  description: { marginTop: 16, marginBottom: 22, fontSize: 12, lineHeight: 18, fontWeight: '600', textAlign: 'center' },
-  recipientCard: { borderWidth: 1, borderRadius: 16, padding: 16 },
-  recipientHeading: { fontSize: 16, fontWeight: '900', marginBottom: 15 },
-  recipientMain: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  title: { flex: 1, fontSize: typography.size.xl - 3, fontWeight: typography.weight.black, textAlign: 'center' },
+  content: { paddingHorizontal: spacing.md, paddingBottom: spacing.lg },
+  description: { marginTop: spacing.md, marginBottom: spacing.lg - spacing.xxs, fontSize: typography.size.xs, lineHeight: 18, fontWeight: typography.weight.semibold, textAlign: 'center' },
+  recipientCard: { borderWidth: border.thin, borderRadius: radius.md + spacing.xs, padding: spacing.md },
+  recipientHeading: { fontSize: typography.size.md, fontWeight: typography.weight.black, marginBottom: spacing.md - 1 },
+  recipientMain: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + spacing.xs },
   recipientAvatar: { width: 62, height: 62, borderRadius: 31 },
-  recipientName: { fontSize: 17, fontWeight: '900' },
-  verifiedRow: { marginTop: 5, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  verifiedText: { fontSize: 11, fontWeight: '700' },
-  recipientIdRow: { minHeight: 34, flexDirection: 'row', alignItems: 'center', gap: 7 },
-  recipientId: { fontSize: 11, fontWeight: '600' },
+  recipientName: { fontSize: typography.size.md + 1, fontWeight: typography.weight.black },
+  verifiedRow: { marginTop: spacing.xs + 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm - spacing.xxs },
+  verifiedText: { fontSize: typography.size.xs - 1, fontWeight: typography.weight.bold },
+  recipientIdRow: { minHeight: 34, flexDirection: 'row', alignItems: 'center', gap: spacing.sm - 1 },
+  recipientId: { fontSize: typography.size.xs - 1, fontWeight: typography.weight.semibold },
   grow: { flex: 1, minWidth: 0 },
-  idPayBrand: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  idPayBrandPrimary: { fontSize: 18, fontWeight: '900' },
-  idPayBrandText: { fontSize: 18, fontWeight: '900' },
-  balanceCard: { borderWidth: 1, borderRadius: 14, marginTop: 20, overflow: 'hidden' },
-  balanceHeader: { minHeight: 45, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center' },
-  balanceTitle: { flex: 1, fontSize: 12, fontWeight: '900' },
-  balanceEyeButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  balanceColumns: { minHeight: 70, paddingVertical: 10, flexDirection: 'row' },
-  balanceColumn: { flex: 1, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 9 },
-  balanceColumnDivider: { borderLeftWidth: 1 },
+  idPayBrand: { flexDirection: 'row', alignItems: 'center', gap: spacing.xxs },
+  idPayBrandPrimary: { fontSize: typography.size.md + spacing.xxs, fontWeight: typography.weight.black },
+  idPayBrandText: { fontSize: typography.size.md + spacing.xxs, fontWeight: typography.weight.black },
+  balanceCard: { borderWidth: border.thin, borderRadius: radius.md + 2, marginTop: spacing.lg - spacing.xs, overflow: 'hidden' },
+  balanceHeader: { minHeight: 45, paddingHorizontal: typography.size.xs + 1, flexDirection: 'row', alignItems: 'center' },
+  balanceTitle: { flex: 1, fontSize: typography.size.xs, fontWeight: typography.weight.black },
+  balanceEyeButton: { width: touchTarget.minimum, height: touchTarget.minimum, alignItems: 'center', justifyContent: 'center' },
+  balanceColumns: { minHeight: 70, paddingVertical: spacing.sm + spacing.xxs, flexDirection: 'row' },
+  balanceColumn: { flex: 1, paddingHorizontal: typography.size.xs + 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 1 },
+  balanceColumnDivider: { borderLeftWidth: border.thin },
   balanceAssetIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  planAIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#E7F8EC', alignItems: 'center', justifyContent: 'center' },
-  planAIconText: { color: '#28A745', fontSize: 19, fontWeight: '900' },
-  balanceAssetName: { fontSize: 10, fontWeight: '700' },
-  balanceAmount: { marginTop: 4, fontSize: 10.5, fontWeight: '900' },
-  balanceHintRow: { minHeight: 34, borderTopWidth: 1, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  balanceHintText: { fontSize: 9, fontWeight: '600' },
-  fieldLabel: { marginTop: 23, marginBottom: 9, fontSize: 15, fontWeight: '900' },
-  input: { minHeight: 58, borderWidth: 1, borderRadius: 13, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center' },
-  inputText: { flex: 1, minHeight: 54, paddingVertical: 0, fontSize: 14, fontWeight: '600' },
-  inputDivider: { width: 1, height: 28, marginHorizontal: 12 },
-  unitButton: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  unitText: { fontSize: 13, fontWeight: '800' },
-  picker: { borderWidth: 1, borderRadius: 12, marginTop: 6, overflow: 'hidden' },
-  pickerOption: { minHeight: 48, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  pickerText: { fontSize: 12, fontWeight: '800' },
-  fieldHint: { marginTop: 7, fontSize: 11, lineHeight: 16, fontWeight: '600' },
-  counter: { fontSize: 10, fontWeight: '600' },
-  notice: { borderWidth: 1, borderRadius: 14, marginTop: 25, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  noticeIcon: { width: 42, height: 42, borderWidth: 1, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
-  noticeText: { flex: 1, fontSize: 11, lineHeight: 18, fontWeight: '600' },
-  footer: { borderTopWidth: 1, paddingHorizontal: 12, paddingTop: 10, flexDirection: 'row', gap: 10 },
-  cancelButton: { flex: 1, minHeight: 52, borderWidth: 1, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  cancelText: { fontSize: 15, fontWeight: '900' },
-  submitButton: { flex: 1.1, minHeight: 52, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  submitText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
-  confirmTitle: { flex: 1, fontSize: 22, fontWeight: '900', textAlign: 'center' },
-  confirmContent: { paddingHorizontal: 16, paddingBottom: 24 },
-  confirmDescription: { marginTop: 16, marginBottom: 20, fontSize: 12, lineHeight: 18, fontWeight: '600', textAlign: 'center' },
-  summaryCard: { borderWidth: 1, borderRadius: 16, padding: 16 },
-  summaryIdentity: { flexDirection: 'row', alignItems: 'center', gap: 13 },
+  planAIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: palette.green[100], alignItems: 'center', justifyContent: 'center' },
+  planAIconText: { color: palette.green[600], fontSize: typography.size.lg - 1, fontWeight: typography.weight.black },
+  balanceAssetName: { fontSize: typography.size.xs - 2, fontWeight: typography.weight.bold },
+  balanceAmount: { marginTop: spacing.xs, fontSize: typography.size.xs - 1.5, fontWeight: typography.weight.black },
+  balanceHintRow: { minHeight: 34, borderTopWidth: border.thin, paddingHorizontal: spacing.sm + spacing.xs, flexDirection: 'row', alignItems: 'center', gap: spacing.sm - spacing.xxs },
+  balanceHintText: { fontSize: typography.size.xs - 3, fontWeight: typography.weight.semibold },
+  fieldLabel: { marginTop: spacing.lg - 1, marginBottom: spacing.sm + 1, fontSize: typography.size.sm + 1, fontWeight: typography.weight.black },
+  input: { minHeight: 58, borderWidth: border.thin, borderRadius: radius.md + 1, paddingHorizontal: spacing.md - spacing.xxs, flexDirection: 'row', alignItems: 'center' },
+  inputText: { flex: 1, minHeight: 54, paddingVertical: 0, fontSize: typography.size.sm, fontWeight: typography.weight.semibold },
+  inputDivider: { width: border.thin, height: 28, marginHorizontal: spacing.sm + spacing.xs },
+  unitButton: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  unitText: { fontSize: typography.size.xs + 1, fontWeight: typography.weight.extraBold },
+  picker: { borderWidth: border.thin, borderRadius: radius.md, marginTop: spacing.sm - spacing.xxs, overflow: 'hidden' },
+  pickerOption: { minHeight: 48, paddingHorizontal: spacing.md - spacing.xxs, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  pickerText: { fontSize: typography.size.xs, fontWeight: typography.weight.extraBold },
+  fieldHint: { marginTop: spacing.sm - 1, fontSize: typography.size.xs - 1, lineHeight: 16, fontWeight: typography.weight.semibold },
+  counter: { fontSize: typography.size.xs - 2, fontWeight: typography.weight.semibold },
+  notice: { borderWidth: border.thin, borderRadius: radius.md + 2, marginTop: typography.size.xl - 3, padding: spacing.sm + spacing.xs, flexDirection: 'row', alignItems: 'center', gap: spacing.sm + spacing.xxs },
+  noticeIcon: { width: 42, height: 42, borderWidth: border.thin, borderRadius: radius.round, alignItems: 'center', justifyContent: 'center' },
+  noticeText: { flex: 1, fontSize: typography.size.xs - 1, lineHeight: 18, fontWeight: typography.weight.semibold },
+  footer: { borderTopWidth: border.thin, paddingHorizontal: spacing.sm + spacing.xs, paddingTop: spacing.sm + spacing.xxs, flexDirection: 'row', gap: spacing.sm + spacing.xxs },
+  cancelButton: { flex: 1, minHeight: 52, borderWidth: border.thin, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  cancelText: { fontSize: typography.size.sm + 1, fontWeight: typography.weight.black },
+  submitButton: { flex: 1.1, minHeight: 52, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
+  submitText: { color: palette.white, fontSize: typography.size.sm + 1, fontWeight: typography.weight.black },
+  confirmTitle: { flex: 1, fontSize: typography.size.xl - 2, fontWeight: typography.weight.black, textAlign: 'center' },
+  confirmContent: { paddingHorizontal: spacing.md, paddingBottom: spacing.lg },
+  confirmDescription: { marginTop: spacing.md, marginBottom: spacing.lg - spacing.xs, fontSize: typography.size.xs, lineHeight: 18, fontWeight: typography.weight.semibold, textAlign: 'center' },
+  summaryCard: { borderWidth: border.thin, borderRadius: radius.md + spacing.xs, padding: spacing.md },
+  summaryIdentity: { flexDirection: 'row', alignItems: 'center', gap: typography.size.xs + 1 },
   summaryAvatar: { width: 68, height: 68, borderRadius: 34 },
-  summaryName: { fontSize: 20, fontWeight: '900' },
-  divider: { height: 1, marginVertical: 13 },
-  summaryRow: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  summaryIcon: { width: 42, height: 42, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  summaryLabel: { flex: 1, fontSize: 12, fontWeight: '600' },
-  summaryAmount: { maxWidth: '48%', fontSize: 18, fontWeight: '900', textAlign: 'right' },
-  summaryNote: { maxWidth: '48%', fontSize: 12, lineHeight: 17, fontWeight: '700', textAlign: 'right' },
-  pinTitle: { marginTop: 24, marginBottom: 12, fontSize: 16, fontWeight: '900' },
-  pinBoxes: { position: 'relative', flexDirection: 'row', justifyContent: 'space-between', gap: 7 },
-  pinBox: { flex: 1, maxWidth: 52, aspectRatio: 0.88, borderWidth: 1, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  pinDot: { fontSize: 24, lineHeight: 28, fontWeight: '700' },
+  summaryName: { fontSize: typography.size.lg, fontWeight: typography.weight.black },
+  divider: { height: border.thin, marginVertical: typography.size.xs + 1 },
+  summaryRow: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: spacing.sm + spacing.xxs },
+  summaryIcon: { width: 42, height: 42, borderRadius: radius.md - 1, alignItems: 'center', justifyContent: 'center' },
+  summaryLabel: { flex: 1, fontSize: typography.size.xs, fontWeight: typography.weight.semibold },
+  summaryAmount: { maxWidth: '48%', fontSize: typography.size.md + spacing.xxs, fontWeight: typography.weight.black, textAlign: 'right' },
+  summaryNote: { maxWidth: '48%', fontSize: typography.size.xs, lineHeight: 17, fontWeight: typography.weight.bold, textAlign: 'right' },
+  pinTitle: { marginTop: spacing.lg, marginBottom: spacing.sm + spacing.xs, fontSize: typography.size.md, fontWeight: typography.weight.black },
+  pinBoxes: { position: 'relative', flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm - 1 },
+  pinBox: { flex: 1, maxWidth: 52, aspectRatio: 0.88, borderWidth: border.thin, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  pinDot: { fontSize: typography.size.xl - spacing.xs, lineHeight: 28, fontWeight: typography.weight.bold },
   hiddenPinInput: { position: 'absolute', width: 1, height: 1, opacity: 0 },
-  biometricButton: { minHeight: 70, borderWidth: 1, borderRadius: 15, marginTop: 22, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 13 },
-  biometricIcon: { width: 46, height: 46, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  biometricText: { fontSize: 15, fontWeight: '900' },
-  confirmNotice: { borderWidth: 1, borderRadius: 14, marginTop: 22, padding: 15, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  confirmNoticeText: { flex: 1, fontSize: 12, lineHeight: 19, fontWeight: '600' },
-  confirmFooter: { paddingHorizontal: 12, paddingTop: 10, flexDirection: 'row', gap: 10 },
-  confirmCancelButton: { flex: 1, minHeight: 52, borderWidth: 1, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  confirmCancelText: { fontSize: 14, fontWeight: '900' },
-  confirmSubmitButton: { flex: 1, minHeight: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  confirmSubmitText: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' },
+  biometricButton: { minHeight: 70, borderWidth: border.thin, borderRadius: radius.md + 3, marginTop: spacing.lg - spacing.xxs, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: typography.size.xs + 1 },
+  biometricIcon: { width: 46, height: 46, borderRadius: radius.md + 1, alignItems: 'center', justifyContent: 'center' },
+  biometricText: { fontSize: typography.size.sm + 1, fontWeight: typography.weight.black },
+  confirmNotice: { borderWidth: border.thin, borderRadius: radius.md + 2, marginTop: spacing.lg - spacing.xxs, padding: typography.size.sm + 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm + spacing.xs },
+  confirmNoticeText: { flex: 1, fontSize: typography.size.xs, lineHeight: 19, fontWeight: typography.weight.semibold },
+  confirmFooter: { paddingHorizontal: spacing.sm + spacing.xs, paddingTop: spacing.sm + spacing.xxs, flexDirection: 'row', gap: spacing.sm + spacing.xxs },
+  confirmCancelButton: { flex: 1, minHeight: 52, borderWidth: border.thin, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  confirmCancelText: { fontSize: typography.size.sm, fontWeight: typography.weight.black },
+  confirmSubmitButton: { flex: 1, minHeight: 52, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  confirmSubmitText: { color: palette.white, fontSize: typography.size.sm, fontWeight: typography.weight.black },
 });

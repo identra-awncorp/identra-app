@@ -3,6 +3,7 @@ import { MessageSquareText, Phone } from 'lucide-react-native';
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { AppColors } from '../theme';
+import { border, palette, radius, spacing, typography } from '../theme';
 import { OtpVerificationScreen } from './OtpVerificationScreen';
 import { PhoneAuthScreen } from './PhoneAuthScreen';
 
@@ -140,13 +141,13 @@ function formatPhoneNumber(phoneNumber: string) {
 }
 
 const styles = StyleSheet.create({
-  modalRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
+  modalRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
   backdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(7, 15, 42, 0.55)' },
   modalCard: {
     width: '100%',
     maxWidth: 350,
-    borderWidth: 1,
-    borderRadius: 24,
+    borderWidth: border.thin,
+    borderRadius: radius.xxl,
     paddingHorizontal: 22,
     paddingVertical: 26,
     alignItems: 'center',
@@ -157,23 +158,23 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   modalIcon: { width: 58, height: 58, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
-  modalTitle: { fontSize: 22, lineHeight: 28, fontWeight: '800', textAlign: 'center' },
-  modalDescription: { marginTop: 8, fontSize: 14, lineHeight: 21, fontWeight: '400', textAlign: 'center' },
+  modalTitle: { fontSize: 22, lineHeight: 28, fontWeight: typography.weight.extraBold, textAlign: 'center' },
+  modalDescription: { marginTop: spacing.sm, fontSize: typography.size.sm, lineHeight: 21, fontWeight: typography.weight.regular, textAlign: 'center' },
   phonePill: {
     width: '100%',
     minHeight: 56,
     marginTop: 18,
-    borderWidth: 1,
+    borderWidth: border.thin,
     borderRadius: 15,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
   },
-  phoneNumber: { fontSize: 17, lineHeight: 23, fontWeight: '700', letterSpacing: 0.2 },
+  phoneNumber: { fontSize: 17, lineHeight: 23, fontWeight: typography.weight.bold, letterSpacing: 0.2 },
   primaryButton: { width: '100%', minHeight: 52, marginTop: 24, borderRadius: 15, overflow: 'hidden' },
   primaryGradient: { flex: 1, minHeight: 52, alignItems: 'center', justifyContent: 'center' },
-  primaryText: { color: '#FFFFFF', fontSize: 16, lineHeight: 22, fontWeight: '700' },
-  secondaryButton: { width: '100%', minHeight: 52, marginTop: 12, borderWidth: 1, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
-  secondaryText: { fontSize: 16, lineHeight: 22, fontWeight: '700' },
+  primaryText: { color: palette.white, fontSize: typography.size.md, lineHeight: 22, fontWeight: typography.weight.bold },
+  secondaryButton: { width: '100%', minHeight: 52, marginTop: spacing.md, borderWidth: border.thin, borderRadius: radius.lg - 1, alignItems: 'center', justifyContent: 'center' },
+  secondaryText: { fontSize: typography.size.md, lineHeight: 22, fontWeight: typography.weight.bold },
 });

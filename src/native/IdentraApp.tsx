@@ -14,7 +14,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { darkColors, lightColors } from './theme';
+import { border, darkColors, layout, lightColors, palette, spacing, typography } from './theme';
 import type { Credential, ScreenKey, TabKey } from './types';
 import { useAppStore } from './store';
 import { WalletScreen } from './screens/WalletScreen';
@@ -576,17 +576,17 @@ function BottomNavigation({
 
 const styles = StyleSheet.create({
   root: { flex: 1, alignItems: 'center' },
-  appFrame: { flex: 1, width: '100%', maxWidth: 430 },
+  appFrame: { flex: 1, width: '100%', maxWidth: layout.maxWidth },
   content: { flex: 1 },
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },
-  loadingText: { fontSize: 13, fontWeight: '600' },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md + spacing.xxs },
+  loadingText: { fontSize: typography.size.xs + 1, fontWeight: typography.weight.semibold },
   bottomNav: {
-    minHeight: 72,
-    borderTopWidth: 1,
+    minHeight: layout.bottomNavHeight,
+    borderTopWidth: border.thin,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingTop: 5,
-    paddingHorizontal: 10,
+    paddingTop: spacing.xs + 1,
+    paddingHorizontal: spacing.sm + spacing.xxs,
   },
   bottomNavItem: { flex: 1, minHeight: 46, alignItems: 'center', justifyContent: 'flex-start', gap: 1 },
   bottomNavIcon: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
@@ -597,12 +597,12 @@ const styles = StyleSheet.create({
     minWidth: 16,
     height: 16,
     borderRadius: 8,
-    borderWidth: 1.5,
-    backgroundColor: '#FF3D47',
+    borderWidth: border.medium,
+    backgroundColor: palette.red[500],
     paddingHorizontal: 3,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  activityBadgeText: { color: '#FFFFFF', fontSize: 8, lineHeight: 10, fontWeight: '900', textAlign: 'center' },
-  bottomNavLabel: { fontSize: 11, lineHeight: 13, fontWeight: '500', textAlign: 'center' },
+  activityBadgeText: { color: palette.white, fontSize: 8, lineHeight: 10, fontWeight: typography.weight.black, textAlign: 'center' },
+  bottomNavLabel: { fontSize: 11, lineHeight: 13, fontWeight: typography.weight.medium, textAlign: 'center' },
 });

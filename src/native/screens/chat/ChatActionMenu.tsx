@@ -7,7 +7,7 @@ import {
   ShieldCheck,
 } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import type { AppColors } from '../../theme';
+import { border, radius, spacing, typography, type AppColors } from '../../theme';
 
 export function ChatActionMenu({
   colors,
@@ -69,9 +69,9 @@ function ActionItem({
 
 const styles = StyleSheet.create({
   grid: { alignContent: 'flex-start', flexDirection: 'row', flexWrap: 'wrap' },
-  item: { alignItems: 'center', minHeight: 190, paddingHorizontal: 5, width: '33.333%' },
+  item: { alignItems: 'center', minHeight: 190, paddingHorizontal: spacing.xs + 1, width: '33.333%' },
   itemPressed: { opacity: 0.65 },
-  icon: { alignItems: 'center', borderRadius: 17, borderWidth: 1, height: 76, justifyContent: 'center', marginBottom: 10, width: 76 },
-  title: { fontSize: 14, fontWeight: '800', lineHeight: 19, textAlign: 'center' },
-  description: { fontSize: 12, lineHeight: 17, marginTop: 2, maxWidth: 105, textAlign: 'center' },
+  icon: { alignItems: 'center', borderRadius: radius.lg - 3, borderWidth: border.thin, height: 76, justifyContent: 'center', marginBottom: spacing.sm + spacing.xxs, width: 76 },
+  title: { fontSize: typography.size.sm, fontWeight: typography.weight.extraBold, lineHeight: 19, textAlign: 'center' },
+  description: { fontSize: typography.size.xs, lineHeight: 17, marginTop: spacing.xxs, maxWidth: 105, textAlign: 'center' },
 });

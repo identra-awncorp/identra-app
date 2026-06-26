@@ -38,6 +38,7 @@ import {
 } from 'lucide-react-native';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import type { AppColors } from '../theme';
+import { border, componentSize, palette, radius, spacing, typography } from '../theme';
 import type { AppSettings, Credential, PersonalInfo } from '../types';
 import {
   AppHeader,
@@ -80,9 +81,9 @@ export function CredentialDetailScreen({
       ]
     : credential.attributes.map((attribute) => ({ ...attribute, highlight: false }));
   const statusContent = {
-    verified: { label: 'Đã xác minh', description: 'Thực chứng này đã được xác minh và hợp lệ.', color: colors.success, background: '#EAFDF4' },
+    verified: { label: 'Đã xác minh', description: 'Thực chứng này đã được xác minh và hợp lệ.', color: colors.success, background: palette.green[100] },
     pending: { label: 'Đang chờ xác nhận', description: 'Thực chứng này đang chờ được xác minh.', color: colors.warning, background: '#FFF3E8' },
-    expired: { label: 'Đã hết hạn', description: 'Thực chứng này đã hết hạn sử dụng.', color: colors.danger, background: '#FFF0F1' },
+    expired: { label: 'Đã hết hạn', description: 'Thực chứng này đã hết hạn sử dụng.', color: colors.danger, background: palette.red[100] },
   }[credential.status];
 
   const copyDid = async () => {
@@ -132,7 +133,7 @@ export function CredentialDetailScreen({
             </View>
           </View>
           <View style={[styles.detailShieldArt, { backgroundColor: colors.primary }]}>
-            <ShieldCheck color="#FFFFFF" size={40} strokeWidth={2.2} />
+            <ShieldCheck color={palette.white} size={40} strokeWidth={2.2} />
           </View>
         </View>
 
@@ -321,7 +322,7 @@ export function ShareScreen({
             </View>
           </View>
           <View style={[styles.shareShieldArt, { backgroundColor: colors.primary }]}>
-            <ShieldCheck color="#FFFFFF" size={37} strokeWidth={2.4} />
+            <ShieldCheck color={palette.white} size={37} strokeWidth={2.4} />
           </View>
         </View>
         <View style={[styles.shareMetaGrid, { borderTopColor: colors.border }]}>
@@ -393,7 +394,7 @@ export function ShareScreen({
                   },
                 ]}
               >
-                {checked ? <Check color="#FFFFFF" size={16} strokeWidth={3} /> : null}
+                {checked ? <Check color={palette.white} size={16} strokeWidth={3} /> : null}
               </View>
             </Pressable>
           );
@@ -426,7 +427,7 @@ export function ShareScreen({
             { backgroundColor: colors.primaryDark, opacity: pressed || !selected.length ? 0.58 : 1 },
           ]}
         >
-          {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.shareSubmitText}>Chia sẻ</Text>}
+          {loading ? <ActivityIndicator color={palette.white} /> : <Text style={styles.shareSubmitText}>Chia sẻ</Text>}
         </Pressable>
       </View>
 
@@ -540,9 +541,9 @@ export function ShareQrScreen({
         </Pressable>
 
         <View style={styles.shareQrCodeFrame}>
-          <QRCode value={qrValue} size={238} backgroundColor="#FFFFFF" color="#050505" ecl="H" />
+          <QRCode value={qrValue} size={238} backgroundColor={palette.white} color="#050505" ecl="H" />
           <View style={styles.shareQrLogo}>
-            <ShieldCheck color="#FFFFFF" size={25} />
+            <ShieldCheck color={palette.white} size={25} />
           </View>
         </View>
 
@@ -582,7 +583,7 @@ export function ShareQrScreen({
         ]}
       >
         <View style={[styles.shareQrSafetyIcon, { backgroundColor: colors.primary }]}>
-          <LockKeyhole color="#FFFFFF" size={25} />
+          <LockKeyhole color={palette.white} size={25} />
         </View>
         <View style={styles.shareQrSafetyMain}>
           <Text style={[styles.shareQrSafetyTitle, { color: colors.text }]}>Chỉ chia sẻ cho người bạn tin tưởng</Text>
@@ -681,9 +682,9 @@ export function ConnectionQrScreen({
 
       <View style={[styles.shareQrCard, styles.connectionQrCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <View style={styles.shareQrCodeFrame}>
-          <QRCode value={qrValue} size={238} backgroundColor="#FFFFFF" color="#050505" ecl="H" />
+          <QRCode value={qrValue} size={238} backgroundColor={palette.white} color="#050505" ecl="H" />
           <View style={styles.shareQrLogo}>
-            <ShieldCheck color="#FFFFFF" size={25} />
+            <ShieldCheck color={palette.white} size={25} />
           </View>
         </View>
 
@@ -723,7 +724,7 @@ export function ConnectionQrScreen({
         ]}
       >
         <View style={[styles.shareQrSafetyIcon, { backgroundColor: colors.primary }]}>
-          <LockKeyhole color="#FFFFFF" size={25} />
+          <LockKeyhole color={palette.white} size={25} />
         </View>
         <View style={styles.shareQrSafetyMain}>
           <Text style={[styles.shareQrSafetyTitle, { color: colors.text }]}>Chỉ kết nối với người bạn tin tưởng</Text>
@@ -808,7 +809,7 @@ export function ProfileScreen({
       <AppHeader colors={colors} title="Thông tin cá nhân" onBack={onBack} />
       <View style={styles.profileHero}>
         <View style={[styles.profileAvatar, { backgroundColor: colors.primaryDark }]}>
-          <UserRound color="#FFFFFF" size={38} />
+          <UserRound color={palette.white} size={38} />
         </View>
         <Text style={[styles.profileName, { color: colors.text }]}>{draft.fullName}</Text>
         <Text style={[styles.profileDid, { color: colors.textSecondary }]}>{draft.did}</Text>
@@ -911,7 +912,7 @@ const notificationItems: Array<{
     important: true,
     icon: ScanLine,
     color: '#355CFF',
-    background: '#EEF3FF',
+    background: palette.blue[100],
   },
   {
     id: 'security-update',
@@ -943,7 +944,7 @@ const notificationItems: Array<{
     period: 'yesterday',
     icon: FileCheck2,
     color: '#355CFF',
-    background: '#EEF3FF',
+    background: palette.blue[100],
   },
   {
     id: 'login',
@@ -1111,65 +1112,65 @@ export function SettingToggle({
         value={value}
         onValueChange={onValueChange}
         trackColor={{ false: colors.border, true: colors.primary }}
-        thumbColor="#FFFFFF"
+        thumbColor={palette.white}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  detailScreenContent: { gap: 12, paddingBottom: 30 },
-  detailShareButton: { minHeight: 44, borderRadius: 12, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  detailShareText: { fontSize: 13, fontWeight: '800' },
+  detailScreenContent: { gap: spacing.md, paddingBottom: spacing.xl + spacing.xs + spacing.xxs },
+  detailShareButton: { minHeight: 44, borderRadius: radius.md, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.xs + spacing.xxs },
+  detailShareText: { fontSize: 13, fontWeight: typography.weight.extraBold },
   detailStatusIntro: { alignItems: 'flex-start', gap: 7, marginTop: -2, marginBottom: 2 },
-  detailStatusPill: { minHeight: 27, borderRadius: 14, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  detailStatusText: { fontSize: 12, fontWeight: '800' },
-  detailStatusDescription: { fontSize: 12, lineHeight: 18, fontWeight: '600' },
-  detailCredentialCard: { borderWidth: 1, borderRadius: 18, padding: 16 },
-  detailCredentialTop: { minHeight: 91, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  detailCredentialMain: { flex: 1, gap: 4 },
-  detailCredentialTitle: { fontSize: 19, fontWeight: '900' },
-  detailCredentialIssuer: { fontSize: 13, fontWeight: '600' },
-  detailCategoryPill: { alignSelf: 'flex-start', borderRadius: 12, paddingHorizontal: 8, minHeight: 24, flexDirection: 'row', alignItems: 'center', gap: 5 },
-  detailCategoryText: { fontSize: 11, fontWeight: '700' },
+  detailStatusPill: { minHeight: 27, borderRadius: radius.md + 2, paddingHorizontal: spacing.sm + spacing.xxs, flexDirection: 'row', alignItems: 'center', gap: spacing.xs + spacing.xxs },
+  detailStatusText: { fontSize: typography.size.xs, fontWeight: typography.weight.extraBold },
+  detailStatusDescription: { fontSize: typography.size.xs, lineHeight: spacing.lg + spacing.xxs, fontWeight: typography.weight.semibold },
+  detailCredentialCard: { borderWidth: border.thin, borderRadius: radius.lg + 2, padding: spacing.lg },
+  detailCredentialTop: { minHeight: 91, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  detailCredentialMain: { flex: 1, gap: spacing.xs },
+  detailCredentialTitle: { fontSize: 19, fontWeight: typography.weight.black },
+  detailCredentialIssuer: { fontSize: 13, fontWeight: typography.weight.semibold },
+  detailCategoryPill: { alignSelf: 'flex-start', borderRadius: radius.md, paddingHorizontal: spacing.sm, minHeight: spacing.xl, flexDirection: 'row', alignItems: 'center', gap: spacing.xs + 1 },
+  detailCategoryText: { fontSize: 11, fontWeight: typography.weight.bold },
   detailShieldArt: { width: 59, height: 68, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  detailDateGrid: { marginTop: 14, marginBottom: 14, paddingVertical: 13, borderTopWidth: 1, borderBottomWidth: 1, flexDirection: 'row' },
+  detailDateGrid: { marginTop: spacing.md + spacing.xxs, marginBottom: spacing.md + spacing.xxs, paddingVertical: spacing.md + 1, borderTopWidth: border.thin, borderBottomWidth: border.thin, flexDirection: 'row' },
   detailDateColumn: { flex: 1, paddingHorizontal: 2, gap: 7, borderLeftWidth: 0 },
-  detailDateColumnDivider: { borderLeftWidth: 1, paddingLeft: 14 },
-  detailMetaLabel: { fontSize: 11, fontWeight: '600' },
+  detailDateColumnDivider: { borderLeftWidth: border.thin, paddingLeft: spacing.md + spacing.xxs },
+  detailMetaLabel: { fontSize: 11, fontWeight: typography.weight.semibold },
   detailMetaValueRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  detailMetaValue: { fontSize: 12, fontWeight: '800', flexShrink: 1 },
+  detailMetaValue: { fontSize: typography.size.xs, fontWeight: typography.weight.extraBold, flexShrink: 1 },
   detailIdRow: { minHeight: 35, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  detailIdValue: { flex: 1, fontSize: 12, fontWeight: '800' },
+  detailIdValue: { flex: 1, fontSize: typography.size.xs, fontWeight: typography.weight.extraBold },
   detailIssuerCard: { padding: 14, gap: 13 },
-  detailCardHeading: { fontSize: 13, fontWeight: '900' },
+  detailCardHeading: { fontSize: 13, fontWeight: typography.weight.black },
   detailIssuerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  detailIssuerLogo: { width: 52, height: 52, borderRadius: 26, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  detailIssuerLogo: { width: 52, height: 52, borderRadius: 26, borderWidth: border.thin, alignItems: 'center', justifyContent: 'center' },
   detailIssuerMain: { flex: 1 },
   detailIssuerNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  detailIssuerName: { flexShrink: 1, fontSize: 13, fontWeight: '900' },
+  detailIssuerName: { flexShrink: 1, fontSize: 13, fontWeight: typography.weight.black },
   detailIssuerDescription: { marginTop: 4, fontSize: 11, lineHeight: 17, fontWeight: '600' },
-  detailSectionTitle: { marginTop: 6, fontSize: 15, fontWeight: '900' },
+  detailSectionTitle: { marginTop: spacing.xs + spacing.xxs, fontSize: 15, fontWeight: typography.weight.black },
   detailAttributeCard: { paddingVertical: 6 },
   detailAttributeRow: { minHeight: 47, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
   detailAttributeLabel: { flex: 1, fontSize: 12, fontWeight: '600' },
   detailAttributeValue: { flex: 1.35, fontSize: 12, lineHeight: 17, fontWeight: '700', textAlign: 'right' },
-  detailAttributeHighlight: { borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: '#EAFDF4' },
-  detailAttributeHighlightText: { fontSize: 12, fontWeight: '800' },
-  detailActionCard: { minHeight: 68, borderRadius: 16, borderWidth: 1, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  detailAttributeHighlight: { borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs - 1, backgroundColor: palette.green[100] },
+  detailAttributeHighlightText: { fontSize: typography.size.xs, fontWeight: typography.weight.extraBold },
+  detailActionCard: { minHeight: 68, borderRadius: radius.lg, borderWidth: border.thin, padding: spacing.md, flexDirection: 'row', alignItems: 'center', gap: 11 },
   detailActionIcon: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   detailActionMain: { flex: 1 },
-  detailActionTitle: { fontSize: 13, fontWeight: '900' },
+  detailActionTitle: { fontSize: 13, fontWeight: typography.weight.black },
   detailActionDescription: { marginTop: 3, fontSize: 11, lineHeight: 16, fontWeight: '600' },
   shareScreenContent: { paddingTop: 8, paddingBottom: 26, gap: 14 },
   shareStatusIntro: { alignItems: 'flex-start', gap: 7, marginTop: -2, marginBottom: 2 },
-  shareVerifiedPill: { alignSelf: 'flex-start', minHeight: 27, borderRadius: 14, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#EAFBF3' },
-  shareVerifiedText: { fontSize: 12, fontWeight: '800' },
+  shareVerifiedPill: { alignSelf: 'flex-start', minHeight: 27, borderRadius: radius.md + 2, paddingHorizontal: spacing.sm + spacing.xxs, flexDirection: 'row', alignItems: 'center', gap: spacing.xs + spacing.xxs, backgroundColor: palette.green[100] },
+  shareVerifiedText: { fontSize: typography.size.xs, fontWeight: typography.weight.extraBold },
   shareStatusDescription: { fontSize: 12, lineHeight: 18, fontWeight: '600' },
-  shareCredentialCard: { borderWidth: 1, borderRadius: 18, padding: 14 },
+  shareCredentialCard: { borderWidth: border.thin, borderRadius: radius.lg + 2, padding: spacing.md + spacing.xxs },
   shareCredentialTop: { minHeight: 96, flexDirection: 'row', alignItems: 'center', gap: 12 },
   shareCredentialMain: { flex: 1, minWidth: 0 },
-  shareCredentialTitle: { fontSize: 18, lineHeight: 23, fontWeight: '900' },
+  shareCredentialTitle: { fontSize: 18, lineHeight: 23, fontWeight: typography.weight.black },
   shareCredentialIssuer: { marginTop: 4, fontSize: 12, lineHeight: 17, fontWeight: '600' },
   shareCategory: { alignSelf: 'flex-start', minHeight: 23, marginTop: 7, borderRadius: 12, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 5 },
   shareCategoryText: { fontSize: 11, fontWeight: '700' },
@@ -1186,92 +1187,92 @@ const styles = StyleSheet.create({
   shareSelectedCount: { fontSize: 13, fontWeight: '800' },
   shareInfo: { borderRadius: 15, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 10 },
   shareInfoText: { flex: 1, fontSize: 11, lineHeight: 17, fontWeight: '600' },
-  shareFieldList: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, overflow: 'hidden' },
+  shareFieldList: { borderWidth: border.thin, borderRadius: radius.lg + 2, paddingHorizontal: spacing.md + spacing.xxs, overflow: 'hidden' },
   shareFieldRow: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 12 },
   shareFieldIcon: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   shareFieldMain: { flex: 1, minWidth: 0 },
   shareFieldLabel: { fontSize: 13, lineHeight: 17, fontWeight: '900' },
   shareFieldValue: { marginTop: 3, fontSize: 12, lineHeight: 16, fontWeight: '600' },
-  shareCheckbox: { width: 25, height: 25, borderRadius: 5, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  shareWarning: { borderWidth: 1, borderColor: '#FFD4D6', borderRadius: 16, padding: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 11, backgroundColor: '#FFF7F7' },
-  shareWarningText: { flex: 1, color: '#F0444C', fontSize: 11, lineHeight: 18, fontWeight: '700' },
+  shareCheckbox: { width: 25, height: 25, borderRadius: radius.xs - 1, borderWidth: border.medium, alignItems: 'center', justifyContent: 'center' },
+  shareWarning: { borderWidth: border.thin, borderColor: '#FFD4D6', borderRadius: radius.lg, padding: spacing.md + spacing.xxs, flexDirection: 'row', alignItems: 'flex-start', gap: 11, backgroundColor: '#FFF7F7' },
+  shareWarningText: { flex: 1, color: '#F0444C', fontSize: 11, lineHeight: 18, fontWeight: typography.weight.bold },
   shareActions: { flexDirection: 'row', gap: 10 },
-  shareCancelButton: { flex: 1, minHeight: 52, borderWidth: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  shareCancelButton: { flex: 1, minHeight: 52, borderWidth: border.thin, borderRadius: radius.md + 2, alignItems: 'center', justifyContent: 'center' },
   shareCancelText: { fontSize: 14, fontWeight: '900' },
   shareSubmitButton: { flex: 1.05, minHeight: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  shareSubmitText: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' },
+  shareSubmitText: { color: palette.white, fontSize: typography.size.sm, fontWeight: typography.weight.black },
   shareEncryption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 12 },
   shareEncryptionText: { flexShrink: 1, fontSize: 10.5, lineHeight: 15, fontWeight: '600', textAlign: 'center' },
   shareQrScreenContent: { paddingTop: 4, paddingBottom: 30, gap: 15 },
   shareQrBrandHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 7 },
-  shareQrBrand: { flex: 1, fontSize: 20, fontWeight: '900', letterSpacing: -0.4 },
+  shareQrBrand: { flex: 1, fontSize: typography.size.lg, fontWeight: typography.weight.black, letterSpacing: -0.4 },
   shareQrHeaderSpacer: { width: 44, height: 44 },
   shareQrSubtitle: { marginTop: -5, fontSize: 13, lineHeight: 19, fontWeight: '500' },
-  shareQrCard: { borderWidth: 1, borderRadius: 19, padding: 16, alignItems: 'center' },
+  shareQrCard: { borderWidth: border.thin, borderRadius: radius.lg + 3, padding: spacing.lg, alignItems: 'center' },
   connectionQrCard: { paddingTop: 3 },
-  shareQrVerified: { minHeight: 28, borderRadius: 14, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#EAFBF3' },
-  shareQrVerifiedText: { fontSize: 12, fontWeight: '800' },
-  shareQrCredentialTitle: { marginTop: 11, fontSize: 23, lineHeight: 28, fontWeight: '900', textAlign: 'center' },
+  shareQrVerified: { minHeight: 28, borderRadius: radius.md + 2, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: spacing.xs + spacing.xxs, backgroundColor: palette.green[100] },
+  shareQrVerifiedText: { fontSize: typography.size.xs, fontWeight: typography.weight.extraBold },
+  shareQrCredentialTitle: { marginTop: 11, fontSize: 23, lineHeight: 28, fontWeight: typography.weight.black, textAlign: 'center' },
   shareQrIssuer: { marginTop: 5, fontSize: 14, lineHeight: 20, fontWeight: '600', textAlign: 'center' },
   shareQrDidRow: { maxWidth: '88%', marginTop: 6, minHeight: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
   shareQrDid: { flexShrink: 1, fontSize: 12, lineHeight: 17, fontWeight: '600' },
-  shareQrCodeFrame: { marginTop: 13, width: 278, height: 278, borderRadius: 20, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  shareQrLogo: { position: 'absolute', width: 52, height: 58, borderRadius: 16, backgroundColor: '#4A6CFF', borderWidth: 5, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  shareQrCodeFrame: { marginTop: 13, width: 278, height: 278, borderRadius: radius.xl, backgroundColor: palette.white, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  shareQrLogo: { position: 'absolute', width: 52, height: 58, borderRadius: radius.lg, backgroundColor: '#4A6CFF', borderWidth: 5, borderColor: palette.white, alignItems: 'center', justifyContent: 'center' },
   shareQrExpiry: { marginTop: 12, minHeight: 39, borderRadius: 20, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 6 },
   shareQrExpiryText: { fontSize: 11.5, fontWeight: '600' },
-  shareQrExpiryTime: { fontSize: 12, fontWeight: '900' },
+  shareQrExpiryTime: { fontSize: typography.size.xs, fontWeight: typography.weight.black },
   shareQrActions: { flexDirection: 'row', gap: 8 },
   shareQrAction: { flex: 1, minWidth: 0, alignItems: 'center', paddingVertical: 4 },
   shareQrActionIcon: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
-  shareQrActionTitle: { marginTop: 8, fontSize: 13, lineHeight: 18, fontWeight: '900', textAlign: 'center' },
+  shareQrActionTitle: { marginTop: spacing.sm, fontSize: 13, lineHeight: 18, fontWeight: typography.weight.black, textAlign: 'center' },
   shareQrActionDescription: { marginTop: 2, fontSize: 10.5, lineHeight: 15, fontWeight: '600', textAlign: 'center' },
-  shareQrSafetyCard: { minHeight: 104, borderWidth: 1, borderRadius: 18, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  shareQrSafetyCard: { minHeight: 104, borderWidth: border.thin, borderRadius: radius.lg + 2, padding: spacing.md + spacing.xxs, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   shareQrSafetyIcon: { width: 58, height: 66, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   shareQrSafetyMain: { flex: 1, minWidth: 0 },
-  shareQrSafetyTitle: { fontSize: 13, lineHeight: 18, fontWeight: '900' },
+  shareQrSafetyTitle: { fontSize: 13, lineHeight: 18, fontWeight: typography.weight.black },
   shareQrSafetyText: { marginTop: 5, fontSize: 10.5, lineHeight: 16, fontWeight: '600' },
-  shareQrCancelCard: { minHeight: 85, borderWidth: 1, borderColor: '#FFD4D6', borderRadius: 18, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFF8F8' },
-  shareQrCancelText: { flex: 1, color: '#F0444C', fontSize: 12, lineHeight: 19, fontWeight: '800' },
+  shareQrCancelCard: { minHeight: 85, borderWidth: border.thin, borderColor: '#FFD4D6', borderRadius: radius.lg + 2, padding: spacing.md + spacing.xxs, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: '#FFF8F8' },
+  shareQrCancelText: { flex: 1, color: '#F0444C', fontSize: typography.size.xs, lineHeight: 19, fontWeight: typography.weight.extraBold },
   profileHero: { alignItems: 'center' },
   profileAvatar: { width: 76, height: 76, borderRadius: 25, alignItems: 'center', justifyContent: 'center' },
-  profileName: { marginTop: 11, fontSize: 21, fontWeight: '900' },
+  profileName: { marginTop: 11, fontSize: 21, fontWeight: typography.weight.black },
   profileDid: { marginTop: 4, fontSize: 12 },
-  formCard: { gap: 14 },
-  field: { gap: 6 },
-  fieldLabel: { fontSize: 12, fontWeight: '700' },
-  inputWrap: { minHeight: 50, borderWidth: 1, borderRadius: 13, paddingLeft: 13, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  input: { flex: 1, minHeight: 48, fontSize: 16, paddingRight: 12 },
+  formCard: { gap: spacing.md + spacing.xxs },
+  field: { gap: spacing.xs + spacing.xxs },
+  fieldLabel: { fontSize: typography.size.xs, fontWeight: typography.weight.bold },
+  inputWrap: { minHeight: 50, borderWidth: border.thin, borderRadius: radius.md + 1, paddingLeft: 13, flexDirection: 'row', alignItems: 'center', gap: spacing.sm + spacing.xxs },
+  input: { flex: 1, minHeight: componentSize.inputHeight, fontSize: typography.size.md, paddingRight: spacing.md },
   securityScore: { flexDirection: 'row', alignItems: 'center', gap: 13 },
-  securityScoreIcon: { width: 58, height: 58, borderRadius: 29, backgroundColor: '#EAFDF4', alignItems: 'center', justifyContent: 'center' },
+  securityScoreIcon: { width: 58, height: 58, borderRadius: 29, backgroundColor: palette.green[100], alignItems: 'center', justifyContent: 'center' },
   securityMain: { flex: 1 },
-  securityTitle: { fontSize: 16, fontWeight: '900' },
+  securityTitle: { fontSize: typography.size.md, fontWeight: typography.weight.black },
   securityText: { fontSize: 12, lineHeight: 18, marginTop: 4 },
   settingsCard: { paddingVertical: 0 },
   settingRow: { minHeight: 79, flexDirection: 'row', alignItems: 'center', gap: 12 },
   settingIcon: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   settingMain: { flex: 1 },
-  settingTitle: { fontSize: 14, fontWeight: '800' },
+  settingTitle: { fontSize: typography.size.sm, fontWeight: typography.weight.extraBold },
   settingDescription: { fontSize: 11, lineHeight: 16, marginTop: 3 },
   notificationScreenContent: { paddingTop: 7, paddingBottom: 26, gap: 16 },
-  notificationTabs: { minHeight: 48, borderWidth: 1, borderRadius: 15, padding: 4, flexDirection: 'row' },
+  notificationTabs: { minHeight: 48, borderWidth: border.thin, borderRadius: radius.lg - 1, padding: spacing.xs, flexDirection: 'row' },
   notificationTab: { flex: 1, minHeight: 38, borderRadius: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   notificationTabText: { fontSize: 12, fontWeight: '700' },
   notificationTabDot: { width: 7, height: 7, borderRadius: 4 },
-  notificationBanner: { minHeight: 112, borderWidth: 1, borderRadius: 17, padding: 14, paddingRight: 18, flexDirection: 'row', gap: 12 },
+  notificationBanner: { minHeight: 112, borderWidth: border.thin, borderRadius: radius.lg + 1, padding: spacing.md + spacing.xxs, paddingRight: spacing.lg + spacing.xxs, flexDirection: 'row', gap: spacing.md },
   notificationBannerIcon: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
   notificationBannerMain: { flex: 1, paddingRight: 2 },
-  notificationBannerTitle: { fontSize: 14, lineHeight: 19, fontWeight: '800' },
+  notificationBannerTitle: { fontSize: typography.size.sm, lineHeight: 19, fontWeight: typography.weight.extraBold },
   notificationBannerBody: { fontSize: 11, lineHeight: 16, marginTop: 5, paddingBottom: 36 },
   notificationBannerClose: { position: 'absolute', top: 9, right: 8, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   notificationEnableButton: { position: 'absolute', right: 14, bottom: 13, minHeight: 36, borderRadius: 10, paddingHorizontal: 15, alignItems: 'center', justifyContent: 'center' },
-  notificationEnableButtonText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
+  notificationEnableButtonText: { color: palette.white, fontSize: 11, fontWeight: typography.weight.extraBold },
   notificationGroup: { gap: 10 },
-  notificationGroupTitle: { fontSize: 14, fontWeight: '800' },
+  notificationGroupTitle: { fontSize: typography.size.sm, fontWeight: typography.weight.extraBold },
   notificationGroupList: { gap: 7 },
-  notificationCard: { minHeight: 78, borderWidth: 1, borderRadius: 16, padding: 13, flexDirection: 'row', alignItems: 'flex-start', gap: 12, elevation: 1, shadowOpacity: 0.035, shadowRadius: 8 },
+  notificationCard: { minHeight: 78, borderWidth: border.thin, borderRadius: radius.lg, padding: spacing.md + 1, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, elevation: 1, shadowOpacity: 0.035, shadowRadius: 8 },
   notificationIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   notificationMain: { flex: 1, paddingTop: 1 },
-  notificationTitle: { fontSize: 12.5, lineHeight: 17, fontWeight: '800' },
+  notificationTitle: { fontSize: 12.5, lineHeight: 17, fontWeight: typography.weight.extraBold },
   notificationBody: { fontSize: 10.5, lineHeight: 15, marginTop: 3 },
   notificationTrailing: { minWidth: 54, minHeight: 42, alignItems: 'flex-end', justifyContent: 'space-between' },
   notificationTime: { fontSize: 10.5, lineHeight: 15, fontWeight: '600', textAlign: 'right' },

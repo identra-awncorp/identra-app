@@ -1,5 +1,6 @@
 import { Image, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { AppColors } from '../theme';
+import { spacing, typography } from '../theme';
 
 const identraLogo = require('../../assets/images/identra-logo.png');
 
@@ -47,7 +48,7 @@ export function AppBrandLogo({
 }
 
 const styles = StyleSheet.create({
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  brandVertical: { flexDirection: 'column', gap: 14 },
-  wordmark: { fontWeight: '900' },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm - 1 },
+  brandVertical: { flexDirection: 'column', gap: spacing.md + spacing.xxs },
+  wordmark: { fontWeight: typography.weight.black },
 });

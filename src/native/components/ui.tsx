@@ -26,7 +26,7 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 import type { AppColors } from '../theme';
-import { shadows } from '../theme';
+import { border, componentSize, iconSize, layout, palette, radius, shadows, spacing, touchTarget, typography } from '../theme';
 import type { CredentialIconName, CredentialStatus } from '../types';
 
 interface ScreenScrollProps extends PropsWithChildren {
@@ -152,10 +152,10 @@ const credentialIcons: Record<CredentialIconName, LucideIcon> = {
 
 export function CredentialIcon({
   icon,
-  color = '#355CFF',
-  background = '#EEF3FF',
-  size = 24,
-  boxSize = 48,
+  color = palette.blue[700],
+  background = palette.blue[100],
+  size = iconSize.md,
+  boxSize = touchTarget.comfortable,
 }: {
   icon: CredentialIconName;
   color?: string;
@@ -176,7 +176,7 @@ export function CredentialIcon({
     if (icon === 'shield') {
       return (
         <View style={styles.kycIcon}>
-          <ShieldCheck color="#42516E" fill="#42516E" size={size + 5} strokeWidth={1.5} />
+          <ShieldCheck color={palette.slate[700]} fill={palette.slate[700]} size={size + 5} strokeWidth={1.5} />
           <Text style={styles.kycIconText}>KYC</Text>
         </View>
       );
@@ -184,7 +184,7 @@ export function CredentialIcon({
 
     return (
       <Icon
-        color={icon === 'graduation' && color === '#355CFF' ? '#263856' : color}
+        color={icon === 'graduation' && color === palette.blue[700] ? palette.navy[600] : color}
         size={icon === 'graduation' ? size + 4 : size}
         strokeWidth={1.9}
       />
@@ -195,7 +195,7 @@ export function CredentialIcon({
     <View
       style={[
         styles.credentialIcon,
-        { width: boxSize, height: boxSize, borderRadius: Math.max(12, boxSize * 0.28), backgroundColor: background },
+        { width: boxSize, height: boxSize, borderRadius: Math.max(radius.md, boxSize * 0.28), backgroundColor: background },
       ]}
     >
       {renderIcon()}
@@ -204,9 +204,9 @@ export function CredentialIcon({
 }
 
 const statusStyle: Record<CredentialStatus, { label: string; color: string; background: string; icon: LucideIcon }> = {
-  verified: { label: 'Đã xác minh', color: '#12B76A', background: '#EAFDF4', icon: Check },
-  pending: { label: 'Đang chờ xác nhận', color: '#F57900', background: '#FFF3E8', icon: Clock3 },
-  expired: { label: 'Đã hết hạn', color: '#FF3D47', background: '#FFF0F1', icon: ShieldX },
+  verified: { label: 'Đã xác minh', color: palette.green[600], background: palette.green[100], icon: Check },
+  pending: { label: 'Đang chờ xác nhận', color: palette.orange[500], background: palette.orange[100], icon: Clock3 },
+  expired: { label: 'Đã hết hạn', color: palette.red[500], background: palette.red[100], icon: ShieldX },
 };
 
 export function StatusPill({ status, compact = false }: { status: CredentialStatus; compact?: boolean }) {
@@ -254,16 +254,16 @@ export function PrimaryButton({
       style={({ pressed }) => [
         styles.primaryButton,
         secondary
-          ? { backgroundColor: colors.surface, borderColor: colors.primaryDark, borderWidth: 1 }
+          ? { backgroundColor: colors.surface, borderColor: colors.primaryDark, borderWidth: border.thin }
           : { backgroundColor: colors.primaryDark },
         { opacity: pressed || loading ? 0.75 : 1 },
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={secondary ? colors.primaryDark : '#FFFFFF'} />
+        <ActivityIndicator color={secondary ? colors.primaryDark : palette.white} />
       ) : (
-        <Text style={[styles.primaryButtonText, { color: secondary ? colors.primaryDark : '#FFFFFF' }]}>{title}</Text>
+        <Text style={[styles.primaryButtonText, { color: secondary ? colors.primaryDark : palette.white }]}>{title}</Text>
       )}
     </Pressable>
   );
@@ -299,57 +299,57 @@ export function EmptyState({
 export function UserAvatar({ size = 56 }: { size?: number }) {
   return (
     <View style={[styles.avatar, { width: size, height: size, borderRadius: size * 0.28 }]}>
-      <UserRound color="#FFFFFF" size={size * 0.6} strokeWidth={1.8} />
+      <UserRound color={palette.white} size={size * 0.6} strokeWidth={1.8} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  screenContent: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 112, gap: 16 },
-  header: { minHeight: 56, flexDirection: 'row', alignItems: 'center' },
-  headerSpacer: { width: 44, height: 44 },
-  headerTitle: { flex: 1, fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
-  headerRight: { minWidth: 44, alignItems: 'flex-end' },
-  iconButton: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  card: { borderWidth: 1, borderRadius: 18, padding: 16 },
-  sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 2 },
-  sectionTitle: { fontSize: 20, fontWeight: '800', letterSpacing: -0.35 },
-  sectionAction: { fontSize: 14, fontWeight: '600' },
+  screenContent: { paddingHorizontal: layout.screenPadding, paddingTop: spacing.sm, paddingBottom: 112, gap: spacing.lg },
+  header: { minHeight: layout.appBarHeight, flexDirection: 'row', alignItems: 'center' },
+  headerSpacer: { width: touchTarget.minimum, height: touchTarget.minimum },
+  headerTitle: { flex: 1, fontSize: typography.size.lg, fontWeight: typography.weight.extraBold, letterSpacing: -0.3 },
+  headerRight: { minWidth: touchTarget.minimum, alignItems: 'flex-end' },
+  iconButton: { width: touchTarget.minimum, height: touchTarget.minimum, borderRadius: radius.md + 1, alignItems: 'center', justifyContent: 'center' },
+  card: { borderWidth: border.thin, borderRadius: radius.lg + 2, padding: spacing.lg },
+  sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.xxs },
+  sectionTitle: { fontSize: typography.size.lg, fontWeight: typography.weight.extraBold, letterSpacing: -0.35 },
+  sectionAction: { fontSize: typography.size.sm, fontWeight: typography.weight.semibold },
   credentialIcon: { alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  ieltsBadge: { borderRadius: 7, backgroundColor: '#42516E', paddingHorizontal: 5, paddingVertical: 8 },
-  ieltsBadgeText: { color: '#FFFFFF', fontSize: 8, fontWeight: '900', letterSpacing: -0.2 },
+  ieltsBadge: { borderRadius: radius.xs + 1, backgroundColor: palette.slate[700], paddingHorizontal: spacing.xs + 1, paddingVertical: spacing.sm },
+  ieltsBadgeText: { color: palette.white, fontSize: 8, fontWeight: typography.weight.black, letterSpacing: -0.2 },
   kycIcon: { alignItems: 'center', justifyContent: 'center' },
-  kycIconText: { position: 'absolute', color: '#FFFFFF', fontSize: 7, fontWeight: '900' },
+  kycIconText: { position: 'absolute', color: palette.white, fontSize: 7, fontWeight: typography.weight.black },
   statusPill: {
     alignSelf: 'flex-start',
     minHeight: 27,
-    paddingHorizontal: 10,
-    borderRadius: 999,
+    paddingHorizontal: spacing.sm + 2,
+    borderRadius: radius.round,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: spacing.xs + 1,
   },
-  statusCompact: { minHeight: 22, paddingHorizontal: 0, backgroundColor: 'transparent' },
-  statusCompactIcon: { width: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
-  statusText: { fontSize: 12, fontWeight: '700' },
-  statusTextCompact: { fontSize: 11, fontWeight: '600' },
+  statusCompact: { minHeight: 22, paddingHorizontal: spacing.none, backgroundColor: 'transparent' },
+  statusCompactIcon: { width: 14, height: 14, borderRadius: radius.sm - 1, alignItems: 'center', justifyContent: 'center' },
+  statusText: { fontSize: typography.size.xs, fontWeight: typography.weight.bold },
+  statusTextCompact: { fontSize: 11, fontWeight: typography.weight.semibold },
   primaryButton: {
-    minHeight: 50,
-    borderRadius: 14,
-    paddingHorizontal: 20,
+    minHeight: componentSize.buttonHeight + 2,
+    borderRadius: radius.md + 2,
+    paddingHorizontal: spacing.lg + spacing.xs,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primaryButtonText: { fontSize: 16, fontWeight: '800' },
-  emptyState: { minHeight: 330, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 26 },
+  primaryButtonText: { fontSize: typography.size.md, fontWeight: typography.weight.extraBold },
+  emptyState: { minHeight: 330, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl + spacing.xxs },
   emptyIcon: { width: 82, height: 82, borderRadius: 41, alignItems: 'center', justifyContent: 'center' },
-  emptyTitle: { marginTop: 18, fontSize: 19, fontWeight: '800' },
-  emptyDescription: { marginTop: 8, textAlign: 'center', fontSize: 14, lineHeight: 21 },
-  emptyAction: { marginTop: 22, alignSelf: 'stretch' },
+  emptyTitle: { marginTop: spacing.lg + spacing.xxs, fontSize: 19, fontWeight: typography.weight.extraBold },
+  emptyDescription: { marginTop: spacing.sm, textAlign: 'center', fontSize: typography.size.sm, lineHeight: typography.lineHeight.md - 2 },
+  emptyAction: { marginTop: spacing.xl - spacing.xxs, alignSelf: 'stretch' },
   avatar: {
     backgroundColor: 'rgba(17, 24, 39, 0.42)',
-    borderWidth: 1,
+    borderWidth: border.thin,
     borderColor: 'rgba(255, 255, 255, 0.24)',
     alignItems: 'center',
     justifyContent: 'center',

@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import type { AppColors } from '../../theme';
+import { radius, spacing } from '../../theme';
 import { ChatActionMenu } from './ChatActionMenu';
 import { AddBankAccountSheet, BankAccountSheet } from './flows/BankAccountSheets';
 import { ContractSetupSheet } from './flows/ContractSetupSheet';
@@ -249,6 +250,6 @@ export function ChatActionSheet({
 const styles = StyleSheet.create({
   actionSheetOverlay: { backgroundColor: 'rgba(12, 20, 45, 0.32)', flex: 1, justifyContent: 'flex-end' },
   actionSheetMotion: { width: '100%' },
-  actionSheet: { minHeight: 445, overflow: 'hidden', paddingBottom: Platform.OS === 'ios' ? 30 : 24, paddingHorizontal: 12, paddingTop: 14 },
-  actionSheetHandle: { alignSelf: 'center', borderRadius: 99, height: 5, marginBottom: 18, opacity: 0.85, width: 52 },
+  actionSheet: { minHeight: COLLAPSED_SHEET_HEIGHT, overflow: 'hidden', paddingBottom: Platform.OS === 'ios' ? 30 : spacing.lg, paddingHorizontal: spacing.sm + spacing.xs, paddingTop: spacing.md - spacing.xxs },
+  actionSheetHandle: { alignSelf: 'center', borderRadius: radius.round, height: 5, marginBottom: spacing.lg - spacing.sm + spacing.xxs, opacity: 0.85, width: 52 },
 });

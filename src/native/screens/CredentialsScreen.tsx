@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { BadgeHelp, Box, Check, CircleX, Clock3, Filter, Info, Search, ShieldCheck, X } from 'lucide-react-native';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { AppColors } from '../theme';
+import { border, componentSize, palette, radius, spacing, typography } from '../theme';
 import type { Credential, CredentialStatus } from '../types';
 import {
   AppHeader,
@@ -119,10 +120,10 @@ export function CredentialsScreen({
           </Card>
 
           <Card colors={colors} style={styles.stats}>
-            <Stat colors={colors} label="Đã xác minh" value="18" color={colors.success} background="#E9F9F2" icon={ShieldCheck} />
-            <Stat colors={colors} label="Đang chờ" value="3" color={colors.warning} background="#FFF3E8" icon={Clock3} divider />
-            <Stat colors={colors} label="Hết hạn" value="1" color={colors.purple} background="#F5EEFF" icon={CircleX} divider />
-            <Stat colors={colors} label="Tổng số" value="22" color={colors.primaryDark} background="#EEF3FF" icon={Box} divider />
+            <Stat colors={colors} label="Đã xác minh" value="18" color={colors.success} background={palette.green[100]} icon={ShieldCheck} />
+            <Stat colors={colors} label="Đang chờ" value="3" color={colors.warning} background={palette.orange[100]} icon={Clock3} divider />
+            <Stat colors={colors} label="Hết hạn" value="1" color={colors.purple} background={palette.purple[100]} icon={CircleX} divider />
+            <Stat colors={colors} label="Tổng số" value="22" color={colors.primaryDark} background={palette.blue[100]} icon={Box} divider />
           </Card>
 
           <Card colors={colors} style={styles.list}>
@@ -148,7 +149,7 @@ export function CredentialsScreen({
                           : colors.primaryDark
                     }
                     background={
-                      credential.status === 'pending' ? '#FFF3E8' : credential.status === 'expired' ? '#FFF0F1' : '#EEF3FF'
+                      credential.status === 'pending' ? palette.orange[100] : credential.status === 'expired' ? palette.red[100] : palette.blue[100]
                     }
                     boxSize={48}
                   />
@@ -281,47 +282,47 @@ function Stat({
 }
 
 const styles = StyleSheet.create({
-  intro: { fontSize: 14, lineHeight: 22, paddingHorizontal: 2, marginBottom: 3 },
-  searchRow: { flexDirection: 'row', gap: 10 },
-  searchBox: { height: 50, flex: 1, borderRadius: 14, borderWidth: 1, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  searchInput: { flex: 1, minWidth: 0, height: 48, fontSize: 16 },
-  filterButton: { height: 50, borderRadius: 14, borderWidth: 1, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 7 },
-  filterText: { fontSize: 13, fontWeight: '600' },
-  tabs: { height: 52, padding: 0, flexDirection: 'row', overflow: 'hidden', elevation: 1, shadowOpacity: 0.035, shadowRadius: 8 },
+  intro: { fontSize: typography.size.sm, lineHeight: typography.lineHeight.md - 1, paddingHorizontal: spacing.xxs, marginBottom: spacing.xs - 1 },
+  searchRow: { flexDirection: 'row', gap: spacing.sm + spacing.xxs },
+  searchBox: { height: 50, flex: 1, borderRadius: radius.md + 2, borderWidth: border.thin, paddingHorizontal: spacing.md + spacing.xxs, flexDirection: 'row', alignItems: 'center', gap: spacing.sm + spacing.xxs },
+  searchInput: { flex: 1, minWidth: 0, height: componentSize.inputHeight, fontSize: typography.size.md },
+  filterButton: { height: 50, borderRadius: radius.md + 2, borderWidth: border.thin, paddingHorizontal: spacing.md + 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm - 1 },
+  filterText: { fontSize: 13, fontWeight: typography.weight.semibold },
+  tabs: { height: 52, padding: spacing.none, flexDirection: 'row', overflow: 'hidden', elevation: 1, shadowOpacity: 0.035, shadowRadius: 8 },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  tabText: { fontSize: 11, fontWeight: '700', textAlign: 'center' },
-  tabActive: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 2 },
+  tabText: { fontSize: 11, fontWeight: typography.weight.bold, textAlign: 'center' },
+  tabActive: { position: 'absolute', bottom: spacing.none, left: spacing.none, right: spacing.none, height: border.thick },
   stats: { paddingHorizontal: 8, paddingVertical: 14, flexDirection: 'row', elevation: 1, shadowOpacity: 0.035, shadowRadius: 8 },
-  stat: { flex: 1, alignItems: 'center', gap: 4 },
+  stat: { flex: 1, alignItems: 'center', gap: spacing.xs },
   statIcon: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  statLabel: { fontSize: 10, fontWeight: '600', textAlign: 'center' },
-  statValue: { fontSize: 21, lineHeight: 24, fontWeight: '800' },
+  statLabel: { fontSize: 10, fontWeight: typography.weight.semibold, textAlign: 'center' },
+  statValue: { fontSize: typography.size.lg + 1, lineHeight: spacing.xl, fontWeight: typography.weight.extraBold },
   list: { paddingHorizontal: 14, paddingVertical: 0, overflow: 'hidden', elevation: 1, shadowOpacity: 0.035, shadowRadius: 8 },
   row: { minHeight: 93, flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 12 },
   rowMain: { flex: 1, minWidth: 0, gap: 3 },
-  rowTitle: { fontSize: 14, fontWeight: '800' },
-  rowIssuer: { fontSize: 12, fontWeight: '500' },
+  rowTitle: { fontSize: typography.size.sm, fontWeight: typography.weight.extraBold },
+  rowIssuer: { fontSize: typography.size.xs, fontWeight: typography.weight.medium },
   dateBox: { alignItems: 'flex-end', gap: 2 },
   dateText: { fontSize: 11, fontWeight: '500' },
-  noResult: { paddingVertical: 44, textAlign: 'center', fontSize: 14 },
-  infoCard: { minHeight: 94, borderRadius: 18, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  infoIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#EEF3FF', alignItems: 'center', justifyContent: 'center' },
+  noResult: { paddingVertical: 44, textAlign: 'center', fontSize: typography.size.sm },
+  infoCard: { minHeight: 94, borderRadius: radius.lg + 2, padding: spacing.md + spacing.xxs, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  infoIcon: { width: 48, height: 48, borderRadius: radius.md + 2, backgroundColor: palette.blue[100], alignItems: 'center', justifyContent: 'center' },
   infoMain: { flex: 1 },
   infoTitle: { fontSize: 13, fontWeight: '800' },
   infoText: { fontSize: 11, lineHeight: 17, marginTop: 5 },
   filterOverlay: { flex: 1, justifyContent: 'flex-end' },
   filterBackdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(11, 15, 26, 0.42)' },
-  filterSheet: { borderTopWidth: 1, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 28, gap: 15 },
+  filterSheet: { borderTopWidth: border.thin, borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, paddingHorizontal: spacing.lg + spacing.xxs, paddingTop: spacing.lg, paddingBottom: spacing.xl + spacing.xs, gap: 15 },
   filterSheetHeader: { flexDirection: 'row', alignItems: 'center' },
   filterSheetTitle: { flex: 1, fontSize: 19, fontWeight: '800' },
   filterClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   filterSheetLabel: { fontSize: 13, fontWeight: '700' },
   filterOptions: { gap: 8 },
-  filterOption: { minHeight: 48, borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  filterOption: { minHeight: componentSize.secondaryButtonHeight + spacing.xs, borderWidth: border.thin, borderRadius: radius.md + 2, paddingHorizontal: spacing.md + spacing.xxs, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   filterOptionText: { fontSize: 13, fontWeight: '700' },
   filterActions: { flexDirection: 'row', gap: 10, marginTop: 3 },
-  filterReset: { flex: 1, minHeight: 48, borderWidth: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  filterReset: { flex: 1, minHeight: componentSize.buttonHeight, borderWidth: border.thin, borderRadius: radius.md + 2, alignItems: 'center', justifyContent: 'center' },
   filterResetText: { fontSize: 14, fontWeight: '700' },
-  filterApply: { flex: 1, minHeight: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  filterApplyText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
+  filterApply: { flex: 1, minHeight: componentSize.buttonHeight, borderRadius: radius.md + 2, alignItems: 'center', justifyContent: 'center' },
+  filterApplyText: { color: palette.white, fontSize: typography.size.sm, fontWeight: typography.weight.extraBold },
 });

@@ -24,7 +24,7 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 import type { AppColors } from '../theme';
-import { shadows } from '../theme';
+import { border, palette, radius, shadows, spacing, typography } from '../theme';
 import { AppBrandLogo } from '../components/AppLogo';
 
 interface Props {
@@ -470,7 +470,7 @@ function OnboardingButton({
         { opacity: pressed ? 0.78 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] },
       ]}
     >
-      <Text style={[styles.buttonText, { color: secondary ? colors.text : '#FFFFFF' }]}>{title}</Text>
+      <Text style={[styles.buttonText, { color: secondary ? colors.text : palette.white }]}>{title}</Text>
     </Pressable>
   );
 }
@@ -481,8 +481,8 @@ const styles = StyleSheet.create({
   glowTop: { top: -130, right: -100 },
   glowBottom: { bottom: -150, left: -110 },
   carousel: { flex: 1 },
-  slide: { flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingHorizontal: 24 },
-  brand: { height: 86, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  slide: { flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingHorizontal: spacing.xl },
+  brand: { height: 86, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm + spacing.xxs },
   brandCompact: { height: 66 },
   illustrationArea: { flex: 1, minHeight: 330, width: '100%', alignItems: 'center', justifyContent: 'center' },
   illustrationAreaCompact: { minHeight: 252 },
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
     width: 330,
     height: 330,
     borderRadius: 165,
-    borderWidth: 1,
+    borderWidth: border.thin,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
     width: 94,
     height: 94,
     borderRadius: 18,
-    borderWidth: 1,
+    borderWidth: border.thin,
     padding: 12,
     gap: 4,
     zIndex: 4,
@@ -510,7 +510,7 @@ const styles = StyleSheet.create({
   featureTopRight: { top: 16, right: -8, transform: [{ rotate: '6deg' }] },
   featureBottomLeft: { bottom: 22, left: -18, transform: [{ rotate: '-8deg' }] },
   featureBottomRight: { bottom: 15, right: -15, transform: [{ rotate: '8deg' }] },
-  featureLabel: { fontSize: 11, lineHeight: 14, fontWeight: '800' },
+  featureLabel: { fontSize: 11, lineHeight: 14, fontWeight: typography.weight.extraBold },
   featureLine: { height: 4, width: '72%', borderRadius: 3, opacity: 0.8 },
   heroShieldHalo: { width: 190, height: 215, borderRadius: 80, alignItems: 'center', justifyContent: 'center' },
   heroShield: {
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 20,
-    borderWidth: 1,
+    borderWidth: border.thin,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 5,
@@ -552,8 +552,8 @@ const styles = StyleSheet.create({
   phoneContent: { flex: 1, padding: 10, overflow: 'hidden', gap: 7 },
   phoneTitle: { fontSize: 15, fontWeight: '900', letterSpacing: -0.3 },
   balanceCard: { borderRadius: 12, padding: 10 },
-  balanceLabel: { color: 'rgba(255,255,255,0.84)', fontSize: 8, fontWeight: '600' },
-  balanceValue: { color: '#FFFFFF', marginTop: 3, fontSize: 17, fontWeight: '900' },
+  balanceLabel: { color: 'rgba(255,255,255,0.84)', fontSize: 8, fontWeight: typography.weight.semibold },
+  balanceValue: { color: palette.white, marginTop: 3, fontSize: 17, fontWeight: typography.weight.black },
   phoneActions: { flexDirection: 'row', gap: 5 },
   phoneAction: { flex: 1, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   phoneSection: { marginTop: 2, fontSize: 9, fontWeight: '800' },
@@ -562,14 +562,14 @@ const styles = StyleSheet.create({
   transactionCopy: { flex: 1, gap: 3 },
   transactionLine: { width: '74%', height: 3, borderRadius: 2 },
   transactionLabel: { fontSize: 6, lineHeight: 8 },
-  connectionPill: { alignSelf: 'flex-end', borderRadius: 99, paddingHorizontal: 7, paddingVertical: 3, fontSize: 5, fontWeight: '800' },
-  qrCard: { borderWidth: 1, borderRadius: 14, alignItems: 'center', padding: 8, gap: 5 },
+  connectionPill: { alignSelf: 'flex-end', borderRadius: radius.round, paddingHorizontal: 7, paddingVertical: 3, fontSize: 5, fontWeight: typography.weight.extraBold },
+  qrCard: { borderWidth: border.thin, borderRadius: radius.md + 2, alignItems: 'center', padding: spacing.sm, gap: 5 },
   qrPattern: { width: 92, height: 92, flexDirection: 'row', flexWrap: 'wrap', position: 'relative' },
   qrCell: { width: 12, height: 12, margin: 0.55 },
   qrCenter: { position: 'absolute', width: 36, height: 36, borderRadius: 18, top: 28, left: 28, alignItems: 'center', justifyContent: 'center' },
-  qrCaption: { fontSize: 7, fontWeight: '800' },
+  qrCaption: { fontSize: 7, fontWeight: typography.weight.extraBold },
   encryptionCard: { minHeight: 43, borderRadius: 11, padding: 7, flexDirection: 'row', alignItems: 'center', gap: 5 },
-  encryptionTitle: { fontSize: 7, fontWeight: '800' },
+  encryptionTitle: { fontSize: 7, fontWeight: typography.weight.extraBold },
   encryptionText: { marginTop: 2, fontSize: 5 },
   phoneBrand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, marginBottom: 4 },
   securityRow: { minHeight: 49, borderRadius: 11, padding: 8, flexDirection: 'row', alignItems: 'center', gap: 7 },
@@ -579,11 +579,11 @@ const styles = StyleSheet.create({
   identityLock: { marginTop: 'auto', alignSelf: 'center', width: 62, height: 62, borderRadius: 31, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
   copy: { minHeight: 190, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 16 },
   copyCompact: { minHeight: 152, paddingTop: 4 },
-  title: { textAlign: 'center', fontSize: 34, lineHeight: 41, fontWeight: '900', letterSpacing: -1.25 },
+  title: { textAlign: 'center', fontSize: 34, lineHeight: 41, fontWeight: typography.weight.black, letterSpacing: -1.25 },
   titleCompact: { fontSize: 28, lineHeight: 34 },
-  description: { marginTop: 16, maxWidth: 350, textAlign: 'center', fontSize: 15, lineHeight: 23, fontWeight: '500' },
+  description: { marginTop: spacing.lg, maxWidth: 350, textAlign: 'center', fontSize: 15, lineHeight: typography.lineHeight.md, fontWeight: typography.weight.medium },
   descriptionCompact: { marginTop: 10, fontSize: 13, lineHeight: 19 },
-  footer: { minHeight: 148, width: '100%', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingTop: 16, paddingBottom: 12 },
+  footer: { minHeight: 148, width: '100%', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.md },
   footerCompact: { minHeight: 126, paddingTop: 8, paddingBottom: 6 },
   indicators: { height: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 13 },
   indicator: { width: 9, height: 9, borderRadius: 5 },
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
   actionsTrack: { minHeight: 112, flexDirection: 'row' },
   actionPanel: { minHeight: 112, alignItems: 'center', justifyContent: 'flex-end' },
   ctaPanel: { gap: 10 },
-  swipeHint: { paddingBottom: 25, fontSize: 13, lineHeight: 18, fontWeight: '600' },
-  button: { width: '100%', minHeight: 50, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  buttonText: { fontSize: 16, fontWeight: '800' },
+  swipeHint: { paddingBottom: 25, fontSize: 13, lineHeight: 18, fontWeight: typography.weight.semibold },
+  button: { width: '100%', minHeight: 50, borderRadius: radius.md + 2, borderWidth: border.thin, alignItems: 'center', justifyContent: 'center' },
+  buttonText: { fontSize: typography.size.md, fontWeight: typography.weight.extraBold },
 });

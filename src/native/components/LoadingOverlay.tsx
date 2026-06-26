@@ -3,6 +3,7 @@ import { Shield, ShieldCheck } from 'lucide-react-native';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, Modal, StyleSheet, Text, View } from 'react-native';
 import type { AppColors } from '../theme';
+import { border, palette, radius, spacing, typography } from '../theme';
 
 interface Props {
   colors: AppColors;
@@ -90,7 +91,7 @@ export function LoadingOverlay({
               start={{ x: 0, y: 0 }}
               style={styles.securityShield}
             >
-              <Shield color="#FFFFFF" fill="rgba(255,255,255,0.12)" size={39} strokeWidth={1.8} />
+              <Shield color={palette.white} fill="rgba(255,255,255,0.12)" size={39} strokeWidth={1.8} />
             </LinearGradient>
             <View style={[styles.securityDot, styles.dotTopLeft, { backgroundColor: colors.primary }]} />
             <View style={[styles.securityDot, styles.dotTopRight, { backgroundColor: colors.primary }]} />
@@ -122,15 +123,15 @@ export function LoadingOverlay({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
+  root: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
   card: {
     width: '100%',
     maxWidth: 340,
-    borderWidth: 1,
-    borderRadius: 26,
-    paddingHorizontal: 28,
-    paddingTop: 30,
-    paddingBottom: 28,
+    borderWidth: border.thin,
+    borderRadius: radius.xxl + 2,
+    paddingHorizontal: spacing.xl + spacing.xs,
+    paddingTop: spacing.xl + spacing.sm - spacing.xxs,
+    paddingBottom: spacing.xl + spacing.xs,
     alignItems: 'center',
     shadowColor: '#07102A',
     shadowOffset: { width: 0, height: 20 },
@@ -163,11 +164,11 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
     borderLeftColor: 'transparent',
   },
-  title: { marginTop: 28, fontSize: 25, lineHeight: 32, fontWeight: '800', textAlign: 'center' },
-  description: { marginTop: 10, fontSize: 15, lineHeight: 23, fontWeight: '400', textAlign: 'center' },
-  steps: { marginTop: 26, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  title: { marginTop: spacing.xl + spacing.xs, fontSize: 25, lineHeight: spacing.xxl, fontWeight: typography.weight.extraBold, textAlign: 'center' },
+  description: { marginTop: spacing.sm + spacing.xxs, fontSize: 15, lineHeight: typography.lineHeight.md, fontWeight: typography.weight.regular, textAlign: 'center' },
+  steps: { marginTop: spacing.xl + spacing.xxs, flexDirection: 'row', alignItems: 'center', gap: spacing.xs + spacing.xxs },
   activeStep: { width: 34, height: 4, borderRadius: 2 },
   step: { width: 34, height: 4, borderRadius: 2 },
-  notice: { marginTop: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
-  noticeText: { fontSize: 14, lineHeight: 20, fontWeight: '500' },
+  notice: { marginTop: spacing.xl - spacing.xxs, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm + 1 },
+  noticeText: { fontSize: typography.size.sm, lineHeight: typography.lineHeight.sm, fontWeight: typography.weight.medium },
 });

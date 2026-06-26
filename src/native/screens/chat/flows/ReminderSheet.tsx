@@ -15,7 +15,7 @@ import {
 import { useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { AppColors } from '../../../theme';
+import { border, palette, radius, spacing, touchTarget, typography, type AppColors } from '../../../theme';
 
 type ReminderRepeat = 'none' | 'daily' | 'weekly' | 'multi-weekly' | 'monthly' | 'yearly';
 type ReminderAudience = 'self' | 'both';
@@ -174,7 +174,7 @@ function ReminderOption({
       onPress={onPress}
       style={[
         styles.option,
-        !last && { borderBottomColor: colors.border, borderBottomWidth: 1 },
+        !last && { borderBottomColor: colors.border, borderBottomWidth: border.thin },
         selected && { backgroundColor: colors.surfaceMuted },
       ]}
     >
@@ -192,33 +192,33 @@ function ReminderOption({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, marginHorizontal: -12, marginTop: -14, marginBottom: Platform.OS === 'ios' ? -30 : -24 },
-  header: { minHeight: 56, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center' },
-  headerButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  header: { minHeight: 56, paddingHorizontal: spacing.sm + spacing.xs, flexDirection: 'row', alignItems: 'center' },
+  headerButton: { width: touchTarget.minimum, height: touchTarget.minimum, alignItems: 'center', justifyContent: 'center' },
   headerShield: { marginLeft: 'auto' },
-  title: { flex: 1, fontSize: 22, fontWeight: '900', textAlign: 'center' },
-  content: { paddingHorizontal: 16, paddingBottom: 24 },
-  description: { marginTop: 14, marginBottom: 18, fontSize: 12, lineHeight: 18, fontWeight: '600', textAlign: 'center' },
-  fieldLabel: { marginTop: 18, marginBottom: 8, fontSize: 14, fontWeight: '900' },
-  input: { minHeight: 52, borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  leadingIcon: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  inputText: { flex: 1, minHeight: 48, paddingVertical: 0, fontSize: 12, fontWeight: '600' },
-  counter: { fontSize: 10, fontWeight: '600' },
-  dateTime: { minHeight: 66, borderWidth: 1, borderRadius: 13, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  datePart: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  timeDivider: { width: 1, height: 38 },
-  meta: { fontSize: 10, fontWeight: '600' },
-  dateValue: { marginTop: 2, fontSize: 12, fontWeight: '800' },
-  optionsCard: { borderWidth: 1, borderRadius: 13, overflow: 'hidden' },
-  option: { minHeight: 68, paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  title: { flex: 1, fontSize: typography.size.xl - 2, fontWeight: typography.weight.black, textAlign: 'center' },
+  content: { paddingHorizontal: spacing.md, paddingBottom: spacing.lg },
+  description: { marginTop: spacing.md - spacing.xxs, marginBottom: spacing.md + spacing.xxs, fontSize: typography.size.xs, lineHeight: 18, fontWeight: typography.weight.semibold, textAlign: 'center' },
+  fieldLabel: { marginTop: spacing.md + spacing.xxs, marginBottom: spacing.sm, fontSize: typography.size.sm, fontWeight: typography.weight.black },
+  input: { minHeight: 52, borderWidth: border.thin, borderRadius: radius.md, paddingHorizontal: spacing.sm + spacing.xxs, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  leadingIcon: { width: 38, height: 38, borderRadius: radius.md - 1, alignItems: 'center', justifyContent: 'center' },
+  inputText: { flex: 1, minHeight: 48, paddingVertical: 0, fontSize: typography.size.xs, fontWeight: typography.weight.semibold },
+  counter: { fontSize: typography.size.xs - 2, fontWeight: typography.weight.semibold },
+  dateTime: { minHeight: 66, borderWidth: border.thin, borderRadius: radius.md + 1, paddingHorizontal: spacing.sm + spacing.xxs, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  datePart: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  timeDivider: { width: border.thin, height: 38 },
+  meta: { fontSize: typography.size.xs - 2, fontWeight: typography.weight.semibold },
+  dateValue: { marginTop: spacing.xxs, fontSize: typography.size.xs, fontWeight: typography.weight.extraBold },
+  optionsCard: { borderWidth: border.thin, borderRadius: radius.md + 1, overflow: 'hidden' },
+  option: { minHeight: 68, paddingHorizontal: spacing.sm + spacing.xs, paddingVertical: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.sm + spacing.xxs },
   radioOuter: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   radioInner: { width: 12, height: 12, borderRadius: 6 },
   optionIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
-  optionLabel: { fontSize: 12, fontWeight: '900' },
-  optionDescription: { marginTop: 3, fontSize: 10, lineHeight: 15, fontWeight: '600' },
+  optionLabel: { fontSize: typography.size.xs, fontWeight: typography.weight.black },
+  optionDescription: { marginTop: spacing.xxs + 1, fontSize: typography.size.xs - 2, lineHeight: 15, fontWeight: typography.weight.semibold },
   grow: { flex: 1, minWidth: 0 },
-  footer: { borderTopWidth: 1, paddingHorizontal: 12, paddingTop: 10, flexDirection: 'row', gap: 10 },
-  cancelButton: { flex: 1, minHeight: 52, borderWidth: 1, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  cancelText: { fontSize: 14, fontWeight: '900' },
-  createButton: { flex: 1, minHeight: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  createText: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' },
+  footer: { borderTopWidth: border.thin, paddingHorizontal: spacing.sm + spacing.xs, paddingTop: spacing.sm + spacing.xxs, flexDirection: 'row', gap: spacing.sm + spacing.xxs },
+  cancelButton: { flex: 1, minHeight: 52, borderWidth: border.thin, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  cancelText: { fontSize: typography.size.sm, fontWeight: typography.weight.black },
+  createButton: { flex: 1, minHeight: 52, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  createText: { color: palette.white, fontSize: typography.size.sm, fontWeight: typography.weight.black },
 });

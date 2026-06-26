@@ -36,6 +36,7 @@ import {
 } from 'lucide-react-native';
 import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { AppColors } from '../theme';
+import { border, componentSize, palette, radius, spacing, typography } from '../theme';
 import type { ActivityLog, AppSettings, ThemeMode } from '../types';
 import { AppBrandLogo } from '../components/AppLogo';
 import {
@@ -268,8 +269,8 @@ function ActivitySummaryCard({
   const tones = {
     primary: { color: '#2864F0', background: '#EDF3FF' },
     success: { color: '#19B970', background: '#EAFBF3' },
-    pending: { color: '#F57900', background: '#FFF3E8' },
-    failed: { color: '#9256DF', background: '#F5EEFF' },
+    pending: { color: palette.orange[500], background: palette.orange[100] },
+    failed: { color: '#9256DF', background: palette.purple[100] },
   };
   const style = tones[tone];
   return (
@@ -287,9 +288,9 @@ function ActivitySummaryCard({
 function ActivityRow({ colors, log, showDate, divider }: { colors: AppColors; log: ActivityLog; showDate: boolean; divider: boolean }) {
   const status = activityStatus(log);
   const statusStyle = {
-    success: { color: '#12B76A', icon: CheckCircle2 },
-    pending: { color: '#F57900', icon: Clock3 },
-    failed: { color: '#FF3D47', icon: Clock3 },
+    success: { color: palette.green[600], icon: CheckCircle2 },
+    pending: { color: palette.orange[500], icon: Clock3 },
+    failed: { color: palette.red[500], icon: Clock3 },
   }[status];
   const StatusIcon = statusStyle.icon;
   const time = new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(log.timestamp));
@@ -330,29 +331,29 @@ function ActivityRow({ colors, log, showDate, divider }: { colors: AppColors; lo
 }
 
 function ActivityLeadingIcon({ log }: { log: ActivityLog }) {
-  if (log.title === 'Bằng tốt nghiệp') return <ActivityIconBox icon={GraduationCap} color="#263856" background="#EEF3FF" />;
+  if (log.title === 'Bằng tốt nghiệp') return <ActivityIconBox icon={GraduationCap} color={palette.navy[600]} background={palette.blue[100]} />;
   if (log.title === 'Chứng chỉ ngoại ngữ') {
-    return <View style={[styles.activityLeadingIcon, { backgroundColor: '#EEF3FF' }]}><View style={styles.activityIelts}><Text style={styles.activityIeltsText}>IELTS</Text></View></View>;
+    return <View style={[styles.activityLeadingIcon, { backgroundColor: palette.blue[100] }]}><View style={styles.activityIelts}><Text style={styles.activityIeltsText}>IELTS</Text></View></View>;
   }
   if (log.title === 'KYC Level 2') {
     const failed = activityStatus(log) === 'failed';
     return (
-      <View style={[styles.activityLeadingIcon, { backgroundColor: failed ? '#FFF0F1' : '#EEF3FF' }]}>
-        <Shield color={failed ? '#FF5C63' : '#42516E'} fill={failed ? '#FF7379' : '#42516E'} size={35} strokeWidth={1.5} />
-        {failed ? <X color="#FFFFFF" size={16} strokeWidth={2.5} style={styles.activityShieldOverlay} /> : <Text style={styles.activityKycText}>KYC</Text>}
+      <View style={[styles.activityLeadingIcon, { backgroundColor: failed ? palette.red[100] : palette.blue[100] }]}>
+        <Shield color={failed ? '#FF5C63' : palette.slate[700]} fill={failed ? '#FF7379' : palette.slate[700]} size={35} strokeWidth={1.5} />
+        {failed ? <X color={palette.white} size={16} strokeWidth={2.5} style={styles.activityShieldOverlay} /> : <Text style={styles.activityKycText}>KYC</Text>}
       </View>
     );
   }
-  if (log.type === 'share' && log.partner.includes('Bảo hiểm')) return <ActivityIconBox icon={University} color="#5B76F6" background="#EEF3FF" />;
+  if (log.type === 'share' && log.partner.includes('Bảo hiểm')) return <ActivityIconBox icon={University} color="#5B76F6" background={palette.blue[100]} />;
   if (log.type === 'share') {
     return (
-      <View style={[styles.activityLeadingIcon, { backgroundColor: '#EEF3FF' }]}>
+      <View style={[styles.activityLeadingIcon, { backgroundColor: palette.blue[100] }]}>
         <Shield color="#5B76F6" fill="#6D8BFA" size={35} strokeWidth={1.4} />
-        <Share2 color="#FFFFFF" size={14} strokeWidth={2.2} style={styles.activityShieldOverlay} />
+        <Share2 color={palette.white} size={14} strokeWidth={2.2} style={styles.activityShieldOverlay} />
       </View>
     );
   }
-  return <ActivityIconBox icon={ShieldCheck} color="#355CFF" background="#EEF3FF" />;
+  return <ActivityIconBox icon={ShieldCheck} color={palette.blue[700]} background={palette.blue[100]} />;
 }
 
 function ActivityIconBox({ icon: Icon, color, background }: { icon: typeof ShieldCheck; color: string; background: string }) {
@@ -526,7 +527,7 @@ function SettingsLink({
         { opacity: pressed ? 0.65 : 1 },
       ]}
     >
-      <View style={[styles.settingsIcon, { backgroundColor: danger ? '#FFF0F1' : colors.surfaceMuted }]}>
+      <View style={[styles.settingsIcon, { backgroundColor: danger ? palette.red[100] : colors.surfaceMuted }]}>
         <Icon color={danger ? colors.danger : colors.primaryDark} size={22} />
       </View>
       <View style={{ flex: 1 }}>
@@ -751,24 +752,24 @@ export function AboutScreen({ colors, onBack }: { colors: AppColors; onBack: () 
 }
 
 const styles = StyleSheet.create({
-  activityScreenContent: { paddingTop: 2, paddingBottom: 24, gap: 13 },
-  activityBrandHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  activityScreenContent: { paddingTop: spacing.xxs, paddingBottom: spacing.xl, gap: spacing.md + 1 },
+  activityBrandHeader: { minHeight: componentSize.buttonHeight, flexDirection: 'row', alignItems: 'center', gap: spacing.sm - 1 },
   activityHeaderButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   activityBrandLogo: { flex: 1 },
-  activityTitleRow: { minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 4 },
+  activityTitleRow: { minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: spacing.sm + spacing.xxs, paddingHorizontal: spacing.xs },
   activityTitleText: { flex: 1 },
-  activityScreenTitle: { fontSize: 22, fontWeight: '800', letterSpacing: -0.45 },
-  activityIntro: { marginTop: 3, fontSize: 12, lineHeight: 17 },
+  activityScreenTitle: { fontSize: typography.size.lg + 2, fontWeight: typography.weight.extraBold, letterSpacing: -0.45 },
+  activityIntro: { marginTop: spacing.xs - 1, fontSize: typography.size.xs, lineHeight: typography.lineHeight.xs },
   activityFilterButton: {
     width: 58,
     height: 58,
     borderRadius: 29,
-    borderWidth: 1,
+    borderWidth: border.thin,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
+    gap: spacing.xxs,
   },
-  activityFilterButtonText: { fontSize: 10, fontWeight: '500' },
+  activityFilterButtonText: { fontSize: 10, fontWeight: typography.weight.medium },
   activityFilterCount: {
     position: 'absolute',
     right: -1,
@@ -776,102 +777,102 @@ const styles = StyleSheet.create({
     width: 17,
     height: 17,
     borderRadius: 9,
-    backgroundColor: '#355CFF',
+    backgroundColor: palette.blue[700],
     alignItems: 'center',
     justifyContent: 'center',
   },
-  activityFilterCountText: { color: '#FFFFFF', fontSize: 9, fontWeight: '800' },
-  activitySummary: { flexDirection: 'row', gap: 7 },
+  activityFilterCountText: { color: palette.white, fontSize: 9, fontWeight: typography.weight.extraBold },
+  activitySummary: { flexDirection: 'row', gap: spacing.sm - 1 },
   activitySummaryCard: {
     flex: 1,
     minWidth: 0,
     minHeight: 126,
-    borderWidth: 1,
-    borderRadius: 15,
+    borderWidth: border.thin,
+    borderRadius: radius.lg - 1,
     paddingHorizontal: 3,
     paddingVertical: 12,
     alignItems: 'center',
   },
-  activitySummaryIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  activitySummaryLabel: { marginTop: 10, fontSize: 10, fontWeight: '500', textAlign: 'center' },
-  activitySummaryValue: { marginTop: 4, fontSize: 20, fontWeight: '500' },
-  activitySummaryFooter: { marginTop: 6, fontSize: 9, fontWeight: '500', textAlign: 'center' },
-  activityGroup: { gap: 8 },
-  activityGroupTitle: { paddingHorizontal: 3, fontSize: 14, fontWeight: '800' },
-  activityList: { borderWidth: 1, borderRadius: 16, paddingHorizontal: 12, overflow: 'hidden' },
-  activityRow: { minHeight: 75, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  activitySummaryIcon: { width: 36, height: 36, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  activitySummaryLabel: { marginTop: spacing.sm + spacing.xxs, fontSize: 10, fontWeight: typography.weight.medium, textAlign: 'center' },
+  activitySummaryValue: { marginTop: spacing.xs, fontSize: typography.size.lg, fontWeight: typography.weight.medium },
+  activitySummaryFooter: { marginTop: spacing.xs + spacing.xxs, fontSize: 9, fontWeight: typography.weight.medium, textAlign: 'center' },
+  activityGroup: { gap: spacing.sm },
+  activityGroupTitle: { paddingHorizontal: spacing.xs - 1, fontSize: typography.size.sm, fontWeight: typography.weight.extraBold },
+  activityList: { borderWidth: border.thin, borderRadius: radius.lg, paddingHorizontal: spacing.md, overflow: 'hidden' },
+  activityRow: { minHeight: 75, flexDirection: 'row', alignItems: 'center', gap: spacing.sm + spacing.xxs },
   activityRowNew: { position: 'relative', marginHorizontal: -12, paddingHorizontal: 12 },
   activityNewAccent: { position: 'absolute', left: 0, top: 10, bottom: 10, width: 3, borderTopRightRadius: 3, borderBottomRightRadius: 3 },
-  activityLeadingIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  activityLeadingIcon: { width: 48, height: 48, borderRadius: radius.md + 2, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   activityRowContent: { flex: 1, minWidth: 0, gap: 2 },
   activityRowTitleLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  activityTitle: { minWidth: 0, flexShrink: 1, fontSize: 13, fontWeight: '800' },
+  activityTitle: { minWidth: 0, flexShrink: 1, fontSize: 13, fontWeight: typography.weight.extraBold },
   activityNewPill: { minHeight: 17, borderRadius: 9, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center' },
-  activityNewPillText: { color: '#FFFFFF', fontSize: 8, lineHeight: 10, fontWeight: '900' },
-  activityPartner: { fontSize: 11, fontWeight: '500' },
-  activityStatus: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  activityStatusText: { fontSize: 10, fontWeight: '500' },
+  activityNewPillText: { color: palette.white, fontSize: 8, lineHeight: 10, fontWeight: typography.weight.black },
+  activityPartner: { fontSize: 11, fontWeight: typography.weight.medium },
+  activityStatus: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  activityStatusText: { fontSize: 10, fontWeight: typography.weight.medium },
   activityTime: { minWidth: 62, alignItems: 'flex-end', gap: 3 },
-  activityDate: { fontSize: 10, fontWeight: '500' },
-  activityClock: { fontSize: 10, fontWeight: '500' },
-  activityIelts: { paddingHorizontal: 5, paddingVertical: 7, borderRadius: 7, backgroundColor: '#42516E' },
-  activityIeltsText: { color: '#FFFFFF', fontSize: 8, fontWeight: '900' },
-  activityKycText: { position: 'absolute', color: '#FFFFFF', fontSize: 7, fontWeight: '900' },
+  activityDate: { fontSize: 10, fontWeight: typography.weight.medium },
+  activityClock: { fontSize: 10, fontWeight: typography.weight.medium },
+  activityIelts: { paddingHorizontal: spacing.xs + 1, paddingVertical: spacing.sm - 1, borderRadius: radius.xs + 1, backgroundColor: palette.slate[700] },
+  activityIeltsText: { color: palette.white, fontSize: 8, fontWeight: typography.weight.black },
+  activityKycText: { position: 'absolute', color: palette.white, fontSize: 7, fontWeight: typography.weight.black },
   activityShieldOverlay: { position: 'absolute' },
   activityFilterOverlay: { flex: 1, justifyContent: 'flex-end' },
   activityFilterBackdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(11, 15, 26, 0.42)' },
   activityFilterSheet: {
-    borderTopWidth: 1,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 28,
-    gap: 18,
+    borderTopWidth: border.thin,
+    borderTopLeftRadius: radius.xxl,
+    borderTopRightRadius: radius.xxl,
+    paddingHorizontal: spacing.lg + spacing.xxs,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl + spacing.xs,
+    gap: spacing.lg + spacing.xxs,
   },
   activityFilterHeader: { flexDirection: 'row', alignItems: 'center' },
-  activityFilterTitle: { flex: 1, fontSize: 19, fontWeight: '800' },
+  activityFilterTitle: { flex: 1, fontSize: 19, fontWeight: typography.weight.extraBold },
   activityFilterClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   activityFilterSection: { gap: 9 },
-  activityFilterSectionTitle: { fontSize: 13, fontWeight: '800' },
+  activityFilterSectionTitle: { fontSize: 13, fontWeight: typography.weight.extraBold },
   activityFilterOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  activityFilterOption: { minHeight: 42, borderWidth: 1, borderRadius: 999, paddingHorizontal: 15, alignItems: 'center', justifyContent: 'center' },
-  activityFilterOptionText: { fontSize: 12, fontWeight: '600' },
+  activityFilterOption: { minHeight: 42, borderWidth: border.thin, borderRadius: radius.round, paddingHorizontal: 15, alignItems: 'center', justifyContent: 'center' },
+  activityFilterOptionText: { fontSize: typography.size.xs, fontWeight: typography.weight.semibold },
   activityFilterActions: { flexDirection: 'row', gap: 10, marginTop: 2 },
-  activityFilterReset: { flex: 1, minHeight: 48, borderWidth: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  activityFilterResetText: { fontSize: 14, fontWeight: '700' },
-  activityFilterApply: { flex: 1, minHeight: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  activityFilterApplyText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
-  settingsScreenContent: { paddingTop: 5, paddingBottom: 28, gap: 14 },
+  activityFilterReset: { flex: 1, minHeight: componentSize.buttonHeight, borderWidth: border.thin, borderRadius: radius.md + 2, alignItems: 'center', justifyContent: 'center' },
+  activityFilterResetText: { fontSize: typography.size.sm, fontWeight: typography.weight.bold },
+  activityFilterApply: { flex: 1, minHeight: componentSize.buttonHeight, borderRadius: radius.md + 2, alignItems: 'center', justifyContent: 'center' },
+  activityFilterApplyText: { color: palette.white, fontSize: typography.size.sm, fontWeight: typography.weight.extraBold },
+  settingsScreenContent: { paddingTop: spacing.xs + 1, paddingBottom: spacing.xl + spacing.xs, gap: spacing.md + spacing.xxs },
   settingsBrandHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   settingsHeaderButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   settingsBrandLogo: { flex: 1, marginLeft: 6 },
   settingsIntro: { gap: 3, marginTop: 1, marginBottom: 2 },
-  settingsScreenTitle: { fontSize: 28, lineHeight: 34, fontWeight: '900', letterSpacing: -0.6 },
-  settingsScreenSubtitle: { fontSize: 14, lineHeight: 20 },
-  backupCard: { minHeight: 108, borderWidth: 1, borderRadius: 18, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 13 },
-  backupIcon: { width: 62, height: 62, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
-  backupTitle: { fontSize: 17, fontWeight: '800' },
+  settingsScreenTitle: { fontSize: typography.size.xl, lineHeight: typography.lineHeight.xl - 2, fontWeight: typography.weight.black, letterSpacing: -0.6 },
+  settingsScreenSubtitle: { fontSize: typography.size.sm, lineHeight: typography.lineHeight.sm },
+  backupCard: { minHeight: 108, borderWidth: border.thin, borderRadius: radius.lg + 2, padding: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.md + 1 },
+  backupIcon: { width: 62, height: 62, borderRadius: radius.lg - 1, alignItems: 'center', justifyContent: 'center' },
+  backupTitle: { fontSize: 17, fontWeight: typography.weight.extraBold },
   backupDescription: { fontSize: 11, lineHeight: 16, marginTop: 3 },
-  backupStatus: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 5, borderRadius: 999, backgroundColor: '#EAFBF4', paddingHorizontal: 7, paddingVertical: 3 },
-  backupStatusText: { fontSize: 9.5, fontWeight: '600' },
-  settingsSectionTitle: { fontSize: 14, lineHeight: 20, fontWeight: '800', marginTop: 2, marginHorizontal: 1 },
+  backupStatus: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.xs + 1, borderRadius: radius.round, backgroundColor: palette.green[100], paddingHorizontal: spacing.sm - 1, paddingVertical: spacing.xs - 1 },
+  backupStatusText: { fontSize: 9.5, fontWeight: typography.weight.semibold },
+  settingsSectionTitle: { fontSize: typography.size.sm, lineHeight: typography.lineHeight.sm, fontWeight: typography.weight.extraBold, marginTop: spacing.xxs, marginHorizontal: 1 },
   settingsList: { paddingVertical: 0, elevation: 1, shadowOpacity: 0.035, shadowRadius: 8 },
-  settingsRow: { minHeight: 70, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  settingsIcon: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  settingsTitle: { fontSize: 13.5, fontWeight: '800' },
+  settingsRow: { minHeight: 70, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  settingsIcon: { width: 38, height: 38, borderRadius: radius.md - 1, alignItems: 'center', justifyContent: 'center' },
+  settingsTitle: { fontSize: 13.5, fontWeight: typography.weight.extraBold },
   settingsDescription: { fontSize: 10.5, lineHeight: 15, marginTop: 3 },
-  themeCard: { flexDirection: 'row', gap: 8, padding: 10 },
-  themeOption: { flex: 1, minHeight: 90, borderWidth: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center', gap: 6 },
-  themeLabel: { fontSize: 10, fontWeight: '800', textAlign: 'center' },
+  themeCard: { flexDirection: 'row', gap: spacing.sm, padding: spacing.sm + spacing.xxs },
+  themeOption: { flex: 1, minHeight: 90, borderWidth: border.thin, borderRadius: radius.md + 2, alignItems: 'center', justifyContent: 'center', gap: spacing.xs + spacing.xxs },
+  themeLabel: { fontSize: 10, fontWeight: typography.weight.extraBold, textAlign: 'center' },
   languageRow: { minHeight: 74, flexDirection: 'row', alignItems: 'center' },
   sampleSettingsDescription: { fontSize: 14, lineHeight: 21, marginHorizontal: 2 },
   helpHero: { alignItems: 'center', paddingHorizontal: 26 },
   helpIcon: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center' },
-  helpTitle: { marginTop: 15, fontSize: 21, fontWeight: '900' },
+  helpTitle: { marginTop: 15, fontSize: 21, fontWeight: typography.weight.black },
   helpText: { marginTop: 7, fontSize: 14, lineHeight: 21, textAlign: 'center' },
   helpRow: { minHeight: 66, flexDirection: 'row', alignItems: 'center', gap: 10 },
   aboutRow: { minHeight: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  aboutLabel: { fontSize: 13, fontWeight: '600' },
-  aboutValue: { fontSize: 13, fontWeight: '800' },
+  aboutLabel: { fontSize: 13, fontWeight: typography.weight.semibold },
+  aboutValue: { fontSize: 13, fontWeight: typography.weight.extraBold },
 });
