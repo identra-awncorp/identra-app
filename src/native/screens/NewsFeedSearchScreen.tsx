@@ -3,24 +3,29 @@ import {
   ArrowLeft,
   Bot,
   Briefcase,
+  CalendarDays,
   ChevronRight,
+  Clock3,
   Code2,
+  Heart,
   Landmark,
   MoreVertical,
   Music2,
+  RotateCcw,
   Search,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
   Users,
+  X,
   type LucideIcon,
 } from 'lucide-react-native';
-import type { ReactNode } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ImageSourcePropType } from 'react-native';
+import { useMemo, useState, type ReactNode } from 'react';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ImageSourcePropType } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppLogo } from '../components/AppLogo';
 import type { AppColors } from '../theme';
-import { border, palette, radius, shadows, spacing, touchTarget, typography } from '../theme';
+import { border, palette, radius, spacing, touchTarget, typography } from '../theme';
 
 const verifiedBadgeIcon = require('../../assets/images/verified-badge-icon.png');
 const beeIcon = require('../../assets/images/mini-app-logo/bee-icon.png');
@@ -65,7 +70,36 @@ type MiniAppSuggestion = {
   icon?: LucideIcon;
 };
 
-const tabs = ['Tất cả', 'Xu hướng', 'Tài khoản', 'Nhóm', 'Mini App'];
+type NewsFeedSearchTab = 'all' | 'trends' | 'accounts' | 'groups' | 'miniApps';
+type FilterDateDirection = 'after' | 'before';
+type FilterSortMode = 'relevant' | 'latest';
+
+const tabs: Array<{ key: NewsFeedSearchTab; label: string }> = [
+  { key: 'all', label: 'Tất cả' },
+  { key: 'trends', label: 'Xu hướng' },
+  { key: 'accounts', label: 'Tài khoản' },
+  { key: 'groups', label: 'Nhóm' },
+  { key: 'miniApps', label: 'Mini App' },
+];
+
+const interestSuggestions = [
+  'Công nghệ',
+  'Blockchain',
+  'AI',
+  'Âm nhạc',
+  'Web3',
+  'SSI',
+  'Bảo mật',
+  'Thanh toán',
+  'Sự kiện',
+  'Thể thao',
+  'Mini App',
+  'DeFi',
+  'Smart Contract',
+  'Dữ liệu cá nhân',
+];
+
+const initialFilterInterests = ['Công nghệ', 'Blockchain', 'AI', 'Âm nhạc'];
 
 const trends: TrendSuggestion[] = [
   { title: '#GENfest2025', category: 'Sự kiện · Âm nhạc', count: '128.6K bài viết', verified: true, bars: [22, 30, 27, 38, 34, 29, 36, 46, 42, 58] },
@@ -106,6 +140,60 @@ const miniApps: MiniAppSuggestion[] = [
 
 export function NewsFeedSearchScreen({ colors, onBack }: { colors: AppColors; onBack: () => void }) {
   const insets = useSafeAreaInsets();
+  const [activeTab, setActiveTab] = useState<NewsFeedSearchTab>('all');
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [dateDirection, setDateDirection] = useState<FilterDateDirection>('after');
+  const [sortMode, setSortMode] = useState<FilterSortMode>('relevant');
+  const [interestQuery, setInterestQuery] = useState('');
+  const [selectedInterests, setSelectedInterests] = useState(initialFilterInterests);
+  const canShowFilter = activeTab !== 'all';
+  const showTrends = activeTab === 'all' || activeTab === 'trends';
+  const showAccounts = activeTab === 'all' || activeTab === 'accounts';
+  const showGroups = activeTab === 'all' || activeTab === 'groups';
+  const showMiniApps = activeTab === 'all' || activeTab === 'miniApps';
+  const activeTabLabel = tabs.find((tab) => tab.key === activeTab)?.label ?? '';
+  const normalizedInterestQuery = interestQuery.trim().toLocaleLowerCase('vi-VN');
+  const customInterest = interestQuery.trim();
+  const filteredInterestSuggestions = useMemo(
+    () =>
+      interestSuggestions
+        .filter((interest) => !selectedInterests.some((selected) => selected.toLocaleLowerCase('vi-VN') === interest.toLocaleLowerCase('vi-VN')))
+        .filter((interest) => !normalizedInterestQuery || interest.toLocaleLowerCase('vi-VN').includes(normalizedInterestQuery))
+        .slice(0, 8),
+    [normalizedInterestQuery, selectedInterests],
+  );
+  const canAddCustomInterest =
+    customInterest.length > 1 &&
+    !selectedInterests.some((interest) => interest.toLocaleLowerCase('vi-VN') === customInterest.toLocaleLowerCase('vi-VN')) &&
+    !interestSuggestions.some((interest) => interest.toLocaleLowerCase('vi-VN') === customInterest.toLocaleLowerCase('vi-VN'));
+
+  const addInterest = (interest: string) => {
+    const trimmedInterest = interest.trim();
+
+    if (!trimmedInterest) {
+      return;
+    }
+
+    setSelectedInterests((current) => {
+      if (current.some((item) => item.toLocaleLowerCase('vi-VN') === trimmedInterest.toLocaleLowerCase('vi-VN'))) {
+        return current;
+      }
+
+      return [...current, trimmedInterest];
+    });
+    setInterestQuery('');
+  };
+
+  const removeInterest = (interest: string) => {
+    setSelectedInterests((current) => current.filter((item) => item !== interest));
+  };
+
+  const resetFilters = () => {
+    setDateDirection('after');
+    setSortMode('relevant');
+    setInterestQuery('');
+    setSelectedInterests([]);
+  };
 
   return (
     <View nativeID="screen-news-feed-search" testID="screen-news-feed-search" style={[styles.screen, { backgroundColor: colors.background }]}>
@@ -130,25 +218,40 @@ export function NewsFeedSearchScreen({ colors, onBack }: { colors: AppColors; on
           />
         </View>
 
-        <Pressable
-          accessibilityLabel="Mở bộ lọc tìm kiếm"
-          accessibilityRole="button"
-          style={({ pressed }) => [
-            styles.filterButton,
-            { backgroundColor: colors.surface, borderColor: colors.border, opacity: pressed ? 0.66 : 1 },
-          ]}
-        >
-          <SlidersHorizontal color={colors.textSecondary} size={24} strokeWidth={1.9} />
-        </Pressable>
+        {canShowFilter ? (
+          <Pressable
+            accessibilityLabel={`Mở bộ lọc ${activeTabLabel}`}
+            accessibilityRole="button"
+            onPress={() => setFilterVisible(true)}
+            style={({ pressed }) => [
+              styles.filterButton,
+              { backgroundColor: colors.surface, borderColor: colors.border, opacity: pressed ? 0.66 : 1 },
+            ]}
+          >
+            <SlidersHorizontal color={colors.textSecondary} size={24} strokeWidth={1.9} />
+          </Pressable>
+        ) : null}
       </View>
 
       <View style={[styles.tabs, { borderBottomColor: colors.border }]}>
-        {tabs.map((tab, index) => {
-          const active = index === 0;
+        {tabs.map((tab) => {
+          const active = activeTab === tab.key;
           return (
-            <Pressable key={tab} accessibilityRole="tab" accessibilityState={{ selected: active }} style={styles.tab}>
+            <Pressable
+              key={tab.key}
+              accessibilityLabel={`Chuyển sang tab ${tab.label}`}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+              onPress={() => {
+                setActiveTab(tab.key);
+                if (tab.key === 'all') {
+                  setFilterVisible(false);
+                }
+              }}
+              style={({ pressed }) => [styles.tab, { opacity: pressed ? 0.62 : 1 }]}
+            >
               <Text numberOfLines={1} style={[styles.tabText, { color: active ? colors.primaryDark : colors.textSecondary }, active && styles.activeTabText]}>
-                {tab}
+                {tab.label}
               </Text>
               {active ? <View style={[styles.tabIndicator, { backgroundColor: colors.primaryDark }]} /> : null}
             </Pressable>
@@ -161,48 +264,387 @@ export function NewsFeedSearchScreen({ colors, onBack }: { colors: AppColors; on
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <SuggestionSection colors={colors} title="Xu hướng nổi bật">
-          {trends.map((trend) => (
-            <TrendRow key={trend.title} colors={colors} trend={trend} />
-          ))}
-        </SuggestionSection>
+        {showTrends ? (
+          <SuggestionSection colors={colors} onViewAll={() => setActiveTab('trends')} showViewAll={activeTab === 'all'} title="Xu hướng nổi bật">
+            {trends.map((trend) => (
+              <TrendRow key={trend.title} colors={colors} trend={trend} />
+            ))}
+          </SuggestionSection>
+        ) : null}
 
-        <SuggestionSection colors={colors} title="Tài khoản">
-          {accounts.map((account) => (
-            <AccountRow key={account.handle} account={account} colors={colors} />
-          ))}
-        </SuggestionSection>
+        {showAccounts ? (
+          <SuggestionSection colors={colors} onViewAll={() => setActiveTab('accounts')} showViewAll={activeTab === 'all'} title="Tài khoản">
+            {accounts.map((account) => (
+              <AccountRow key={account.handle} account={account} colors={colors} />
+            ))}
+          </SuggestionSection>
+        ) : null}
 
-        <SuggestionSection colors={colors} title="Nhóm">
-          {groups.map((group) => (
-            <GroupRow key={group.name} colors={colors} group={group} />
-          ))}
-        </SuggestionSection>
+        {showGroups ? (
+          <SuggestionSection colors={colors} onViewAll={() => setActiveTab('groups')} showViewAll={activeTab === 'all'} title="Nhóm">
+            {groups.map((group) => (
+              <GroupRow key={group.name} colors={colors} group={group} />
+            ))}
+          </SuggestionSection>
+        ) : null}
 
-        <SuggestionSection colors={colors} title="Mini app">
-          {miniApps.map((app) => (
-            <MiniAppRow key={app.name} app={app} colors={colors} />
-          ))}
-        </SuggestionSection>
+        {showMiniApps ? (
+          <SuggestionSection colors={colors} onViewAll={() => setActiveTab('miniApps')} showViewAll={activeTab === 'all'} title="Mini app">
+            {miniApps.map((app) => (
+              <MiniAppRow key={app.name} app={app} colors={colors} />
+            ))}
+          </SuggestionSection>
+        ) : null}
+
+        {activeTab !== 'all' ? <EndOfContent colors={colors} /> : null}
       </ScrollView>
+
+      <NewsFeedSearchFilterModal
+        activeTabLabel={activeTabLabel}
+        bottomInset={insets.bottom}
+        canAddCustomInterest={canAddCustomInterest}
+        colors={colors}
+        customInterest={customInterest}
+        dateDirection={dateDirection}
+        interestQuery={interestQuery}
+        interestSuggestions={filteredInterestSuggestions}
+        onAddInterest={addInterest}
+        onApply={() => setFilterVisible(false)}
+        onClose={() => setFilterVisible(false)}
+        onDateDirectionChange={setDateDirection}
+        onInterestQueryChange={setInterestQuery}
+        onRemoveInterest={removeInterest}
+        onReset={resetFilters}
+        onSortModeChange={setSortMode}
+        selectedInterests={selectedInterests}
+        sortMode={sortMode}
+        visible={filterVisible && canShowFilter}
+      />
     </View>
   );
 }
 
-function SuggestionSection({ children, colors, title }: { children: ReactNode; colors: AppColors; title: string }) {
+function SuggestionSection({
+  children,
+  colors,
+  onViewAll,
+  showViewAll,
+  title,
+}: {
+  children: ReactNode;
+  colors: AppColors;
+  onViewAll: () => void;
+  showViewAll: boolean;
+  title: string;
+}) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>{title}</Text>
-        <Pressable accessibilityLabel={`Xem tất cả ${title}`} accessibilityRole="button" style={styles.viewAllButton}>
-          <Text style={[styles.viewAllText, { color: colors.primaryDark }]}>Xem tất cả</Text>
-          <ChevronRight color={colors.primaryDark} size={18} strokeWidth={2.2} />
-        </Pressable>
+        {showViewAll ? (
+          <Pressable
+            accessibilityLabel={`Xem tất cả ${title}`}
+            accessibilityRole="button"
+            onPress={onViewAll}
+            style={({ pressed }) => [styles.viewAllButton, { opacity: pressed ? 0.62 : 1 }]}
+          >
+            <Text style={[styles.viewAllText, { color: colors.primaryDark }]}>Xem tất cả</Text>
+            <ChevronRight color={colors.primaryDark} size={18} strokeWidth={2.2} />
+          </Pressable>
+        ) : null}
       </View>
       <View style={[styles.sectionList, { borderColor: colors.border, backgroundColor: colors.surface }]}>
         {children}
       </View>
     </View>
+  );
+}
+
+function EndOfContent({ colors }: { colors: AppColors }) {
+  return (
+    <View accessibilityRole="text" style={styles.endOfContent}>
+      <View style={[styles.endLine, { backgroundColor: colors.border }]} />
+      <Text style={[styles.endText, { color: colors.textSecondary }]}>Đã hết nội dung</Text>
+      <View style={[styles.endLine, { backgroundColor: colors.border }]} />
+    </View>
+  );
+}
+
+function NewsFeedSearchFilterModal({
+  activeTabLabel,
+  bottomInset,
+  canAddCustomInterest,
+  colors,
+  customInterest,
+  dateDirection,
+  interestQuery,
+  interestSuggestions,
+  onAddInterest,
+  onApply,
+  onClose,
+  onDateDirectionChange,
+  onInterestQueryChange,
+  onRemoveInterest,
+  onReset,
+  onSortModeChange,
+  selectedInterests,
+  sortMode,
+  visible,
+}: {
+  activeTabLabel: string;
+  bottomInset: number;
+  canAddCustomInterest: boolean;
+  colors: AppColors;
+  customInterest: string;
+  dateDirection: FilterDateDirection;
+  interestQuery: string;
+  interestSuggestions: string[];
+  onAddInterest: (interest: string) => void;
+  onApply: () => void;
+  onClose: () => void;
+  onDateDirectionChange: (direction: FilterDateDirection) => void;
+  onInterestQueryChange: (query: string) => void;
+  onRemoveInterest: (interest: string) => void;
+  onReset: () => void;
+  onSortModeChange: (mode: FilterSortMode) => void;
+  selectedInterests: string[];
+  sortMode: FilterSortMode;
+  visible: boolean;
+}) {
+  return (
+    <Modal animationType="fade" onRequestClose={onClose} transparent visible={visible}>
+      <View nativeID="news-feed-search-filter-modal" testID="news-feed-search-filter-modal" style={styles.modalLayer}>
+        <Pressable accessibilityLabel="Đóng bộ lọc" accessibilityRole="button" onPress={onClose} style={[styles.modalBackdrop, { backgroundColor: colors.overlay }]} />
+
+        <View style={[styles.filterSheet, { backgroundColor: colors.surface, paddingBottom: Math.max(bottomInset + spacing.md, spacing.lg) }]}>
+          <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+
+          <View style={styles.filterHeader}>
+            <View style={styles.filterTitleGroup}>
+              <Text style={[styles.filterTitle, { color: colors.text }]}>Bộ lọc</Text>
+              <Text style={[styles.filterSubtitle, { color: colors.textSecondary }]}>Đang lọc trong {activeTabLabel}</Text>
+            </View>
+            <Pressable
+              accessibilityLabel="Đặt lại bộ lọc"
+              accessibilityRole="button"
+              onPress={onReset}
+              style={({ pressed }) => [styles.resetButton, { opacity: pressed ? 0.62 : 1 }]}
+            >
+              <RotateCcw color={colors.primaryDark} size={18} strokeWidth={2} />
+              <Text style={[styles.resetText, { color: colors.primaryDark }]}>Đặt lại</Text>
+            </Pressable>
+          </View>
+
+          <ScrollView contentContainerStyle={styles.filterBody} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <View style={styles.filterSection}>
+              <FilterSectionTitle colors={colors} icon={CalendarDays} title="Thời gian" />
+              <View style={styles.optionGrid}>
+                <FilterOptionButton
+                  active={dateDirection === 'after'}
+                  colors={colors}
+                  icon={CalendarDays}
+                  label="Sau ngày cụ thể"
+                  onPress={() => onDateDirectionChange('after')}
+                />
+                <FilterOptionButton
+                  active={dateDirection === 'before'}
+                  colors={colors}
+                  icon={CalendarDays}
+                  label="Trước ngày cụ thể"
+                  onPress={() => onDateDirectionChange('before')}
+                />
+              </View>
+              <Pressable
+                accessibilityLabel="Chọn ngày lọc"
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  styles.dateField,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+              >
+                <View style={styles.dateCopy}>
+                  <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>Chọn ngày</Text>
+                  <Text style={[styles.dateValue, { color: colors.text }]}>15/06/2026</Text>
+                </View>
+                <CalendarDays color={colors.primaryDark} size={22} strokeWidth={2} />
+              </Pressable>
+            </View>
+
+            <View style={styles.filterSection}>
+              <FilterSectionTitle colors={colors} icon={Heart} title="Mối quan tâm" tint={palette.red[500]} />
+              <View style={[styles.interestSearchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Search color={colors.textSecondary} size={21} strokeWidth={1.9} />
+                <TextInput
+                  accessibilityLabel="Tìm chủ đề quan tâm"
+                  onChangeText={onInterestQueryChange}
+                  onSubmitEditing={() => onAddInterest(customInterest)}
+                  placeholder="Tìm chủ đề quan tâm"
+                  placeholderTextColor={colors.textSecondary}
+                  returnKeyType="done"
+                  style={[styles.interestInput, { color: colors.text }]}
+                  value={interestQuery}
+                />
+              </View>
+
+              {selectedInterests.length > 0 ? (
+                <View style={styles.chipWrap}>
+                  {selectedInterests.map((interest) => (
+                    <InterestChip key={interest} colors={colors} label={interest} onPress={() => onRemoveInterest(interest)} removable />
+                  ))}
+                </View>
+              ) : null}
+
+              <View style={styles.chipWrap}>
+                {canAddCustomInterest ? (
+                  <InterestChip colors={colors} label={`Thêm "${customInterest}"`} onPress={() => onAddInterest(customInterest)} />
+                ) : null}
+                {interestSuggestions.map((interest) => (
+                  <InterestChip key={interest} colors={colors} label={interest} onPress={() => onAddInterest(interest)} />
+                ))}
+              </View>
+
+              {interestSuggestions.length === 0 && !canAddCustomInterest ? (
+                <Text style={[styles.filterHint, { color: colors.textSecondary }]}>Không có gợi ý phù hợp.</Text>
+              ) : null}
+            </View>
+
+            <View style={styles.filterSection}>
+              <FilterSectionTitle colors={colors} icon={Sparkles} title="Sắp xếp" />
+              <View style={styles.optionGrid}>
+                <FilterOptionButton
+                  active={sortMode === 'relevant'}
+                  colors={colors}
+                  icon={Sparkles}
+                  label="Phù hợp nhất"
+                  onPress={() => onSortModeChange('relevant')}
+                />
+                <FilterOptionButton
+                  active={sortMode === 'latest'}
+                  colors={colors}
+                  icon={Clock3}
+                  label="Mới nhất"
+                  onPress={() => onSortModeChange('latest')}
+                />
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={styles.filterFooter}>
+            <Pressable
+              accessibilityLabel="Hủy bộ lọc"
+              accessibilityRole="button"
+              onPress={onClose}
+              style={({ pressed }) => [
+                styles.footerButton,
+                styles.cancelFilterButton,
+                { borderColor: colors.primaryDark, opacity: pressed ? 0.66 : 1 },
+              ]}
+            >
+              <Text style={[styles.cancelFilterText, { color: colors.primaryDark }]}>Hủy</Text>
+            </Pressable>
+            <Pressable accessibilityLabel="Áp dụng bộ lọc" accessibilityRole="button" onPress={onApply} style={({ pressed }) => [styles.footerButton, { opacity: pressed ? 0.84 : 1 }]}>
+              <LinearGradient colors={[colors.gradientStart, colors.primaryDark]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.applyFilterButton}>
+                <Text style={styles.applyFilterText}>Áp dụng</Text>
+              </LinearGradient>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function FilterSectionTitle({
+  colors,
+  icon: Icon,
+  tint,
+  title,
+}: {
+  colors: AppColors;
+  icon: LucideIcon;
+  tint?: string;
+  title: string;
+}) {
+  const iconColor = tint ?? colors.primaryDark;
+
+  return (
+    <View style={styles.filterSectionTitleRow}>
+      <Icon color={iconColor} size={24} strokeWidth={2} />
+      <Text style={[styles.filterSectionTitle, { color: colors.text }]}>{title}</Text>
+    </View>
+  );
+}
+
+function FilterOptionButton({
+  active,
+  colors,
+  icon: Icon,
+  label,
+  onPress,
+}: {
+  active: boolean;
+  colors: AppColors;
+  icon: LucideIcon;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.optionButton,
+        {
+          backgroundColor: active ? colors.surfaceMuted : colors.surface,
+          borderColor: active ? colors.primaryDark : colors.border,
+          opacity: pressed ? 0.7 : 1,
+        },
+      ]}
+    >
+      <Icon color={active ? colors.primaryDark : colors.textSecondary} size={20} strokeWidth={1.9} />
+      <Text numberOfLines={1} style={[styles.optionButtonText, { color: active ? colors.primaryDark : colors.textSecondary }]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function InterestChip({
+  colors,
+  label,
+  onPress,
+  removable,
+}: {
+  colors: AppColors;
+  label: string;
+  onPress: () => void;
+  removable?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityLabel={removable ? `Bỏ mối quan tâm ${label}` : `Chọn mối quan tâm ${label}`}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.interestChip,
+        {
+          backgroundColor: removable ? colors.surfaceMuted : colors.surface,
+          borderColor: removable ? colors.primaryDark : colors.border,
+          opacity: pressed ? 0.66 : 1,
+        },
+      ]}
+    >
+      <Text numberOfLines={1} style={[styles.interestChipText, { color: removable ? colors.primaryDark : colors.textSecondary }]}>
+        {label}
+      </Text>
+      {removable ? <X color={colors.primaryDark} size={16} strokeWidth={2.2} /> : null}
+    </Pressable>
   );
 }
 
@@ -385,7 +827,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    ...shadows.subtle,
   },
   searchInput: {
     flex: 1,
@@ -402,7 +843,6 @@ const styles = StyleSheet.create({
     borderWidth: border.hairline,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.subtle,
   },
   tabs: {
     minHeight: 52,
@@ -428,11 +868,223 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: typography.size.md + 1, lineHeight: 23, fontWeight: typography.weight.black },
   viewAllButton: { minHeight: touchTarget.minimum, flexDirection: 'row', alignItems: 'center', gap: spacing.xxs },
   viewAllText: { fontSize: typography.size.xs + 1, fontWeight: typography.weight.black },
+  endOfContent: {
+    minHeight: 56,
+    paddingHorizontal: spacing.xl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+  },
+  endLine: { flex: 1, height: border.hairline },
+  endText: { fontSize: typography.size.xs, lineHeight: typography.lineHeight.xs, fontWeight: typography.weight.semibold },
+  modalLayer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
+  filterSheet: {
+    maxHeight: '86%',
+    borderTopLeftRadius: radius.xxl,
+    borderTopRightRadius: radius.xxl,
+    paddingTop: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 46,
+    height: 5,
+    borderRadius: radius.round,
+    marginBottom: spacing.md,
+    opacity: 0.86,
+  },
+  filterHeader: {
+    minHeight: 54,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  filterTitleGroup: {
+    flex: 1,
+    minWidth: 0,
+  },
+  filterTitle: {
+    fontSize: typography.size.xl,
+    lineHeight: typography.lineHeight.xl,
+    fontWeight: typography.weight.black,
+  },
+  filterSubtitle: {
+    marginTop: spacing.xxs,
+    fontSize: typography.size.xs,
+    lineHeight: typography.lineHeight.xs,
+    fontWeight: typography.weight.medium,
+  },
+  resetButton: {
+    minHeight: touchTarget.minimum,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.xs,
+  },
+  resetText: {
+    fontSize: typography.size.sm,
+    lineHeight: typography.lineHeight.sm,
+    fontWeight: typography.weight.black,
+  },
+  filterBody: {
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
+    gap: spacing.xl,
+  },
+  filterSection: {
+    gap: spacing.md,
+  },
+  filterSectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  filterSectionTitle: {
+    fontSize: typography.size.md + 1,
+    lineHeight: 24,
+    fontWeight: typography.weight.black,
+  },
+  optionGrid: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  optionButton: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 54,
+    borderRadius: radius.md,
+    borderWidth: border.hairline,
+    paddingHorizontal: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  optionButtonText: {
+    minWidth: 0,
+    flexShrink: 1,
+    fontSize: typography.size.xs + 1,
+    lineHeight: typography.lineHeight.xs,
+    fontWeight: typography.weight.black,
+    textAlign: 'center',
+  },
+  dateField: {
+    minHeight: 64,
+    borderRadius: radius.md,
+    borderWidth: border.hairline,
+    paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  dateCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.xxs,
+  },
+  dateLabel: {
+    fontSize: typography.size.xs,
+    lineHeight: typography.lineHeight.xs,
+    fontWeight: typography.weight.medium,
+  },
+  dateValue: {
+    fontSize: typography.size.md,
+    lineHeight: typography.lineHeight.md,
+    fontWeight: typography.weight.semibold,
+  },
+  interestSearchBox: {
+    minHeight: 52,
+    borderRadius: radius.md,
+    borderWidth: border.hairline,
+    paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  interestInput: {
+    flex: 1,
+    minWidth: 0,
+    paddingVertical: 0,
+    fontSize: typography.size.sm,
+    lineHeight: typography.lineHeight.sm,
+    fontWeight: typography.weight.medium,
+  },
+  chipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  interestChip: {
+    minHeight: touchTarget.minimum,
+    maxWidth: '100%',
+    borderRadius: radius.md,
+    borderWidth: border.hairline,
+    paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  interestChipText: {
+    minWidth: 0,
+    flexShrink: 1,
+    fontSize: typography.size.xs + 1,
+    lineHeight: typography.lineHeight.xs,
+    fontWeight: typography.weight.black,
+  },
+  filterHint: {
+    fontSize: typography.size.xs,
+    lineHeight: typography.lineHeight.xs,
+    fontWeight: typography.weight.medium,
+  },
+  filterFooter: {
+    paddingTop: spacing.md,
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  footerButton: {
+    flex: 1,
+    minHeight: 52,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+  },
+  cancelFilterButton: {
+    borderWidth: border.thin,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelFilterText: {
+    fontSize: typography.size.md,
+    lineHeight: typography.lineHeight.md,
+    fontWeight: typography.weight.black,
+  },
+  applyFilterButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  applyFilterText: {
+    color: palette.white,
+    fontSize: typography.size.md,
+    lineHeight: typography.lineHeight.md,
+    fontWeight: typography.weight.black,
+  },
   sectionList: {
     borderWidth: border.hairline,
     borderRadius: radius.xl,
     overflow: 'hidden',
-    ...shadows.subtle,
   },
   row: {
     minHeight: 82,

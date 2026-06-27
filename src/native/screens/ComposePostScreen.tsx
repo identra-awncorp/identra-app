@@ -28,7 +28,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AppColors } from '../theme';
-import { border, palette, radius, shadows, spacing, touchTarget, typography } from '../theme';
+import { border, palette, radius, spacing, touchTarget, typography } from '../theme';
 
 const authorAvatar = require('../../assets/images/student_avatar_png_1781051105999.png');
 
@@ -285,7 +285,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
-    ...shadows.subtle,
   },
   quickAction: { flex: 1, minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
   quickDivider: { position: 'absolute', left: 0, width: border.hairline, height: 32, opacity: 0.68 },
@@ -296,7 +295,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
-    ...shadows.subtle,
   },
   editorInput: {
     minHeight: 220,
@@ -311,7 +309,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
     paddingBottom: spacing.lg,
     gap: spacing.lg,
-    ...shadows.subtle,
   },
   sectionTitle: { fontSize: typography.size.md + 2, lineHeight: 24, fontWeight: typography.weight.black },
   attachmentGrid: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
@@ -336,7 +333,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    ...shadows.subtle,
   },
   advancedIcon: { width: touchTarget.comfortable, height: touchTarget.comfortable, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   advancedText: { flex: 1, minWidth: 0, fontSize: typography.size.md, fontWeight: typography.weight.black },

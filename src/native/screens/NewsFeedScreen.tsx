@@ -1,7 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   BarChart3,
-  Bell,
   CalendarDays,
   Clock3,
   Code2,
@@ -224,7 +223,7 @@ export function NewsFeedScreen({
           onPress={onOpenNotifications}
           style={({ pressed }) => [styles.iconButton, { opacity: pressed ? 0.62 : 1 }]}
         >
-          <Bell color={colors.textSecondary} size={29} strokeWidth={1.9} />
+          <Heart color={colors.textSecondary} size={29} strokeWidth={1.9} />
           <View style={styles.notificationBadge}>
             <Text style={styles.notificationBadgeText}>3</Text>
           </View>

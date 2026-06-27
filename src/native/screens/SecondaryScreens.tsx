@@ -5,8 +5,8 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   ArrowLeft,
+  AtSign,
   Award,
-  Bell,
   BookOpen,
   Building2,
   CalendarDays,
@@ -15,9 +15,11 @@ import {
   ChevronRight,
   ClipboardCopy,
   Clock3,
+  CloudUpload,
   Download,
   FileCheck2,
   GraduationCap,
+  Heart,
   History,
   IdCard,
   Info,
@@ -25,21 +27,23 @@ import {
   Mail,
   MapPin,
   Medal,
+  MoreVertical,
   Phone,
   RefreshCw,
   ScanLine,
   Settings,
   Share2,
   ShieldCheck,
+  Star,
   Ticket,
   Trash2,
   UserRound,
   X,
   type LucideIcon,
 } from 'lucide-react-native';
-import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View, type ImageSourcePropType } from 'react-native';
 import type { AppColors } from '../theme';
-import { border, componentSize, palette, radius, spacing, typography } from '../theme';
+import { border, componentSize, palette, radius, spacing, touchTarget, typography } from '../theme';
 import type { AppSettings, Credential, PersonalInfo, SmartContractFeedPost } from '../types';
 import {
   AppHeader,
@@ -55,6 +59,8 @@ import {
 } from '../components/ui';
 
 const verifiedBadgeIcon = require('../../assets/images/verified-badge-icon.png');
+const notificationMentionAvatar = require('../../assets/images/chat-list-demo-icon/photo_2026-06-21_11-00-03.jpg');
+const notificationFollowerAvatar = require('../../assets/images/chat-list-demo-icon/photo_2026-06-21_11-00-02 (4).jpg');
 
 export function CredentialDetailScreen({
   colors,
@@ -1116,97 +1122,168 @@ export function SecurityScreen({
   );
 }
 
-type NotificationFilter = 'all' | 'unread' | 'important';
-type NotificationPeriod = 'today' | 'yesterday' | 'older';
+type NotificationFilter = 'all' | 'mentions' | 'follows' | 'transactions' | 'system';
+type NotificationCategory = Exclude<NotificationFilter, 'all'>;
+type NotificationAvatar =
+  | { type: 'image'; source: ImageSourcePropType }
+  | { type: 'icon'; icon: LucideIcon; background: string; color: string; fill?: string }
+  | { type: 'text'; label: string; background: string; color: string };
 
-const notificationItems: Array<{
+type NotificationItem = {
   id: string;
-  title: string;
+  category: NotificationCategory;
+  strong: string;
+  text: string;
   body: string;
   time: string;
-  period: NotificationPeriod;
   unread?: boolean;
-  important?: boolean;
-  icon: LucideIcon;
-  color: string;
-  background: string;
-}> = [
+  chip?: string;
+  avatar: NotificationAvatar;
+  badge: {
+    icon: LucideIcon;
+    background: string;
+    color: string;
+    fill?: string;
+  };
+};
+
+const notificationTabs: Array<{ key: NotificationFilter; label: string }> = [
+  { key: 'all', label: 'Tất cả' },
+  { key: 'mentions', label: 'Nhắc đến' },
+  { key: 'follows', label: 'Theo dõi' },
+  { key: 'transactions', label: 'Giao dịch' },
+  { key: 'system', label: 'Hệ thống' },
+];
+
+const notificationItems: NotificationItem[] = [
   {
-    id: 'verified',
-    title: 'Thực chứng đã được xác minh',
-    body: 'Thực chứng “Bằng tốt nghiệp” đã được xác minh thành công bởi Đại học Công nghệ.',
-    time: '10:30',
-    period: 'today',
+    id: 'mention-design',
+    category: 'mentions',
+    strong: 'Minh Anh',
+    text: ' đã nhắc đến bạn trong một bài viết',
+    body: '@linhvu cảm ơn bạn đã chia sẻ thông tin hữu ích!',
+    chip: 'Thiết kế hệ thống danh tính phi tập trung',
+    time: '2 phút trước',
     unread: true,
-    important: true,
-    icon: ShieldCheck,
-    color: '#12B76A',
-    background: '#EAFBF4',
+    avatar: { type: 'image', source: notificationMentionAvatar },
+    badge: { icon: AtSign, background: palette.blue[700], color: palette.white },
   },
   {
-    id: 'identity-request',
-    title: 'Yêu cầu xác minh danh tính',
-    body: 'Công ty ABC đang yêu cầu xác minh danh tính của bạn.',
-    time: '09:15',
-    period: 'today',
+    id: 'follow-cyberjutsu',
+    category: 'follows',
+    strong: 'CyberJutsu Academy',
+    text: ' bắt đầu theo dõi bạn',
+    body: 'Khám phá các khóa học về an ninh mạng Web3',
+    time: '15 phút trước',
     unread: true,
-    important: true,
-    icon: ScanLine,
-    color: '#355CFF',
-    background: palette.blue[100],
+    avatar: { type: 'text', label: 'CJ', background: '#050505', color: palette.white },
+    badge: { icon: UserRound, background: palette.blue[700], color: palette.white, fill: palette.white },
   },
   {
-    id: 'security-update',
-    title: 'Cập nhật bảo mật',
-    body: 'Mã bảo mật của bạn đã được thay đổi thành công.',
-    time: '08:45',
-    period: 'today',
-    icon: Bell,
-    color: '#9747FF',
-    background: '#F6EDFF',
-  },
-  {
-    id: 'expiring',
-    title: 'Thực chứng sắp hết hạn',
-    body: 'Thực chứng “Chứng chỉ ngoại ngữ IELTS” sẽ hết hạn sau 7 ngày nữa.',
-    time: '08:10',
-    period: 'today',
+    id: 'transaction-complete',
+    category: 'transactions',
+    strong: 'Giao dịch 1.500.000 VNĐ đã hoàn tất',
+    text: '',
+    body: '+1.500.000 VNĐ từ Nguyễn Hoàng Nam',
+    chip: 'Mã giao dịch: #TXN8492F',
+    time: '1 giờ trước',
     unread: true,
-    important: true,
-    icon: Clock3,
-    color: '#F57900',
-    background: '#FFF3E8',
+    avatar: { type: 'icon', icon: ShieldCheck, background: palette.blue[700], color: palette.white },
+    badge: { icon: CheckCircle2, background: palette.green[600], color: palette.white, fill: palette.white },
   },
   {
-    id: 'shared',
-    title: 'Bạn đã chia sẻ thực chứng',
-    body: 'Bạn đã chia sẻ “KYC Level 2” với Công ty XYZ thành công.',
-    time: 'Hôm qua, 16:20',
-    period: 'yesterday',
-    icon: FileCheck2,
-    color: '#355CFF',
-    background: palette.blue[100],
+    id: 'contract-deadline',
+    category: 'transactions',
+    strong: 'Hợp đồng thông minh bán lại vé GENfest 2025',
+    text: ' sắp hết hạn phản hồi',
+    body: 'Vui lòng phản hồi trước 30/06/2025, 23:59 (UTC+7)',
+    time: '2 giờ trước',
+    unread: true,
+    avatar: { type: 'icon', icon: FileCheck2, background: '#7C3AED', color: palette.white },
+    badge: { icon: Clock3, background: '#FFB020', color: palette.white },
   },
   {
-    id: 'login',
-    title: 'Đăng nhập thành công',
-    body: 'Bạn đã đăng nhập vào Identra trên thiết bị iPhone 15 Pro.',
-    time: 'Hôm qua, 14:05',
-    period: 'yesterday',
-    icon: CheckCircle2,
-    color: '#12B76A',
-    background: '#EAFBF4',
+    id: 'mini-app-offer',
+    category: 'system',
+    strong: 'Mini app TravelGo có ưu đãi mới',
+    text: '',
+    body: 'Giảm 20% khi đặt vé máy bay từ 20-30/06',
+    time: '5 giờ trước',
+    unread: true,
+    avatar: { type: 'text', label: 'C', background: '#4F46E5', color: palette.white },
+    badge: { icon: Star, background: '#FFB020', color: palette.white, fill: palette.white },
   },
   {
-    id: 'policy',
-    title: 'Chính sách bảo mật được cập nhật',
-    body: 'Chúng tôi đã cập nhật Chính sách bảo mật. Xem chi tiết để biết thêm thông tin.',
-    time: '18/06/2024',
-    period: 'older',
-    important: true,
-    icon: Info,
-    color: '#9747FF',
-    background: '#F6EDFF',
+    id: 'backup-complete',
+    category: 'system',
+    strong: 'Sao lưu ví đã hoàn tất',
+    text: '',
+    body: 'Sao lưu cuối cùng: 29/06/2025, 09:15',
+    time: '1 ngày trước',
+    unread: true,
+    avatar: { type: 'icon', icon: CloudUpload, background: palette.blue[700], color: palette.white },
+    badge: { icon: CheckCircle2, background: palette.green[600], color: palette.white, fill: palette.white },
+  },
+  {
+    id: 'share-request',
+    category: 'transactions',
+    strong: 'Bạn nhận được một yêu cầu chia sẻ thực chứng',
+    text: '',
+    body: 'Từ Trần Quang Huy    Xem chi tiết để phản hồi',
+    time: '1 ngày trước',
+    unread: true,
+    avatar: { type: 'icon', icon: Share2, background: palette.blue[700], color: palette.white },
+    badge: { icon: UserRound, background: palette.blue[700], color: palette.white, fill: palette.white },
+  },
+  {
+    id: 'mention-linh',
+    category: 'mentions',
+    strong: 'Linh Trần',
+    text: ' đã trả lời bình luận của bạn',
+    body: 'Mình đã gửi thêm tài liệu chi tiết trong thread nhé.',
+    time: '1 ngày trước',
+    avatar: { type: 'image', source: notificationFollowerAvatar },
+    badge: { icon: AtSign, background: palette.blue[700], color: palette.white },
+  },
+  {
+    id: 'follow-genfest',
+    category: 'follows',
+    strong: 'GENfest Official',
+    text: ' bắt đầu theo dõi bạn',
+    body: 'Theo dõi lịch mở bán vé và các hoạt động chính thức.',
+    time: '2 ngày trước',
+    avatar: { type: 'text', label: 'GEN', background: '#4C1D95', color: palette.white },
+    badge: { icon: UserRound, background: palette.blue[700], color: palette.white, fill: palette.white },
+  },
+  {
+    id: 'mention-son',
+    category: 'mentions',
+    strong: 'Dương Tôn Sơn',
+    text: ' đã nhắc đến bạn trong phát trực tiếp',
+    body: 'Cảm ơn bạn đã tham gia buổi chia sẻ ở Đà Lạt.',
+    time: '2 ngày trước',
+    avatar: { type: 'image', source: notificationFollowerAvatar },
+    badge: { icon: AtSign, background: palette.blue[700], color: palette.white },
+  },
+  {
+    id: 'follow-ai-group',
+    category: 'follows',
+    strong: 'AI Việt Nam',
+    text: ' gợi ý kết nối với bạn',
+    body: 'Nhóm đang có 12.5K thành viên cùng quan tâm AI Agents.',
+    time: '3 ngày trước',
+    avatar: { type: 'text', label: 'AI', background: '#6D28D9', color: palette.white },
+    badge: { icon: UserRound, background: palette.blue[700], color: palette.white, fill: palette.white },
+  },
+  {
+    id: 'follow-builder',
+    category: 'follows',
+    strong: 'Minh Khoa',
+    text: ' đã theo dõi bạn',
+    body: 'Builder smart contract và vé sự kiện số.',
+    time: '3 ngày trước',
+    avatar: { type: 'image', source: notificationFollowerAvatar },
+    badge: { icon: UserRound, background: palette.blue[700], color: palette.white, fill: palette.white },
   },
 ];
 
@@ -1220,36 +1297,46 @@ export function NotificationsScreen({
   onSettings: () => void;
 }) {
   const [filter, setFilter] = useState<NotificationFilter>('all');
-  const [showEnableBanner, setShowEnableBanner] = useState(true);
+  const [readAll, setReadAll] = useState(false);
+  const tabCounts = useMemo(
+    () =>
+      notificationTabs.reduce<Record<NotificationFilter, number>>(
+        (accumulator, tab) => {
+          accumulator[tab.key] = tab.key === 'all' ? notificationItems.length : notificationItems.filter((item) => item.category === tab.key).length;
+          return accumulator;
+        },
+        { all: 0, mentions: 0, follows: 0, transactions: 0, system: 0 },
+      ),
+    [],
+  );
   const visible = useMemo(
-    () => notificationItems.filter((item) => filter === 'all' || (filter === 'unread' ? item.unread : item.important)),
+    () => notificationItems.filter((item) => filter === 'all' || item.category === filter),
     [filter],
   );
-  const groups = [
-    { period: 'today' as const, title: 'Hôm nay' },
-    { period: 'yesterday' as const, title: 'Hôm qua' },
-    { period: 'older' as const, title: 'Trước đó' },
-  ].map((group) => ({ ...group, items: visible.filter((item) => item.period === group.period) })).filter((group) => group.items.length);
 
   return (
     <ScreenScroll id="screen-notifications" colors={colors} contentStyle={styles.notificationScreenContent}>
-      <AppHeader
-        colors={colors}
-        title="Thông báo"
-        onBack={onBack}
-        right={
-          <IconButton label="Mở cài đặt thông báo" colors={colors} onPress={onSettings}>
-            <Settings color={colors.text} size={24} />
-          </IconButton>
-        }
-      />
+      <View style={styles.notificationHeader}>
+        <IconButton label="Quay lại bảng tin" colors={colors} onPress={onBack}>
+          <ArrowLeft color={colors.text} size={26} strokeWidth={2.1} />
+        </IconButton>
+        <Text numberOfLines={1} style={[styles.notificationScreenTitle, { color: colors.text }]}>Thông báo</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Đánh dấu tất cả thông báo đã đọc"
+          onPress={() => setReadAll(true)}
+          style={({ pressed }) => [styles.markReadButton, { opacity: pressed ? 0.62 : 1 }]}
+        >
+          <Text numberOfLines={1} style={[styles.markReadText, { color: colors.primaryDark }]}>Đánh dấu đã đọc</Text>
+        </Pressable>
+        <IconButton label="Mở cài đặt thông báo" colors={colors} onPress={onSettings}>
+          <Settings color={colors.textSecondary} size={28} strokeWidth={2.1} />
+        </IconButton>
+      </View>
 
-      <View style={[styles.notificationTabs, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        {([
-          ['all', 'Tất cả'],
-          ['unread', 'Chưa đọc'],
-          ['important', 'Quan trọng'],
-        ] as Array<[NotificationFilter, string]>).map(([value, label], index) => {
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.notificationTabs, { borderBottomColor: colors.border }]}>
+        {notificationTabs.map((tab) => {
+          const value = tab.key;
           const active = filter === value;
           return (
             <Pressable
@@ -1257,68 +1344,116 @@ export function NotificationsScreen({
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
               onPress={() => setFilter(value)}
-              style={[
+              style={({ pressed }) => [
                 styles.notificationTab,
-                index > 0 && { borderLeftWidth: 1, borderLeftColor: colors.border },
-                active && { backgroundColor: colors.surfaceMuted },
+                { backgroundColor: active ? colors.surfaceMuted : 'transparent', opacity: pressed ? 0.68 : 1 },
               ]}
             >
-              <Text style={[styles.notificationTabText, { color: active ? colors.primaryDark : colors.textSecondary }]}>{label}</Text>
-              {value === 'unread' ? <View style={[styles.notificationTabDot, { backgroundColor: colors.primaryDark }]} /> : null}
+              <Text style={[styles.notificationTabText, { color: active ? colors.primaryDark : colors.textSecondary }]}>{tab.label}</Text>
+              <View style={[styles.notificationTabCount, { backgroundColor: active ? colors.primaryDark : colors.surfaceMuted }]}>
+                <Text style={[styles.notificationTabCountText, { color: active ? palette.white : colors.text }]}>{tabCounts[value]}</Text>
+              </View>
+              {active ? <View style={[styles.notificationTabUnderline, { backgroundColor: colors.primaryDark }]} /> : null}
             </Pressable>
           );
         })}
-      </View>
+      </ScrollView>
 
-      {showEnableBanner ? (
-        <View style={[styles.notificationBanner, { backgroundColor: colors.surfaceMuted, borderColor: '#DFE6FF' }]}>
-          <View style={[styles.notificationBannerIcon, { backgroundColor: colors.surface }]}>
-            <Bell color={colors.primaryDark} fill={colors.primaryDark} size={22} />
+      {visible.length ? (
+        <View style={styles.notificationList}>
+          {visible.map((notification, index) => (
+            <NotificationRow
+              key={notification.id}
+              colors={colors}
+              last={index === visible.length - 1}
+              notification={notification}
+              unread={Boolean(notification.unread && !readAll)}
+            />
+          ))}
+          <View style={styles.notificationEnd}>
+            <View style={[styles.notificationEndLine, { backgroundColor: colors.border }]} />
+            <View style={[styles.notificationEndIcon, { borderColor: colors.border }]}>
+              <CheckCircle2 color={colors.textSecondary} size={17} strokeWidth={2} />
+            </View>
+            <View style={[styles.notificationEndLine, { backgroundColor: colors.border }]} />
           </View>
-          <View style={styles.notificationBannerMain}>
-            <Text style={[styles.notificationBannerTitle, { color: colors.text }]}>Bật thông báo để không bỏ lỡ những cập nhật quan trọng</Text>
-            <Text style={[styles.notificationBannerBody, { color: colors.textSecondary }]}>Nhận thông báo tức thì về hoạt động tài khoản, thực chứng và bảo mật.</Text>
-          </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Đóng gợi ý bật thông báo" onPress={() => setShowEnableBanner(false)} style={styles.notificationBannerClose}>
-            <X color={colors.textSecondary} size={18} />
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={() => setShowEnableBanner(false)} style={[styles.notificationEnableButton, { backgroundColor: colors.primaryDark }]}>
-            <Text style={styles.notificationEnableButtonText}>Bật ngay</Text>
-          </Pressable>
+          <Text style={[styles.notificationEndText, { color: colors.textSecondary }]}>Đã hết nội dung</Text>
         </View>
-      ) : null}
-
-      {groups.length ? groups.map((group) => (
-        <View key={group.period} style={styles.notificationGroup}>
-          <Text style={[styles.notificationGroupTitle, { color: colors.text }]}>{group.title}</Text>
-          <View style={styles.notificationGroupList}>
-            {group.items.map((notification) => (
-              <Pressable
-                key={notification.id}
-                style={({ pressed }) => [
-                  styles.notificationCard,
-                  { backgroundColor: colors.surface, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
-                ]}
-              >
-                <View style={[styles.notificationIcon, { backgroundColor: notification.background }]}>
-                  <notification.icon color={notification.color} size={24} strokeWidth={1.9} />
-                </View>
-                <View style={styles.notificationMain}>
-                  <Text style={[styles.notificationTitle, { color: colors.text }]}>{notification.title}</Text>
-                  <Text style={[styles.notificationBody, { color: colors.textSecondary }]}>{notification.body}</Text>
-                </View>
-                <View style={styles.notificationTrailing}>
-                  <Text style={[styles.notificationTime, { color: colors.textSecondary }]}>{notification.time}</Text>
-                  {notification.unread ? <View style={[styles.notificationUnreadDot, { backgroundColor: colors.primaryDark }]} /> : <ChevronRight color={colors.textSecondary} size={19} />}
-                </View>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      )) : (
-        <EmptyState colors={colors} icon={Bell} title="Không có thông báo" description="Không có thông báo phù hợp với bộ lọc đang chọn." />
+      ) : (
+        <EmptyState colors={colors} icon={Heart} title="Không có thông báo" description="Không có thông báo phù hợp với bộ lọc đang chọn." />
       )}
     </ScreenScroll>
+  );
+}
+
+function NotificationRow({
+  colors,
+  last,
+  notification,
+  unread,
+}: {
+  colors: AppColors;
+  last: boolean;
+  notification: NotificationItem;
+  unread: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${notification.strong}${notification.text}`}
+      style={({ pressed }) => [
+        styles.notificationRow,
+        !last && { borderBottomColor: colors.border, borderBottomWidth: border.hairline },
+        { opacity: pressed ? 0.7 : 1 },
+      ]}
+    >
+      <NotificationAvatarView notification={notification} />
+      <View style={styles.notificationMain}>
+        <Text style={[styles.notificationTitle, { color: colors.text }]}>
+          <Text style={styles.notificationTitleStrong}>{notification.strong}</Text>
+          {notification.text}
+        </Text>
+        <Text style={[styles.notificationBody, { color: colors.textSecondary }]}>{notification.body}</Text>
+        {notification.chip ? (
+          <View style={[styles.notificationChip, { backgroundColor: colors.surfaceMuted }]}>
+            <FileCheck2 color={colors.textSecondary} size={14} strokeWidth={1.9} />
+            <Text numberOfLines={1} style={[styles.notificationChipText, { color: colors.textSecondary }]}>{notification.chip}</Text>
+          </View>
+        ) : null}
+      </View>
+      <View style={styles.notificationTrailing}>
+        <View style={styles.notificationTrailingTop}>
+          <Text numberOfLines={1} style={[styles.notificationTime, { color: colors.textSecondary }]}>{notification.time}</Text>
+          <MoreVertical color={colors.textSecondary} size={20} strokeWidth={2.1} />
+        </View>
+        {unread ? <View style={[styles.notificationUnreadDot, { backgroundColor: colors.primaryDark }]} /> : null}
+      </View>
+    </Pressable>
+  );
+}
+
+function NotificationAvatarView({ notification }: { notification: NotificationItem }) {
+  const { avatar, badge } = notification;
+  const BadgeIcon = badge.icon;
+  const AvatarIcon = avatar.type === 'icon' ? avatar.icon : null;
+
+  return (
+    <View style={styles.notificationAvatarWrap}>
+      {avatar.type === 'image' ? (
+        <Image source={avatar.source} style={styles.notificationAvatarImage} resizeMode="cover" />
+      ) : avatar.type === 'text' ? (
+        <View style={[styles.notificationAvatarTextBox, { backgroundColor: avatar.background }]}>
+          <Text style={[styles.notificationAvatarText, { color: avatar.color }]}>{avatar.label}</Text>
+        </View>
+      ) : (
+        <View style={[styles.notificationAvatarTextBox, { backgroundColor: avatar.background }]}>
+          {AvatarIcon ? <AvatarIcon color={avatar.color} fill={avatar.fill ?? 'none'} size={34} strokeWidth={1.9} /> : null}
+        </View>
+      )}
+      <View style={[styles.notificationBadgeIcon, { backgroundColor: badge.background }]}>
+        <BadgeIcon color={badge.color} fill={badge.fill ?? 'none'} size={17} strokeWidth={2.2} />
+      </View>
+    </View>
   );
 }
 
@@ -1553,28 +1688,94 @@ const styles = StyleSheet.create({
   settingMain: { flex: 1 },
   settingTitle: { fontSize: typography.size.sm, fontWeight: typography.weight.extraBold },
   settingDescription: { fontSize: 11, lineHeight: 16, marginTop: 3 },
-  notificationScreenContent: { paddingTop: 7, paddingBottom: 26, gap: 16 },
-  notificationTabs: { minHeight: 48, borderWidth: border.thin, borderRadius: radius.lg - 1, padding: spacing.xs, flexDirection: 'row' },
-  notificationTab: { flex: 1, minHeight: 38, borderRadius: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  notificationTabText: { fontSize: 12, fontWeight: '700' },
-  notificationTabDot: { width: 7, height: 7, borderRadius: 4 },
-  notificationBanner: { minHeight: 112, borderWidth: border.thin, borderRadius: radius.lg + 1, padding: spacing.md + spacing.xxs, paddingRight: spacing.lg + spacing.xxs, flexDirection: 'row', gap: spacing.md },
-  notificationBannerIcon: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
-  notificationBannerMain: { flex: 1, paddingRight: 2 },
-  notificationBannerTitle: { fontSize: typography.size.sm, lineHeight: 19, fontWeight: typography.weight.extraBold },
-  notificationBannerBody: { fontSize: 11, lineHeight: 16, marginTop: 5, paddingBottom: 36 },
-  notificationBannerClose: { position: 'absolute', top: 9, right: 8, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  notificationEnableButton: { position: 'absolute', right: 14, bottom: 13, minHeight: 36, borderRadius: 10, paddingHorizontal: 15, alignItems: 'center', justifyContent: 'center' },
-  notificationEnableButtonText: { color: palette.white, fontSize: 11, fontWeight: typography.weight.extraBold },
-  notificationGroup: { gap: 10 },
-  notificationGroupTitle: { fontSize: typography.size.sm, fontWeight: typography.weight.extraBold },
-  notificationGroupList: { gap: 7 },
-  notificationCard: { minHeight: 78, borderWidth: border.thin, borderRadius: radius.lg, padding: spacing.md + 1, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, elevation: 1, shadowOpacity: 0.035, shadowRadius: 8 },
-  notificationIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  notificationMain: { flex: 1, paddingTop: 1 },
-  notificationTitle: { fontSize: 12.5, lineHeight: 17, fontWeight: typography.weight.extraBold },
-  notificationBody: { fontSize: 10.5, lineHeight: 15, marginTop: 3 },
-  notificationTrailing: { minWidth: 54, minHeight: 42, alignItems: 'flex-end', justifyContent: 'space-between' },
-  notificationTime: { fontSize: 10.5, lineHeight: 15, fontWeight: '600', textAlign: 'right' },
-  notificationUnreadDot: { width: 8, height: 8, borderRadius: 4, marginTop: 8 },
+  notificationScreenContent: { paddingTop: spacing.md, paddingBottom: 36, gap: spacing.lg },
+  notificationHeader: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  notificationScreenTitle: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: typography.size.xl,
+    lineHeight: typography.lineHeight.xl,
+    fontWeight: typography.weight.black,
+    letterSpacing: -0.9,
+  },
+  markReadButton: { minHeight: touchTarget.minimum, justifyContent: 'center', paddingHorizontal: spacing.xs },
+  markReadText: { fontSize: typography.size.sm, lineHeight: typography.lineHeight.sm, fontWeight: typography.weight.black },
+  notificationTabs: {
+    minHeight: 56,
+    paddingRight: spacing.md,
+    borderBottomWidth: border.hairline,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: spacing.sm,
+  },
+  notificationTab: {
+    minHeight: 48,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
+    paddingTop: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  notificationTabText: { fontSize: typography.size.sm, lineHeight: typography.lineHeight.sm, fontWeight: typography.weight.black },
+  notificationTabCount: {
+    minWidth: 26,
+    height: 26,
+    borderRadius: 13,
+    paddingHorizontal: spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notificationTabCountText: { fontSize: typography.size.xs, lineHeight: typography.lineHeight.xs, fontWeight: typography.weight.black },
+  notificationTabUnderline: { position: 'absolute', bottom: -1, right: 0, left: 0, height: 3, borderTopLeftRadius: 2, borderTopRightRadius: 2 },
+  notificationList: { gap: spacing.none },
+  notificationRow: {
+    minHeight: 116,
+    paddingVertical: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  notificationAvatarWrap: { width: 64, height: 64, flexShrink: 0 },
+  notificationAvatarImage: { width: 58, height: 58, borderRadius: 29, backgroundColor: palette.gray[100] },
+  notificationAvatarTextBox: { width: 58, height: 58, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  notificationAvatarText: { fontSize: typography.size.md, fontWeight: typography.weight.black, letterSpacing: -0.3 },
+  notificationBadgeIcon: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    width: 29,
+    height: 29,
+    borderRadius: 15,
+    borderWidth: border.medium,
+    borderColor: palette.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notificationMain: { flex: 1, minWidth: 0, paddingTop: spacing.xxs },
+  notificationTitle: { fontSize: typography.size.md, lineHeight: 23, fontWeight: typography.weight.regular },
+  notificationTitleStrong: { fontWeight: typography.weight.black },
+  notificationBody: { marginTop: spacing.xs, fontSize: typography.size.sm, lineHeight: typography.lineHeight.sm, fontWeight: typography.weight.medium },
+  notificationChip: {
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+    minHeight: 34,
+    marginTop: spacing.md,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  notificationChipText: { flexShrink: 1, fontSize: typography.size.xs + 1, lineHeight: typography.lineHeight.xs, fontWeight: typography.weight.medium },
+  notificationTrailing: { width: 82, minHeight: 84, alignItems: 'flex-end', justifyContent: 'space-between' },
+  notificationTrailingTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: spacing.xs },
+  notificationTime: { flex: 1, minWidth: 0, fontSize: typography.size.xs + 1, lineHeight: typography.lineHeight.xs, fontWeight: typography.weight.semibold, textAlign: 'right' },
+  notificationUnreadDot: { width: 9, height: 9, borderRadius: 5, marginRight: spacing.sm, marginBottom: spacing.sm },
+  notificationEnd: { marginTop: spacing.lg, paddingHorizontal: spacing.xxl, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
+  notificationEndLine: { flex: 1, height: border.hairline },
+  notificationEndIcon: { width: 28, height: 28, borderRadius: 14, borderWidth: border.hairline, alignItems: 'center', justifyContent: 'center' },
+  notificationEndText: { textAlign: 'center', fontSize: typography.size.xs, lineHeight: typography.lineHeight.xs, fontWeight: typography.weight.medium },
 });

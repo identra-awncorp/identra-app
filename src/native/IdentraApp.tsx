@@ -70,7 +70,7 @@ const tabScreens: Record<TabKey, ScreenKey> = {
   identity: 'wallet',
 };
 
-const bottomNavScreens = new Set<ScreenKey>(['chat-list', 'news-feed', 'scan', 'payment', 'wallet', 'credentials', 'notifications']);
+const bottomNavScreens = new Set<ScreenKey>(['chat-list', 'news-feed', 'scan', 'payment', 'wallet', 'credentials']);
 
 export function IdentraApp() {
   const store = useAppStore();

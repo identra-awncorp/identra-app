@@ -234,11 +234,11 @@ export const shadows = StyleSheet.create({
   subtle: Platform.select({
     ios: {
       shadowColor: '#27375F',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
-      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.025,
+      shadowRadius: 5,
     },
-    android: { elevation: 1 },
+    android: { elevation: 0 },
     default: {},
   }),
   card: Platform.select({
