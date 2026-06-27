@@ -148,16 +148,16 @@ export function ComposePostScreen({ authorName, colors, onClose, onSubmit }: Com
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Thêm vào bài viết</Text>
           <View style={styles.attachmentGrid}>
             <AttachmentOption colors={colors} label="Ảnh/video" tint={colors.primaryDark}>
-              <ImageIcon color={colors.primaryDark} size={31} strokeWidth={2.2} />
+              <ImageIcon color={colors.primaryDark} size={26} strokeWidth={2.1} />
             </AttachmentOption>
             <AttachmentOption colors={colors} label="Ảnh GIF" tint={colors.success}>
               <Text style={[styles.gifText, { color: colors.success }]}>GIF</Text>
             </AttachmentOption>
             <AttachmentOption colors={colors} label="Trực tiếp" tint="#F02B63">
-              <Radio color="#F02B63" size={31} strokeWidth={2.2} />
+              <Radio color="#F02B63" size={26} strokeWidth={2.1} />
             </AttachmentOption>
             <AttachmentOption colors={colors} label="Hợp đồng thông minh" tint={colors.warning}>
-              <FileCheck2 color={colors.warning} size={31} strokeWidth={2.1} />
+              <FileCheck2 color={colors.warning} size={26} strokeWidth={2.1} />
             </AttachmentOption>
           </View>
         </View>
@@ -171,7 +171,7 @@ export function ComposePostScreen({ authorName, colors, onClose, onSubmit }: Com
           ]}
         >
           <View style={[styles.advancedIcon, { backgroundColor: colors.surfaceMuted }]}>
-            <ShieldCheck color={colors.primaryDark} size={28} strokeWidth={2.1} />
+            <ShieldCheck color={colors.primaryDark} size={24} strokeWidth={2.1} />
           </View>
           <Text style={[styles.advancedText, { color: colors.text }]}>Thiết lập nâng cao</Text>
           <ChevronRight color={colors.textSecondary} size={28} strokeWidth={2.1} />
@@ -199,7 +199,7 @@ function QuickActionButton({
       style={({ pressed }) => [styles.quickAction, { opacity: pressed ? 0.64 : 1 }]}
     >
       {showDivider ? <View style={[styles.quickDivider, { backgroundColor: colors.border }]} /> : null}
-      <Icon color={action.tint} size={29} strokeWidth={2.1} />
+      <Icon color={action.tint} size={24} strokeWidth={2.1} />
       <Text numberOfLines={1} style={[styles.quickLabel, { color: colors.textSecondary }]}>{action.label}</Text>
     </Pressable>
   );
@@ -234,43 +234,43 @@ function AttachmentOption({
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   header: {
-    minHeight: 86,
-    borderBottomWidth: border.thin,
-    paddingHorizontal: spacing.lg,
+    minHeight: 68,
+    borderBottomWidth: border.hairline,
+    paddingHorizontal: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   closeButton: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.md + 2,
-    borderWidth: border.thin,
+    width: 48,
+    height: 48,
+    borderRadius: radius.md,
+    borderWidth: border.hairline,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     position: 'absolute',
-    right: 112,
-    left: 112,
+    right: 92,
+    left: 92,
     textAlign: 'center',
     fontSize: typography.size.lg,
     lineHeight: typography.lineHeight.lg,
     fontWeight: typography.weight.black,
   },
-  publishButton: { minWidth: 82, height: 56, borderRadius: radius.md + 2, overflow: 'hidden' },
-  publishGradient: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg },
+  publishButton: { minWidth: 76, height: 48, borderRadius: radius.md, overflow: 'hidden' },
+  publishGradient: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.md },
   publishText: { color: palette.white, fontSize: typography.size.md, fontWeight: typography.weight.black },
-  content: { paddingHorizontal: spacing.lg, paddingTop: spacing.xl, gap: spacing.xl },
-  authorRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md + spacing.xs },
-  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: palette.gray[100] },
+  content: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, gap: spacing.lg },
+  authorRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  avatar: { width: 54, height: 54, borderRadius: 27, backgroundColor: palette.gray[100] },
   authorCopy: { flex: 1, minWidth: 0, gap: spacing.sm },
   authorNameRow: { minHeight: 32, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  authorName: { maxWidth: 190, fontSize: typography.size.lg, lineHeight: typography.lineHeight.lg, fontWeight: typography.weight.black },
+  authorName: { maxWidth: 190, fontSize: typography.size.md + 2, lineHeight: 24, fontWeight: typography.weight.black },
   replyPill: {
     maxWidth: '100%',
-    minHeight: 46,
-    borderWidth: border.thin,
+    minHeight: 40,
+    borderWidth: border.hairline,
     borderRadius: radius.md + 2,
     paddingHorizontal: spacing.md,
     flexDirection: 'row',
@@ -279,58 +279,58 @@ const styles = StyleSheet.create({
   },
   replyText: { flexShrink: 1, fontSize: typography.size.sm, fontWeight: typography.weight.medium },
   quickStrip: {
-    minHeight: 74,
-    borderWidth: border.thin,
+    minHeight: 64,
+    borderWidth: border.hairline,
     borderRadius: radius.lg,
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
     ...shadows.subtle,
   },
-  quickAction: { flex: 1, minHeight: 74, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm - spacing.xxs },
-  quickDivider: { position: 'absolute', left: 0, width: border.thin, height: 38 },
-  quickLabel: { flexShrink: 1, fontSize: typography.size.sm, fontWeight: typography.weight.semibold },
+  quickAction: { flex: 1, minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
+  quickDivider: { position: 'absolute', left: 0, width: border.hairline, height: 32, opacity: 0.68 },
+  quickLabel: { flexShrink: 1, fontSize: typography.size.xs + 1, fontWeight: typography.weight.semibold },
   editorCard: {
-    minHeight: 370,
-    borderWidth: border.thin,
+    minHeight: 260,
+    borderWidth: border.hairline,
     borderRadius: radius.xl,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xl,
+    paddingVertical: spacing.lg,
     ...shadows.subtle,
   },
   editorInput: {
-    minHeight: 312,
-    fontSize: typography.size.xl - spacing.xs,
-    lineHeight: typography.lineHeight.xl - spacing.xs,
+    minHeight: 220,
+    fontSize: typography.size.lg + 2,
+    lineHeight: 30,
     fontWeight: typography.weight.regular,
   },
   addCard: {
-    borderWidth: border.thin,
+    borderWidth: border.hairline,
     borderRadius: radius.xl,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
+    paddingTop: spacing.lg,
     paddingBottom: spacing.lg,
-    gap: spacing.xl,
+    gap: spacing.lg,
     ...shadows.subtle,
   },
-  sectionTitle: { fontSize: typography.size.lg, lineHeight: typography.lineHeight.lg, fontWeight: typography.weight.black },
+  sectionTitle: { fontSize: typography.size.md + 2, lineHeight: 24, fontWeight: typography.weight.black },
   attachmentGrid: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
-  attachmentOption: { flex: 1, minHeight: 122, alignItems: 'center', gap: spacing.sm },
+  attachmentOption: { flex: 1, minHeight: 104, alignItems: 'center', gap: spacing.sm },
   attachmentIconBox: {
-    width: 60,
-    height: 60,
+    width: 54,
+    height: 54,
     borderRadius: radius.lg,
-    borderWidth: border.thin,
+    borderWidth: border.hairline,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   attachmentGlow: { position: 'absolute', width: 34, height: 34, borderRadius: 17, opacity: 0.08 },
   attachmentLabel: { minHeight: 40, textAlign: 'center', fontSize: typography.size.sm, lineHeight: typography.lineHeight.sm, fontWeight: typography.weight.medium },
-  gifText: { fontSize: typography.size.md, fontWeight: typography.weight.black },
+  gifText: { fontSize: typography.size.sm + 1, fontWeight: typography.weight.black },
   advancedRow: {
-    minHeight: 80,
-    borderWidth: border.thin,
+    minHeight: 68,
+    borderWidth: border.hairline,
     borderRadius: radius.xl,
     paddingHorizontal: spacing.lg,
     flexDirection: 'row',

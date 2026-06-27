@@ -7,6 +7,8 @@ export type TabKey = 'chat' | 'feed' | 'scan' | 'payment' | 'identity';
 export type ScreenKey =
   | 'wallet'
   | 'news-feed'
+  | 'news-feed-search'
+  | 'compose-post'
   | 'live-stream'
   | 'smart-contract-detail'
   | 'payment'

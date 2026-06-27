@@ -44,6 +44,8 @@ import { ScannerScreen } from './screens/ScannerScreens';
 import { ChatListScreen } from './screens/ChatListScreen';
 import { ChatScreen } from './screens/ChatScreen';
 import { NEWS_FEED_OVERLAY_HEIGHT, NewsFeedScreen } from './screens/NewsFeedScreen';
+import { NewsFeedSearchScreen } from './screens/NewsFeedSearchScreen';
+import { ComposePostScreen } from './screens/ComposePostScreen';
 import { LiveStreamScreen } from './screens/LiveStreamScreen';
 import { PaymentScreen } from './screens/PaymentScreen';
 import { OnboardingScreen } from './screens/OnboardingScreen';
@@ -147,11 +149,24 @@ export function IdentraApp() {
               setReturnScreen('news-feed');
               setScreen('notifications');
             }}
+            onOpenSearch={() => setScreen('news-feed-search')}
+            onOpenCompose={() => setScreen('compose-post')}
             onOpenSmartContractDetail={(post) => {
               setSelectedSmartContractPost(post);
               setScreen('smart-contract-detail');
             }}
             scrollY={newsFeedScrollY}
+          />
+        );
+      case 'news-feed-search':
+        return <NewsFeedSearchScreen colors={colors} onBack={() => setScreen('news-feed')} />;
+      case 'compose-post':
+        return (
+          <ComposePostScreen
+            authorName="Minh Khoa"
+            colors={colors}
+            onClose={() => setScreen('news-feed')}
+            onSubmit={() => setScreen('news-feed')}
           />
         );
       case 'live-stream':
@@ -169,6 +184,8 @@ export function IdentraApp() {
               setReturnScreen('news-feed');
               setScreen('notifications');
             }}
+            onOpenSearch={() => setScreen('news-feed-search')}
+            onOpenCompose={() => setScreen('compose-post')}
             onOpenSmartContractDetail={(post) => {
               setSelectedSmartContractPost(post);
               setScreen('smart-contract-detail');

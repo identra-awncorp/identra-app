@@ -36,8 +36,9 @@ const liveHostAvatar = require('../../assets/images/student_avatar_png_178105110
 const liveViewerAvatar = require('../../assets/images/chat-list-demo-icon/photo_2026-06-21_11-00-03 (4).jpg');
 const verifiedBadgeIcon = require('../../assets/images/verified-badge-icon.png');
 
-export const NEWS_FEED_OVERLAY_HEIGHT = 136;
-const fabHiddenOffset = 112;
+export const NEWS_FEED_HEADER_HEIGHT = 74;
+const NEWS_FEED_TABS_HEIGHT = 62;
+export const NEWS_FEED_OVERLAY_HEIGHT = NEWS_FEED_HEADER_HEIGHT + NEWS_FEED_TABS_HEIGHT;
 
 const demoSmartContractPosts: SmartContractFeedPost[] = [
   {
@@ -127,6 +128,8 @@ export function NewsFeedScreen({
   onOpenLiveStream,
   onOpenMenu,
   onOpenNotifications,
+  onOpenSearch,
+  onOpenCompose,
   onOpenSmartContractDetail,
   scrollY,
 }: {
@@ -135,6 +138,8 @@ export function NewsFeedScreen({
   onOpenLiveStream: () => void;
   onOpenMenu: () => void;
   onOpenNotifications: () => void;
+  onOpenSearch: () => void;
+  onOpenCompose: () => void;
   onOpenSmartContractDetail: (post: SmartContractFeedPost) => void;
   scrollY?: Animated.Value;
 }) {
@@ -150,6 +155,15 @@ export function NewsFeedScreen({
     [internalScrollY],
   );
   const chromeProgress = overlayProgress ?? internalOverlayProgress;
+  const stickyTabsProgress = useMemo(
+    () =>
+      Animated.diffClamp(drivenScrollY, 0, NEWS_FEED_HEADER_HEIGHT).interpolate({
+        inputRange: [0, NEWS_FEED_HEADER_HEIGHT],
+        outputRange: [0, 1],
+        extrapolate: 'clamp',
+      }),
+    [drivenScrollY],
+  );
   const handleScroll = useMemo(
     () =>
       Animated.event(
@@ -158,14 +172,19 @@ export function NewsFeedScreen({
       ),
     [drivenScrollY],
   );
-  const topOverlayTranslateY = chromeProgress.interpolate({
+  const headerTranslateY = stickyTabsProgress.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, -NEWS_FEED_OVERLAY_HEIGHT],
+    outputRange: [0, - (NEWS_FEED_HEADER_HEIGHT + 30)],
     extrapolate: 'clamp',
   });
-  const fabOverlayTranslateX = chromeProgress.interpolate({
+  const tabsTranslateY = stickyTabsProgress.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, fabHiddenOffset],
+    outputRange: [0, - (NEWS_FEED_HEADER_HEIGHT + 30)],
+    extrapolate: 'clamp',
+  });
+  const fabScale = chromeProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 0],
     extrapolate: 'clamp',
   });
 
@@ -173,10 +192,10 @@ export function NewsFeedScreen({
     <View nativeID="screen-news-feed" testID="screen-news-feed" style={[styles.screen, { backgroundColor: colors.background }]}>
       <Animated.View
         style={[
-          styles.topOverlay,
+          styles.headerOverlay,
           {
             backgroundColor: colors.background,
-            transform: [{ translateY: topOverlayTranslateY }],
+            transform: [{ translateY: headerTranslateY }],
           },
         ]}
       >
@@ -193,6 +212,7 @@ export function NewsFeedScreen({
         <Pressable
           accessibilityRole="search"
           accessibilityLabel="Tìm kiếm trên bảng tin"
+          onPress={onOpenSearch}
           style={[styles.searchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}
         >
           <Search color={colors.textSecondary} size={22} strokeWidth={1.9} />
@@ -210,7 +230,17 @@ export function NewsFeedScreen({
           </View>
         </Pressable>
       </View>
+      </Animated.View>
 
+      <Animated.View
+        style={[
+          styles.tabsOverlay,
+          {
+            backgroundColor: colors.background,
+            transform: [{ translateY: tabsTranslateY }],
+          },
+        ]}
+      >
       <View style={[styles.tabs, { borderBottomColor: colors.border }]}>
         <Pressable accessibilityRole="tab" accessibilityState={{ selected: true }} style={styles.tab}>
           <Text style={[styles.activeTabText, { color: colors.text }]}>Dành cho bạn</Text>
@@ -268,10 +298,11 @@ export function NewsFeedScreen({
         />
       </Animated.ScrollView>
 
-      <Animated.View style={[styles.fab, { transform: [{ translateX: fabOverlayTranslateX }] }]}>
+      <Animated.View style={[styles.fab, { transform: [{ scale: fabScale }] }]}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Tạo bài viết mới"
+        onPress={onOpenCompose}
         style={({ pressed }) => [styles.fabButton, { backgroundColor: colors.primaryDark, opacity: pressed ? 0.78 : 1 }]}
       >
         <Plus color={palette.white} size={38} strokeWidth={1.9} />
@@ -665,10 +696,11 @@ function InitialAvatar({ colors, initials }: { colors: AppColors; initials: stri
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, overflow: 'hidden' },
-  topOverlay: { position: 'absolute', top: 0, right: 0, left: 0, zIndex: 4 },
+  screen: { flex: 1 },
+  headerOverlay: { position: 'absolute', top: 0, right: 0, left: 0, zIndex: 4 },
+  tabsOverlay: { position: 'absolute', top: NEWS_FEED_HEADER_HEIGHT, right: 0, left: 0, zIndex: 5 },
   header: {
-    minHeight: 74,
+    minHeight: NEWS_FEED_HEADER_HEIGHT,
     paddingHorizontal: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
@@ -701,8 +733,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xs,
   },
   notificationBadgeText: { color: palette.white, fontSize: typography.size.sm, fontWeight: typography.weight.black },
-  tabs: { minHeight: 62, borderBottomWidth: border.thin, flexDirection: 'row', alignItems: 'flex-end' },
-  tab: { flex: 1, minHeight: 62, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: spacing.md, position: 'relative' },
+  tabs: { minHeight: NEWS_FEED_TABS_HEIGHT, borderBottomWidth: border.thin, flexDirection: 'row', alignItems: 'flex-end' },
+  tab: { flex: 1, minHeight: NEWS_FEED_TABS_HEIGHT, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: spacing.md, position: 'relative' },
   activeTabText: { fontSize: typography.size.md, fontWeight: typography.weight.black },
   tabText: { fontSize: typography.size.md, fontWeight: typography.weight.semibold },
   activeIndicator: { position: 'absolute', bottom: 0, width: '72%', height: 3, borderTopLeftRadius: 2, borderTopRightRadius: 2 },
