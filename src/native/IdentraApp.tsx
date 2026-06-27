@@ -14,7 +14,7 @@ import {
   X,
 } from 'lucide-react-native';
 import { type ComponentType, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { border, darkColors, layout, lightColors, palette, radius, shadows, spacing, touchTarget, typography } from './theme';
 import type { Credential, ScreenKey, SmartContractFeedPost, TabKey } from './types';
@@ -43,7 +43,7 @@ import {
 import { ScannerScreen } from './screens/ScannerScreens';
 import { ChatListScreen } from './screens/ChatListScreen';
 import { ChatScreen } from './screens/ChatScreen';
-import { NewsFeedScreen } from './screens/NewsFeedScreen';
+import { NEWS_FEED_OVERLAY_HEIGHT, NewsFeedScreen } from './screens/NewsFeedScreen';
 import { LiveStreamScreen } from './screens/LiveStreamScreen';
 import { PaymentScreen } from './screens/PaymentScreen';
 import { OnboardingScreen } from './screens/OnboardingScreen';
@@ -86,9 +86,19 @@ export function IdentraApp() {
   const [authCompleted, setAuthCompleted] = useState(false);
   const [authEntry, setAuthEntry] = useState<'onboarding' | 'login' | 'register'>('onboarding');
   const previousScreen = useRef<ScreenKey>('chat-list');
+  const newsFeedScrollY = useRef(new Animated.Value(0)).current;
 
   const isDark = store.settings.theme === 'dark' || (store.settings.theme === 'system' && systemScheme === 'dark');
   const colors = isDark ? darkColors : lightColors;
+  const newsFeedChromeProgress = useMemo(
+    () =>
+      Animated.diffClamp(newsFeedScrollY, 0, NEWS_FEED_OVERLAY_HEIGHT).interpolate({
+        inputRange: [0, NEWS_FEED_OVERLAY_HEIGHT],
+        outputRange: [0, 1],
+        extrapolate: 'clamp',
+      }),
+    [newsFeedScrollY],
+  );
   const activeTab: TabKey | null =
     screen === 'chat-list'
       ? 'chat'
@@ -115,6 +125,10 @@ export function IdentraApp() {
     previousScreen.current = screen;
   }, [screen, store]);
 
+  useEffect(() => {
+    if (screen !== 'news-feed') newsFeedScrollY.setValue(0);
+  }, [newsFeedScrollY, screen]);
+
   const screenContent = useMemo(() => {
     const openCredential = (credential: Credential) => {
       setSelectedCredential(credential);
@@ -126,6 +140,7 @@ export function IdentraApp() {
         return (
           <NewsFeedScreen
             colors={colors}
+            overlayProgress={newsFeedChromeProgress}
             onOpenLiveStream={() => setScreen('live-stream')}
             onOpenMenu={openSideMenu}
             onOpenNotifications={() => {
@@ -136,6 +151,7 @@ export function IdentraApp() {
               setSelectedSmartContractPost(post);
               setScreen('smart-contract-detail');
             }}
+            scrollY={newsFeedScrollY}
           />
         );
       case 'live-stream':
@@ -146,6 +162,7 @@ export function IdentraApp() {
         ) : (
           <NewsFeedScreen
             colors={colors}
+            overlayProgress={newsFeedChromeProgress}
             onOpenLiveStream={() => setScreen('live-stream')}
             onOpenMenu={openSideMenu}
             onOpenNotifications={() => {
@@ -156,6 +173,7 @@ export function IdentraApp() {
               setSelectedSmartContractPost(post);
               setScreen('smart-contract-detail');
             }}
+            scrollY={newsFeedScrollY}
           />
         );
       case 'payment':
@@ -494,7 +512,7 @@ export function IdentraApp() {
       case 'settings-about':
         return <AboutScreen colors={colors} onBack={() => setScreen('settings')} />;
     }
-  }, [chatReturnScreen, colors, connectionInvitation, openSideMenu, returnScreen, screen, selectedChatId, selectedCredential, selectedSmartContractPost, sharePayload, store]);
+  }, [chatReturnScreen, colors, connectionInvitation, newsFeedChromeProgress, newsFeedScrollY, openSideMenu, returnScreen, screen, selectedChatId, selectedCredential, selectedSmartContractPost, sharePayload, store]);
 
   if (!store.hydrated) {
     return (
@@ -551,6 +569,8 @@ export function IdentraApp() {
             colors={colors}
             activeTab={activeTab}
             bottomInset={insets.bottom}
+            floating={screen === 'news-feed'}
+            overlayProgress={screen === 'news-feed' ? newsFeedChromeProgress : undefined}
             onSelect={(tab) => setScreen(tabScreens[tab])}
           />
         ) : null}
@@ -577,11 +597,15 @@ function BottomNavigation({
   colors,
   activeTab,
   bottomInset,
+  floating = false,
+  overlayProgress,
   onSelect,
 }: {
   colors: typeof lightColors;
   activeTab: TabKey | null;
   bottomInset: number;
+  floating?: boolean;
+  overlayProgress?: Animated.AnimatedInterpolation<number>;
   onSelect: (tab: TabKey) => void;
 }) {
   const tabs: Array<{ key: TabKey; label: string; icon: ComponentType<BottomNavIconProps> }> = [
@@ -592,16 +616,27 @@ function BottomNavigation({
     { key: 'identity', label: 'Identity', icon: IdentityNavIcon },
   ];
 
+  const bottomHiddenOffset = layout.bottomNavHeight + Math.max(bottomInset, spacing.xl);
+  const translateY = overlayProgress
+    ? overlayProgress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, bottomHiddenOffset],
+        extrapolate: 'clamp',
+      })
+    : 0;
+
   return (
-    <View
+    <Animated.View
       nativeID="identra-bottom-navigation"
       testID="identra-bottom-navigation"
       style={[
         styles.bottomNav,
+        floating && styles.bottomNavFloating,
         {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
           paddingBottom: Math.max(bottomInset - 16, 8),
+          transform: [{ translateY }],
         },
       ]}
     >
@@ -627,7 +662,7 @@ function BottomNavigation({
           </Pressable>
         );
       })}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -727,6 +762,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     ...shadows.subtle,
   },
+  bottomNavFloating: { position: 'absolute', right: 0, bottom: 0, left: 0, zIndex: 8 },
   bottomNavItem: { flex: 1, minHeight: touchTarget.large, alignItems: 'center', justifyContent: 'center' },
   bottomNavIcon: { width: touchTarget.minimum, height: touchTarget.minimum, alignItems: 'center', justifyContent: 'center' },
   bottomNavIconInactive: { opacity: 0.8 },

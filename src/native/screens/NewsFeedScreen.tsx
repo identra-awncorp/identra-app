@@ -21,8 +21,8 @@ import {
   Ticket,
   type LucideIcon,
 } from 'lucide-react-native';
-import type { ReactNode } from 'react';
-import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
+import { useMemo, useRef, type ReactNode } from 'react';
+import { Animated, Image, ImageBackground, Pressable, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
 import { AppBrandLogo, AppLogo } from '../components/AppLogo';
 import type { AppColors } from '../theme';
 import { border, palette, radius, shadows, spacing, touchTarget, typography } from '../theme';
@@ -35,6 +35,9 @@ const liveStreamImage = dalatFeedImage;
 const liveHostAvatar = require('../../assets/images/student_avatar_png_1781051105999.png');
 const liveViewerAvatar = require('../../assets/images/chat-list-demo-icon/photo_2026-06-21_11-00-03 (4).jpg');
 const verifiedBadgeIcon = require('../../assets/images/verified-badge-icon.png');
+
+export const NEWS_FEED_OVERLAY_HEIGHT = 136;
+const fabHiddenOffset = 112;
 
 const demoSmartContractPosts: SmartContractFeedPost[] = [
   {
@@ -120,20 +123,64 @@ const demoSmartContractPosts: SmartContractFeedPost[] = [
 
 export function NewsFeedScreen({
   colors,
+  overlayProgress,
   onOpenLiveStream,
   onOpenMenu,
   onOpenNotifications,
   onOpenSmartContractDetail,
+  scrollY,
 }: {
   colors: AppColors;
+  overlayProgress?: Animated.AnimatedInterpolation<number>;
   onOpenLiveStream: () => void;
   onOpenMenu: () => void;
   onOpenNotifications: () => void;
   onOpenSmartContractDetail: (post: SmartContractFeedPost) => void;
+  scrollY?: Animated.Value;
 }) {
+  const internalScrollY = useRef(new Animated.Value(0)).current;
+  const drivenScrollY = scrollY ?? internalScrollY;
+  const internalOverlayProgress = useMemo(
+    () =>
+      Animated.diffClamp(internalScrollY, 0, NEWS_FEED_OVERLAY_HEIGHT).interpolate({
+        inputRange: [0, NEWS_FEED_OVERLAY_HEIGHT],
+        outputRange: [0, 1],
+        extrapolate: 'clamp',
+      }),
+    [internalScrollY],
+  );
+  const chromeProgress = overlayProgress ?? internalOverlayProgress;
+  const handleScroll = useMemo(
+    () =>
+      Animated.event(
+        [{ nativeEvent: { contentOffset: { y: drivenScrollY } } }],
+        { useNativeDriver: true },
+      ),
+    [drivenScrollY],
+  );
+  const topOverlayTranslateY = chromeProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -NEWS_FEED_OVERLAY_HEIGHT],
+    extrapolate: 'clamp',
+  });
+  const fabOverlayTranslateX = chromeProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, fabHiddenOffset],
+    extrapolate: 'clamp',
+  });
+
   return (
     <View nativeID="screen-news-feed" testID="screen-news-feed" style={[styles.screen, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.background }]}>
+      <Animated.View
+        style={[
+          styles.topOverlay,
+          {
+            backgroundColor: colors.background,
+            transform: [{ translateY: topOverlayTranslateY }],
+          },
+        ]}
+      >
+      <View style={styles.header}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Mở menu"
@@ -173,10 +220,13 @@ export function NewsFeedScreen({
           <Text style={[styles.tabText, { color: colors.textSecondary }]}>Đang theo dõi</Text>
         </Pressable>
       </View>
+      </Animated.View>
 
-      <ScrollView
+      <Animated.ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
         <LiveFeedPost colors={colors} onOpen={onOpenLiveStream} />
@@ -216,15 +266,17 @@ export function NewsFeedScreen({
           likes="258"
           views="6,1K"
         />
-      </ScrollView>
+      </Animated.ScrollView>
 
+      <Animated.View style={[styles.fab, { transform: [{ translateX: fabOverlayTranslateX }] }]}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Tạo bài viết mới"
-        style={({ pressed }) => [styles.fab, { backgroundColor: colors.primaryDark, opacity: pressed ? 0.78 : 1 }]}
+        style={({ pressed }) => [styles.fabButton, { backgroundColor: colors.primaryDark, opacity: pressed ? 0.78 : 1 }]}
       >
         <Plus color={palette.white} size={38} strokeWidth={1.9} />
       </Pressable>
+      </Animated.View>
     </View>
   );
 }
@@ -613,7 +665,8 @@ function InitialAvatar({ colors, initials }: { colors: AppColors; initials: stri
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
+  screen: { flex: 1, overflow: 'hidden' },
+  topOverlay: { position: 'absolute', top: 0, right: 0, left: 0, zIndex: 4 },
   header: {
     minHeight: 74,
     paddingHorizontal: spacing.md,
@@ -653,7 +706,7 @@ const styles = StyleSheet.create({
   activeTabText: { fontSize: typography.size.md, fontWeight: typography.weight.black },
   tabText: { fontSize: typography.size.md, fontWeight: typography.weight.semibold },
   activeIndicator: { position: 'absolute', bottom: 0, width: '72%', height: 3, borderTopLeftRadius: 2, borderTopRightRadius: 2 },
-  content: { paddingBottom: 108 },
+  content: { paddingTop: NEWS_FEED_OVERLAY_HEIGHT, paddingBottom: 108 },
   livePost: { borderBottomWidth: border.thin, paddingHorizontal: spacing.md, paddingVertical: spacing.lg, flexDirection: 'row', gap: spacing.md },
   livePostAvatarWrap: {
     width: 52,
@@ -912,6 +965,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: spacing.xl,
     bottom: 92,
+    zIndex: 5,
+  },
+  fabButton: {
     width: 66,
     height: 66,
     borderRadius: 33,
