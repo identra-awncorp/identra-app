@@ -1,11 +1,9 @@
-export {
-  AboutScreen,
-  ActivityScreen,
-  BackupSettingsScreen,
-  DataSettingsScreen,
-  DisplaySettingsScreen,
-  HelpScreen,
-  ConfigurableSettingsListScreen,
-  SettingsScreen,
-} from './SettingsAndActivityScreens';
+export { ActivityScreen } from './activity/ActivityScreen';
+export { SettingsScreen } from './SettingsHomeScreen';
+export { AboutScreen } from './details/AboutScreen';
+export { BackupSettingsScreen } from './details/BackupSettingsScreen';
+export { ConfigurableSettingsListScreen } from './details/ConfigurableSettingsListScreen';
+export { DataSettingsScreen } from './details/DataSettingsScreen';
+export { DisplaySettingsScreen } from './details/DisplaySettingsScreen';
+export { HelpScreen } from './details/HelpScreen';
 export { SettingToggle } from './SettingToggle';
