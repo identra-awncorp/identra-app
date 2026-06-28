@@ -3,11 +3,11 @@ import { Image, Pressable, Text, View } from 'react-native';
 import { mediaPreviewImage } from '../../data/demo/chatDemoData';
 import type { ChatMediaPreview, ChatPreview, DeliveryStatus } from '../../data/demo/chatDemoData';
 import type { AppColors } from '../../theme';
+import { useI18n } from '../../i18n';
 import { LIST_AVATAR_SIZE } from './ChatListData';
 import { ChatAvatar, VerifiedBadgeIcon } from './ChatListAvatar';
 import { styles } from './ChatListStyles';
 import {
-  getConversationPreviewText,
   getMediaThumbPresentation,
   getVisibleDeliveryStatus,
   shouldShowGroupSender,
@@ -22,12 +22,13 @@ export function ConversationRow({
   conversation: ChatPreview;
   onPress: () => void;
 }) {
+  const { t } = useI18n();
   const hasUnread = Boolean(conversation.unread);
   const visibleDeliveryStatus = getVisibleDeliveryStatus(conversation);
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Mở trò chuyện ${conversation.name}`}
+      accessibilityLabel={t('chatList.accessibility.openConversation', { name: conversation.name })}
       onPress={onPress}
       style={({ pressed }) => [
         styles.conversationRow,
@@ -85,8 +86,9 @@ function ConversationPreview({
   conversation: ChatPreview;
   hasUnread: boolean;
 }) {
+  const { t } = useI18n();
   const mediaOnly = Boolean(conversation.media && !conversation.message);
-  const previewText = getConversationPreviewText(conversation);
+  const previewText = conversation.message || getLocalizedMediaLabel(conversation.media, t);
   const showGroupSender = shouldShowGroupSender(conversation);
 
   return (
@@ -162,4 +164,11 @@ function MediaThumbStack({ colors, media }: { colors: AppColors; media: ChatMedi
       })}
     </View>
   );
+}
+
+function getLocalizedMediaLabel(media: ChatMediaPreview | undefined, t: ReturnType<typeof useI18n>['t']) {
+  if (!media) return '';
+  if (media.type === 'photo') return t('chat.common.mediaPhoto');
+  if (media.type === 'gif') return 'GIF';
+  return media.fileName ?? t('chat.common.mediaFile');
 }

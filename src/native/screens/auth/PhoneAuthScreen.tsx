@@ -23,6 +23,7 @@ import {
 } from 'react-native';
 import type { AppColors } from '../../theme';
 import { border, palette, radius, spacing, typography } from '../../theme';
+import { useI18n } from '../../i18n';
 
 interface Props {
   colors: AppColors;
@@ -49,6 +50,7 @@ export function PhoneAuthScreen({
   switchPrompt,
   title,
 }: Props) {
+  const { t } = useI18n();
   const { width } = useWindowDimensions();
   const compactWidth = width <= 360;
   const [phoneNumber, setPhoneNumber] = useState(() =>
@@ -62,11 +64,11 @@ export function PhoneAuthScreen({
 
   const submit = () => {
     if (!validPhone) {
-      Alert.alert('Số điện thoại chưa hợp lệ', 'Vui lòng nhập số điện thoại gồm ít nhất 9 chữ số.');
+      Alert.alert(t('auth.phone.invalidTitle'), t('auth.phone.invalidDescription'));
       return;
     }
     if (mode === 'register' && (!acceptedUsageTerms || !acceptedSocialTerms)) {
-      Alert.alert('Chưa đồng ý điều khoản', 'Vui lòng đồng ý với các điều khoản để tiếp tục đăng ký.');
+      Alert.alert(t('auth.phone.termsMissingTitle'), t('auth.phone.termsMissingDescription'));
       return;
     }
     onContinue(`+84${normalizedPhone.replace(/^0/, '')}`);
@@ -92,7 +94,7 @@ export function PhoneAuthScreen({
       >
         <View style={styles.header}>
           <Pressable
-            accessibilityLabel="Quay lại"
+            accessibilityLabel={t('common.back')}
             accessibilityRole="button"
             hitSlop={8}
             onPress={onBack}
@@ -127,22 +129,22 @@ export function PhoneAuthScreen({
             <ConsentRow
               checked={acceptedUsageTerms}
               colors={colors}
-              linkText="điều khoản sử dụng"
+              linkText={t('auth.phone.usageTerms')}
               onPress={() => setAcceptedUsageTerms((value) => !value)}
-              suffix="của Identra"
+              suffix={t('auth.phone.identraSuffix')}
             />
             <ConsentRow
               checked={acceptedSocialTerms}
               colors={colors}
-              linkText="điều khoản mạng xã hội"
+              linkText={t('auth.phone.socialTerms')}
               onPress={() => setAcceptedSocialTerms((value) => !value)}
-              suffix="của Identra"
+              suffix={t('auth.phone.identraSuffix')}
             />
           </View>
         ) : null}
 
         <Pressable
-          accessibilityLabel="Tiếp tục"
+          accessibilityLabel={t('common.continue')}
           accessibilityRole="button"
           onPress={submit}
           style={({ pressed }) => [styles.continueButton, { opacity: pressed ? 0.78 : 1 }]}
@@ -153,7 +155,7 @@ export function PhoneAuthScreen({
             start={{ x: 0, y: 0 }}
             style={styles.continueGradient}
           >
-            <Text style={styles.continueText}>Tiếp tục</Text>
+            <Text style={styles.continueText}>{t('common.continue')}</Text>
           </LinearGradient>
         </Pressable>
 
@@ -187,6 +189,8 @@ function PhoneNumberCard({
   onPhoneNumberChange: (value: string) => void;
   onSubmit: () => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <View
       style={[
@@ -197,7 +201,7 @@ function PhoneNumberCard({
         },
       ]}
     >
-      <Text style={[styles.label, { color: colors.text }]}>Số điện thoại</Text>
+      <Text style={[styles.label, { color: colors.text }]}>{t('auth.phone.phoneLabel')}</Text>
       <View
         style={[
           styles.phoneField,
@@ -208,9 +212,9 @@ function PhoneNumberCard({
         ]}
       >
         <Pressable
-          accessibilityLabel="Chọn mã quốc gia, hiện tại Việt Nam cộng tám mươi tư"
+          accessibilityLabel={t('auth.phone.countryPicker')}
           accessibilityRole="button"
-          onPress={() => Alert.alert('Mã quốc gia', 'Việt Nam (+84)')}
+          onPress={() => Alert.alert(t('auth.phone.countryTitle'), t('auth.phone.countryVietnam'))}
           style={({ pressed }) => [
             styles.country,
             compactWidth && styles.countryCompact,
@@ -227,7 +231,7 @@ function PhoneNumberCard({
         <View style={[styles.inputWrap, compactWidth && styles.inputWrapCompact]}>
           <Phone color={focused ? colors.primaryDark : colors.textSecondary} size={compactWidth ? 19 : 21} strokeWidth={1.8} />
           <TextInput
-            accessibilityLabel="Số điện thoại"
+            accessibilityLabel={t('auth.phone.phoneLabel')}
             autoComplete="tel"
             keyboardType="phone-pad"
             maxLength={10}
@@ -235,7 +239,7 @@ function PhoneNumberCard({
             onChangeText={(value) => onPhoneNumberChange(value.replace(/\D/g, '').slice(0, 10))}
             onFocus={() => onFocusChange(true)}
             onSubmitEditing={onSubmit}
-            placeholder="Nhập số điện thoại"
+            placeholder={t('auth.phone.phonePlaceholder')}
             placeholderTextColor={colors.textSecondary}
             returnKeyType="done"
             style={[styles.input, compactWidth && styles.inputCompact, { color: colors.text }]}
@@ -243,7 +247,7 @@ function PhoneNumberCard({
           />
           {phoneNumber ? (
             <Pressable
-              accessibilityLabel="Xóa số điện thoại"
+              accessibilityLabel={t('auth.phone.clearPhone')}
               accessibilityRole="button"
               hitSlop={7}
               onPress={() => onPhoneNumberChange('')}
@@ -258,7 +262,7 @@ function PhoneNumberCard({
         <View style={[styles.hintIcon, { backgroundColor: colors.surfaceMuted }]}>
           <MessageSquareText color={colors.primaryDark} size={21} strokeWidth={1.9} />
         </View>
-        <Text style={[styles.hintText, { color: colors.textSecondary }]}>Mã xác thực sẽ được gửi qua SMS.</Text>
+        <Text style={[styles.hintText, { color: colors.textSecondary }]}>{t('auth.phone.smsHint')}</Text>
       </View>
     </View>
   );
@@ -277,6 +281,8 @@ function ConsentRow({
   onPress: () => void;
   suffix: string;
 }) {
+  const { t } = useI18n();
+
   return (
     <Pressable
       accessibilityRole="checkbox"
@@ -299,13 +305,15 @@ function ConsentRow({
         {checked ? <Check color="#FFFFFF" size={18} strokeWidth={2.6} /> : null}
       </View>
       <Text style={[styles.consentText, { color: colors.textSecondary }]}>
-        Tôi đồng ý với <Text style={{ color: colors.primaryDark }}>{linkText}</Text> {suffix}
+        {t('auth.phone.agreePrefix')} <Text style={{ color: colors.primaryDark }}>{linkText}</Text> {suffix}
       </Text>
     </Pressable>
   );
 }
 
 function LoginFooter({ colors }: { colors: AppColors }) {
+  const { t } = useI18n();
+
   return (
     <>
       <View style={[styles.securityCard, { borderColor: `${colors.primaryDark}30`, backgroundColor: colors.surface }]}>
@@ -316,18 +324,18 @@ function LoginFooter({ colors }: { colors: AppColors }) {
         </View>
         <View style={[styles.securityDivider, { backgroundColor: colors.border }]} />
         <View style={styles.securityCopy}>
-          <Text style={[styles.securityTitle, { color: colors.text }]}>An toàn và bảo mật</Text>
+          <Text style={[styles.securityTitle, { color: colors.text }]}>{t('auth.phone.secureTitle')}</Text>
           <Text style={[styles.securityDescription, { color: colors.textSecondary }]}>
-            Số điện thoại giúp khôi phục và bảo vệ quyền truy cập vào ví của bạn.
+            {t('auth.phone.secureDescription')}
           </Text>
         </View>
       </View>
 
       <Text style={[styles.legalText, { color: colors.textSecondary }]}>
-        Bằng việc tiếp tục, bạn đồng ý với{'\n'}
-        <Text style={{ color: colors.primaryDark }}>Điều khoản sử dụng</Text>
-        {' và '}
-        <Text style={{ color: colors.primaryDark }}>Chính sách riêng tư</Text>.
+        {t('auth.phone.legalPrefix')}{'\n'}
+        <Text style={{ color: colors.primaryDark }}>{t('auth.phone.termsOfUse')}</Text>
+        {` ${t('common.and')} `}
+        <Text style={{ color: colors.primaryDark }}>{t('auth.phone.privacyPolicy')}</Text>.
       </Text>
     </>
   );

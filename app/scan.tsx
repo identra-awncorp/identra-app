@@ -3,10 +3,12 @@ import { useRouter } from 'expo-router';
 import { QrScannerScreen } from '@/screens/scan';
 import { useAppStore } from '@/store';
 import { useAppRouterState } from '@/app/router/AppRouterContext';
+import { useI18n } from '@/i18n';
 
 export default function ScanRoute() {
   const router = useRouter();
   const store = useAppStore();
+  const { t } = useI18n();
   const { colors, connectionInvitation, setChatReturnScreen, setConnectionInvitation } = useAppRouterState();
 
   return (
@@ -40,9 +42,9 @@ export default function ScanRoute() {
           expiresAt: new Date(createdAt + 180000).toISOString(),
           type: 'share',
           status: 'pending',
-          title: 'Lời mời kết nối',
-          description: 'Đang chờ',
-          partner: 'Kết nối SSI',
+          title: t('activityLogs.connectionInvitationTitle'),
+          description: t('activityLogs.pending'),
+          partner: t('activityLogs.connectionInvitationPartner'),
         });
         setConnectionInvitation({ id, createdAt });
         router.push('/connection-qr');

@@ -11,7 +11,6 @@ export default function NewsFeedRoute() {
     newsFeedScrollY,
     openSideMenu,
     setReturnScreen,
-    setSelectedSmartContractPost,
   } = useAppRouterState();
 
   return (
@@ -28,8 +27,7 @@ export default function NewsFeedRoute() {
       }}
       onOpenSearch={() => router.push('/news-feed-search')}
       onOpenSmartContractDetail={(post) => {
-        setSelectedSmartContractPost(post);
-        router.push('/smart-contract-detail');
+        router.push({ pathname: '/smart-contracts/[postId]', params: { postId: post.id } });
       }}
     />
   );

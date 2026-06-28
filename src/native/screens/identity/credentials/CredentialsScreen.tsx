@@ -4,6 +4,7 @@ import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-nativ
 import type { AppColors } from '../../../theme';
 import { border, componentSize, palette, radius, spacing, typography } from '../../../theme';
 import type { Credential, CredentialStatus } from '../../../types';
+import { useI18n } from '../../../i18n';
 import {
   AppHeader,
   Card,
@@ -30,6 +31,7 @@ export function CredentialsScreen({
   onOpenCredential: (credential: Credential) => void;
   onScan: () => void;
 }) {
+  const { locale, t } = useI18n();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<FilterKey>('all');
   const [draftFilter, setDraftFilter] = useState<FilterKey>('all');
@@ -39,51 +41,51 @@ export function CredentialsScreen({
     () =>
       credentials.filter((credential) => {
         const matchesFilter = filter === 'all' || credential.status === filter;
-        const search = query.trim().toLocaleLowerCase('vi');
-        return matchesFilter && (!search || `${credential.title} ${credential.issuer}`.toLocaleLowerCase('vi').includes(search));
+        const search = query.trim().toLocaleLowerCase(locale);
+        return matchesFilter && (!search || `${credential.title} ${credential.issuer}`.toLocaleLowerCase(locale).includes(search));
       }),
-    [credentials, filter, query],
+    [credentials, filter, locale, query],
   );
 
   const filters: Array<{ key: FilterKey; label: string }> = [
-    { key: 'all', label: 'Tất cả' },
-    { key: 'verified', label: 'Đã xác minh' },
-    { key: 'pending', label: 'Đang chờ' },
-    { key: 'expired', label: 'Đã hết hạn' },
+    { key: 'all', label: t('identity.credentials.tabs.all') },
+    { key: 'verified', label: t('identity.credentials.tabs.verified') },
+    { key: 'pending', label: t('identity.credentials.tabs.pending') },
+    { key: 'expired', label: t('identity.credentials.tabs.expired') },
   ];
 
   return (
     <ScreenScroll id="screen-credentials-library" colors={colors}>
       <AppHeader
         colors={colors}
-        title="Thực chứng của tôi"
+        title={t('identity.credentials.title')}
         onBack={onBack}
         right={
-          <IconButton label="Trợ giúp về thực chứng" colors={colors} style={{ backgroundColor: colors.surfaceMuted }}>
+          <IconButton label={t('identity.credentials.help')} colors={colors} style={{ backgroundColor: colors.surfaceMuted }}>
             <BadgeHelp color={colors.text} size={24} />
           </IconButton>
         }
       />
 
       <Text style={[styles.intro, { color: colors.textSecondary }]}>
-        Danh sách các Verifiable Credential (VC) bạn đã nhận và có thể sử dụng.
+        {t('identity.credentials.intro')}
       </Text>
 
       <View style={styles.searchRow}>
         <View style={[styles.searchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Search color={colors.textSecondary} size={21} />
           <TextInput
-            accessibilityLabel="Tìm kiếm thực chứng"
+            accessibilityLabel={t('identity.credentials.searchAccessibility')}
             value={query}
             onChangeText={setQuery}
-            placeholder="Tìm kiếm thực chứng"
+            placeholder={t('identity.credentials.searchPlaceholder')}
             placeholderTextColor={colors.textSecondary}
             style={[styles.searchInput, { color: colors.text }]}
           />
         </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Bộ lọc thực chứng"
+          accessibilityLabel={t('identity.credentials.filterAccessibility')}
           onPress={() => {
             setDraftFilter(filter);
             setFilterOpen(true);
@@ -94,7 +96,7 @@ export function CredentialsScreen({
           ]}
         >
           <Filter color={colors.textSecondary} size={21} />
-          <Text style={[styles.filterText, { color: colors.textSecondary }]}>Bộ lọc</Text>
+          <Text style={[styles.filterText, { color: colors.textSecondary }]}>{t('identity.credentials.filter')}</Text>
         </Pressable>
       </View>
 
@@ -120,10 +122,10 @@ export function CredentialsScreen({
           </Card>
 
           <Card colors={colors} style={styles.stats}>
-            <Stat colors={colors} label="Đã xác minh" value="18" color={colors.success} background={palette.green[100]} icon={ShieldCheck} />
-            <Stat colors={colors} label="Đang chờ" value="3" color={colors.warning} background={palette.orange[100]} icon={Clock3} divider />
-            <Stat colors={colors} label="Hết hạn" value="1" color={colors.purple} background={palette.purple[100]} icon={CircleX} divider />
-            <Stat colors={colors} label="Tổng số" value="22" color={colors.primaryDark} background={palette.blue[100]} icon={Box} divider />
+            <Stat colors={colors} label={t('identity.credentials.stats.verified')} value="18" color={colors.success} background={palette.green[100]} icon={ShieldCheck} />
+            <Stat colors={colors} label={t('identity.credentials.stats.pending')} value="3" color={colors.warning} background={palette.orange[100]} icon={Clock3} divider />
+            <Stat colors={colors} label={t('identity.credentials.stats.expired')} value="1" color={colors.purple} background={palette.purple[100]} icon={CircleX} divider />
+            <Stat colors={colors} label={t('identity.credentials.stats.total')} value="22" color={colors.primaryDark} background={palette.blue[100]} icon={Box} divider />
           </Card>
 
           <Card colors={colors} style={styles.list}>
@@ -170,7 +172,7 @@ export function CredentialsScreen({
                 </Pressable>
               ))
             ) : (
-              <Text style={[styles.noResult, { color: colors.textSecondary }]}>Không tìm thấy thực chứng phù hợp.</Text>
+              <Text style={[styles.noResult, { color: colors.textSecondary }]}>{t('identity.credentials.noResult')}</Text>
             )}
           </Card>
         </>
@@ -178,9 +180,9 @@ export function CredentialsScreen({
         <EmptyState
           colors={colors}
           icon={Box}
-          title="Chưa có thực chứng"
-          description="Các thực chứng bạn nhận được sẽ xuất hiện tại đây để sử dụng và chia sẻ an toàn."
-          action="Quét để nhận thực chứng"
+          title={t('identity.credentials.emptyTitle')}
+          description={t('identity.credentials.emptyDescription')}
+          action={t('identity.credentials.emptyAction')}
           onAction={onScan}
         />
       )}
@@ -190,9 +192,9 @@ export function CredentialsScreen({
           <Info color={colors.primaryDark} size={24} />
         </View>
         <View style={styles.infoMain}>
-          <Text style={[styles.infoTitle, { color: colors.text }]}>Giới thiệu về Verifiable Credential</Text>
+          <Text style={[styles.infoTitle, { color: colors.text }]}>{t('identity.credentials.infoTitle')}</Text>
           <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-            VC là dữ liệu số được ký bởi tổ chức phát hành và bạn có thể chia sẻ một cách an toàn.
+            {t('identity.credentials.infoDescription')}
           </Text>
         </View>
         <ListChevron colors={colors} />
@@ -200,15 +202,15 @@ export function CredentialsScreen({
 
       <Modal visible={filterOpen} transparent animationType="slide" onRequestClose={() => setFilterOpen(false)}>
         <View nativeID="screen-credentials-filter" testID="screen-credentials-filter" style={styles.filterOverlay}>
-          <Pressable accessibilityLabel="Đóng bộ lọc thực chứng" style={styles.filterBackdrop} onPress={() => setFilterOpen(false)} />
+          <Pressable accessibilityLabel={t('identity.credentials.closeFilterAccessibility')} style={styles.filterBackdrop} onPress={() => setFilterOpen(false)} />
           <View style={[styles.filterSheet, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.filterSheetHeader}>
-              <Text style={[styles.filterSheetTitle, { color: colors.text }]}>Bộ lọc thực chứng</Text>
-              <Pressable accessibilityRole="button" accessibilityLabel="Đóng bộ lọc" onPress={() => setFilterOpen(false)} style={styles.filterClose}>
+              <Text style={[styles.filterSheetTitle, { color: colors.text }]}>{t('identity.credentials.filterTitle')}</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel={t('identity.credentials.closeFilter')} onPress={() => setFilterOpen(false)} style={styles.filterClose}>
                 <X color={colors.textSecondary} size={22} />
               </Pressable>
             </View>
-            <Text style={[styles.filterSheetLabel, { color: colors.textSecondary }]}>Trạng thái</Text>
+            <Text style={[styles.filterSheetLabel, { color: colors.textSecondary }]}>{t('identity.credentials.status')}</Text>
             <View style={styles.filterOptions}>
               {filters.map((item) => {
                 const active = draftFilter === item.key;
@@ -234,7 +236,7 @@ export function CredentialsScreen({
             </View>
             <View style={styles.filterActions}>
               <Pressable onPress={() => setDraftFilter('all')} style={[styles.filterReset, { borderColor: colors.primaryDark }]}>
-                <Text style={[styles.filterResetText, { color: colors.primaryDark }]}>Đặt lại</Text>
+                <Text style={[styles.filterResetText, { color: colors.primaryDark }]}>{t('common.reset')}</Text>
               </Pressable>
               <Pressable
                 onPress={() => {
@@ -243,7 +245,7 @@ export function CredentialsScreen({
                 }}
                 style={[styles.filterApply, { backgroundColor: colors.primaryDark }]}
               >
-                <Text style={styles.filterApplyText}>Áp dụng</Text>
+                <Text style={styles.filterApplyText}>{t('common.apply')}</Text>
               </Pressable>
             </View>
           </View>

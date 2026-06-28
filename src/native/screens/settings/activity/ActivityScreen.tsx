@@ -19,6 +19,7 @@ import {
 import { Modal, Pressable, Text, View } from 'react-native';
 import { AppBrandLogo } from '../../../components/AppLogo';
 import { EmptyState, ScreenScroll } from '../../../components/AppUiPrimitives';
+import { useI18n } from '../../../i18n';
 import type { AppColors } from '../../../theme';
 import { palette } from '../../../theme';
 import type { ActivityLog } from '../../../types';
@@ -32,6 +33,7 @@ type ActivityFilters = { status: StatusFilter; type: TypeFilter; period: PeriodF
 const defaultFilters: ActivityFilters = { status: 'all', type: 'all', period: 'all' };
 
 export function ActivityScreen({ colors, logs, onOpenChat }: { colors: AppColors; logs: ActivityLog[]; onOpenChat: () => void }) {
+  const { t } = useI18n();
   const [filters, setFilters] = useState<ActivityFilters>(defaultFilters);
   const [draftFilters, setDraftFilters] = useState<ActivityFilters>(defaultFilters);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -57,9 +59,9 @@ export function ActivityScreen({ colors, logs, onOpenChat }: { colors: AppColors
         failed: logs.filter((log) => activityStatus(log) === 'failed').length,
       };
   const grouped = [
-    { key: 'today' as const, label: 'Hôm nay', items: visible.filter((log) => activityPeriod(log) === 'today') },
-    { key: 'yesterday' as const, label: 'Hôm qua', items: visible.filter((log) => activityPeriod(log) === 'yesterday') },
-    { key: 'older' as const, label: 'Trước đó', items: visible.filter((log) => activityPeriod(log) === 'older') },
+    { key: 'today' as const, label: t('settings.activity.groups.today'), items: visible.filter((log) => activityPeriod(log) === 'today') },
+    { key: 'yesterday' as const, label: t('settings.activity.groups.yesterday'), items: visible.filter((log) => activityPeriod(log) === 'yesterday') },
+    { key: 'older' as const, label: t('settings.activity.groups.older'), items: visible.filter((log) => activityPeriod(log) === 'older') },
   ].filter((group) => group.items.length);
   const activeFilterCount = Object.values(filters).filter((value) => value !== 'all').length;
 
@@ -72,25 +74,25 @@ export function ActivityScreen({ colors, logs, onOpenChat }: { colors: AppColors
     <>
       <ScreenScroll id="screen-activity" colors={colors} contentStyle={styles.activityScreenContent}>
         <View style={styles.activityBrandHeader}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Mở menu" style={styles.activityHeaderButton}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('settings.main.openMenu')} style={styles.activityHeaderButton}>
             <Menu color={colors.text} size={26} />
           </Pressable>
           <AppBrandLogo colors={colors} style={styles.activityBrandLogo} />
-          <Pressable accessibilityRole="button" accessibilityLabel="Mở Chat" onPress={onOpenChat} style={styles.activityHeaderButton}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('settings.main.openChat')} onPress={onOpenChat} style={styles.activityHeaderButton}>
             <MessageCircle color={colors.text} size={25} />
           </Pressable>
         </View>
 
         <View style={styles.activityTitleRow}>
           <View style={styles.activityTitleText}>
-            <Text style={[styles.activityScreenTitle, { color: colors.text }]}>Hoạt động</Text>
+            <Text style={[styles.activityScreenTitle, { color: colors.text }]}>{t('settings.activity.title')}</Text>
             <Text style={[styles.activityIntro, { color: colors.textSecondary }]}>
-              Theo dõi các hoạt động xác minh và chia sẻ dữ liệu
+              {t('settings.activity.intro')}
             </Text>
           </View>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Bộ lọc hoạt động"
+            accessibilityLabel={t('settings.activity.filterAccessibility')}
             onPress={openFilters}
             style={({ pressed }) => [
               styles.activityFilterButton,
@@ -99,7 +101,7 @@ export function ActivityScreen({ colors, logs, onOpenChat }: { colors: AppColors
           >
             <Filter color={activeFilterCount ? colors.primaryDark : colors.text} size={22} />
             <Text style={[styles.activityFilterButtonText, { color: activeFilterCount ? colors.primaryDark : colors.textSecondary }]}>
-              Bộ lọc
+              {t('settings.activity.filter')}
             </Text>
             {activeFilterCount ? (
               <View style={styles.activityFilterCount}>
@@ -110,10 +112,10 @@ export function ActivityScreen({ colors, logs, onOpenChat }: { colors: AppColors
         </View>
 
         <View style={styles.activitySummary}>
-          <ActivitySummaryCard colors={colors} icon={ShieldCheck} label="Tổng hoạt động" value={summary.total} footer="Trong 30 ngày" tone="primary" />
-          <ActivitySummaryCard colors={colors} icon={CheckCircle2} label="Thành công" value={summary.success} footer={percentage(summary.success, summary.total)} tone="success" />
-          <ActivitySummaryCard colors={colors} icon={Clock3} label="Đang chờ" value={summary.pending} footer={percentage(summary.pending, summary.total)} tone="pending" />
-          <ActivitySummaryCard colors={colors} icon={CircleX} label="Thất bại" value={summary.failed} footer={percentage(summary.failed, summary.total)} tone="failed" />
+          <ActivitySummaryCard colors={colors} icon={ShieldCheck} label={t('settings.activity.summary.total')} value={summary.total} footer={t('settings.activity.summary.totalFooter')} tone="primary" />
+          <ActivitySummaryCard colors={colors} icon={CheckCircle2} label={t('settings.activity.summary.success')} value={summary.success} footer={percentage(summary.success, summary.total)} tone="success" />
+          <ActivitySummaryCard colors={colors} icon={Clock3} label={t('settings.activity.summary.pending')} value={summary.pending} footer={percentage(summary.pending, summary.total)} tone="pending" />
+          <ActivitySummaryCard colors={colors} icon={CircleX} label={t('settings.activity.summary.failed')} value={summary.failed} footer={percentage(summary.failed, summary.total)} tone="failed" />
         </View>
 
         {grouped.length ? grouped.map((group) => (
@@ -135,11 +137,11 @@ export function ActivityScreen({ colors, logs, onOpenChat }: { colors: AppColors
           <EmptyState
             colors={colors}
             icon={Activity}
-            title={logs.length ? 'Không có hoạt động phù hợp' : 'Chưa có hoạt động'}
+            title={logs.length ? t('settings.activity.emptyFilteredTitle') : t('settings.activity.emptyTitle')}
             description={logs.length
-              ? 'Thử thay đổi hoặc đặt lại bộ lọc để xem các hoạt động khác.'
-              : 'Các hoạt động nhận, xác minh và chia sẻ dữ liệu sẽ xuất hiện tại đây.'}
-            action={logs.length ? 'Đặt lại bộ lọc' : undefined}
+              ? t('settings.activity.emptyFilteredDescription')
+              : t('settings.activity.emptyDescription')}
+            action={logs.length ? t('common.reset') : undefined}
             onAction={logs.length ? () => setFilters(defaultFilters) : undefined}
           />
         )}
@@ -147,32 +149,32 @@ export function ActivityScreen({ colors, logs, onOpenChat }: { colors: AppColors
 
       <Modal visible={filterOpen} transparent animationType="slide" onRequestClose={() => setFilterOpen(false)}>
         <View nativeID="screen-activity-filter" testID="screen-activity-filter" style={styles.activityFilterOverlay}>
-          <Pressable accessibilityLabel="Đóng bộ lọc" style={styles.activityFilterBackdrop} onPress={() => setFilterOpen(false)} />
+          <Pressable accessibilityLabel={t('settings.activity.closeFilter')} style={styles.activityFilterBackdrop} onPress={() => setFilterOpen(false)} />
           <View style={[styles.activityFilterSheet, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.activityFilterHeader}>
-              <Text style={[styles.activityFilterTitle, { color: colors.text }]}>Bộ lọc hoạt động</Text>
-              <Pressable accessibilityRole="button" accessibilityLabel="Đóng bộ lọc" onPress={() => setFilterOpen(false)} style={styles.activityFilterClose}>
+              <Text style={[styles.activityFilterTitle, { color: colors.text }]}>{t('settings.activity.filterTitle')}</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel={t('settings.activity.closeFilter')} onPress={() => setFilterOpen(false)} style={styles.activityFilterClose}>
                 <X color={colors.textSecondary} size={22} />
               </Pressable>
             </View>
             <ActivityFilterSection
               colors={colors}
-              title="Trạng thái"
-              options={[['all', 'Tất cả'], ['success', 'Thành công'], ['pending', 'Đang chờ'], ['failed', 'Thất bại']]}
+              title={t('settings.activity.statusSection')}
+              options={[['all', t('settings.activity.all')], ['success', t('settings.activity.summary.success')], ['pending', t('settings.activity.summary.pending')], ['failed', t('settings.activity.summary.failed')]]}
               selected={draftFilters.status}
               onSelect={(status) => setDraftFilters((current) => ({ ...current, status: status as StatusFilter }))}
             />
             <ActivityFilterSection
               colors={colors}
-              title="Loại hoạt động"
-              options={[['all', 'Tất cả'], ['verify', 'Xác minh'], ['share', 'Chia sẻ']]}
+              title={t('settings.activity.typeSection')}
+              options={[['all', t('settings.activity.all')], ['verify', t('settings.activity.verify')], ['share', t('settings.activity.share')]]}
               selected={draftFilters.type}
               onSelect={(type) => setDraftFilters((current) => ({ ...current, type: type as TypeFilter }))}
             />
             <ActivityFilterSection
               colors={colors}
-              title="Thời gian"
-              options={[['all', 'Tất cả'], ['today', 'Hôm nay'], ['yesterday', 'Hôm qua']]}
+              title={t('settings.activity.periodSection')}
+              options={[['all', t('settings.activity.all')], ['today', t('settings.activity.groups.today')], ['yesterday', t('settings.activity.groups.yesterday')]]}
               selected={draftFilters.period}
               onSelect={(period) => setDraftFilters((current) => ({ ...current, period: period as PeriodFilter }))}
             />
@@ -182,7 +184,7 @@ export function ActivityScreen({ colors, logs, onOpenChat }: { colors: AppColors
                 onPress={() => setDraftFilters(defaultFilters)}
                 style={[styles.activityFilterReset, { borderColor: colors.border }]}
               >
-                <Text style={[styles.activityFilterResetText, { color: colors.text }]}>Đặt lại</Text>
+                <Text style={[styles.activityFilterResetText, { color: colors.text }]}>{t('common.reset')}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -192,7 +194,7 @@ export function ActivityScreen({ colors, logs, onOpenChat }: { colors: AppColors
                 }}
                 style={[styles.activityFilterApply, { backgroundColor: colors.primaryDark }]}
               >
-                <Text style={styles.activityFilterApplyText}>Áp dụng</Text>
+                <Text style={styles.activityFilterApplyText}>{t('common.apply')}</Text>
               </Pressable>
             </View>
           </View>
@@ -262,6 +264,7 @@ function ActivitySummaryCard({
 }
 
 function ActivityRow({ colors, log, showDate, divider }: { colors: AppColors; log: ActivityLog; showDate: boolean; divider: boolean }) {
+  const { t } = useI18n();
   const status = activityStatus(log);
   const statusStyle = {
     success: { color: palette.green[600], icon: CheckCircle2 },
@@ -287,7 +290,7 @@ function ActivityRow({ colors, log, showDate, divider }: { colors: AppColors; lo
           <Text numberOfLines={1} style={[styles.activityTitle, { color: colors.text }]}>{log.title}</Text>
           {log.isNew ? (
             <View style={[styles.activityNewPill, { backgroundColor: colors.primaryDark }]}>
-              <Text style={styles.activityNewPillText}>Mới</Text>
+              <Text style={styles.activityNewPillText}>{t('settings.activity.new')}</Text>
             </View>
           ) : null}
         </View>

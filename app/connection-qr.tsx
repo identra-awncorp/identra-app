@@ -3,10 +3,12 @@ import { Redirect, useRouter } from 'expo-router';
 import { ConnectionQrScreen } from '@/screens/identity';
 import { useAppStore } from '@/store';
 import { useAppRouterState } from '@/app/router/AppRouterContext';
+import { useI18n } from '@/i18n';
 
 export default function ConnectionQrRoute() {
   const router = useRouter();
   const store = useAppStore();
+  const { t } = useI18n();
   const { colors, connectionInvitation, setConnectionInvitation } = useAppRouterState();
 
   if (!connectionInvitation) return <Redirect href="/scan" />;
@@ -28,7 +30,7 @@ export default function ConnectionQrRoute() {
           timestamp: new Date(createdAt).toISOString(),
           expiresAt: new Date(createdAt + 180000).toISOString(),
           status: 'pending',
-          description: 'Đang chờ',
+          description: t('activityLogs.pending'),
         });
       }}
     />

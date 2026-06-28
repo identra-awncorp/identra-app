@@ -8,6 +8,7 @@ import {
 } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { border, radius, spacing, typography, type AppColors } from '../../theme';
+import { useI18n } from '../../i18n';
 
 export function ChatActionMenu({
   colors,
@@ -26,14 +27,15 @@ export function ChatActionMenu({
   onOpenTransfer: () => void;
   onShareCredential: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <View style={styles.grid}>
-      <ActionItem colors={colors} description="Tạo hợp đồng thông minh" icon={FilePlus2} onPress={onOpenContract} title="Hợp đồng" />
-      <ActionItem colors={colors} description="Hiển thị mã thanh toán" icon={QrCode} onPress={onOpenPaymentQr} title="QR chuyển khoản" />
-      <ActionItem colors={colors} description="Gửi tiền pháp định hoặc crypto" icon={ArrowLeftRight} onPress={onOpenTransfer} title="Chuyển khoản" />
-      <ActionItem colors={colors} description="Tạo lịch hẹn trong chat" icon={CalendarClock} onPress={onOpenReminder} title="Nhắc hẹn" />
-      <ActionItem colors={colors} description="Chia sẻ thông tin nhận tiền" icon={CreditCard} onPress={onOpenBankAccount} title="Gửi số tài khoản" />
-      <ActionItem colors={colors} description="Gửi thực chứng từ ví của bạn" icon={ShieldCheck} onPress={onShareCredential} title="Chia sẻ thực chứng" />
+      <ActionItem colors={colors} description={t('chat.menu.contractDescription')} icon={FilePlus2} onPress={onOpenContract} title={t('chat.menu.contractTitle')} />
+      <ActionItem colors={colors} description={t('chat.menu.paymentQrDescription')} icon={QrCode} onPress={onOpenPaymentQr} title={t('chat.menu.paymentQrTitle')} />
+      <ActionItem colors={colors} description={t('chat.menu.transferDescription')} icon={ArrowLeftRight} onPress={onOpenTransfer} title={t('chat.menu.transferTitle')} />
+      <ActionItem colors={colors} description={t('chat.menu.reminderDescription')} icon={CalendarClock} onPress={onOpenReminder} title={t('chat.menu.reminderTitle')} />
+      <ActionItem colors={colors} description={t('chat.menu.bankDescription')} icon={CreditCard} onPress={onOpenBankAccount} title={t('chat.menu.bankTitle')} />
+      <ActionItem colors={colors} description={t('chat.menu.credentialDescription')} icon={ShieldCheck} onPress={onShareCredential} title={t('chat.menu.credentialTitle')} />
     </View>
   );
 }

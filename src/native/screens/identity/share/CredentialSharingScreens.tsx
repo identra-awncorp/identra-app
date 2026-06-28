@@ -43,6 +43,7 @@ import { assetManifest } from '../../../assets/assetManifest';
 import type { AppColors } from '../../../theme';
 import { border, componentSize, palette, radius, spacing, touchTarget, typography } from '../../../theme';
 import type { AppSettings, Credential, PersonalInfo, SmartContractFeedPost } from '../../../types';
+import { useI18n } from '../../../i18n';
 import {
   notificationItems,
   notificationTabs,
@@ -75,6 +76,7 @@ export function ShareScreen({
   onBack: () => void;
   onShared: (selected: Credential['attributes']) => void;
 }) {
+  const { t } = useI18n();
   const credentialId = credential.icon === 'graduation' ? 'did:identra:vc:9876abcdef123456' : `did:identra:vc:${credential.id}`;
   const fields = useMemo(
     () =>
@@ -115,15 +117,15 @@ export function ShareScreen({
 
   return (
     <ScreenScroll id="screen-share-credential" colors={colors} contentStyle={styles.shareScreenContent}>
-      <AppHeader colors={colors} title="Chia sẻ dữ liệu" onBack={onBack} />
+      <AppHeader colors={colors} title={t('identity.share.title')} onBack={onBack} />
 
       <View style={styles.shareStatusIntro}>
         <View style={styles.shareVerifiedPill}>
           <CheckCircle2 color={colors.success} fill={colors.success} size={15} />
-          <Text style={[styles.shareVerifiedText, { color: colors.success }]}>Đã xác minh</Text>
+          <Text style={[styles.shareVerifiedText, { color: colors.success }]}>{t('identity.share.verified')}</Text>
         </View>
         <Text style={[styles.shareStatusDescription, { color: colors.textSecondary }]}>
-          Chọn những thông tin bạn muốn chia sẻ từ thực chứng này. Bạn luôn kiểm soát dữ liệu của mình.
+          {t('identity.share.description')}
         </Text>
       </View>
 
@@ -135,7 +137,7 @@ export function ShareScreen({
             <Text style={[styles.shareCredentialIssuer, { color: colors.textSecondary }]}>{credential.issuer}</Text>
             <View style={[styles.shareCategory, { backgroundColor: colors.surfaceMuted }]}>
               <GraduationCap color={colors.primaryDark} size={13} />
-              <Text style={[styles.shareCategoryText, { color: colors.primaryDark }]}>Giáo dục</Text>
+              <Text style={[styles.shareCategoryText, { color: colors.primaryDark }]}>{t('identity.share.categoryEducation')}</Text>
             </View>
           </View>
           <View style={[styles.shareShieldArt, { backgroundColor: colors.primary }]}>
@@ -143,15 +145,15 @@ export function ShareScreen({
           </View>
         </View>
         <View style={[styles.shareMetaGrid, { borderTopColor: colors.border }]}>
-          <ShareMeta icon={CalendarDays} label="Ngày cấp" value={`${credential.issueDate} ${credential.time ?? ''}`} colors={colors} />
-          <ShareMeta icon={CalendarDays} label="Ngày hết hạn" value={credential.expiryDate ?? 'Không có'} colors={colors} divider />
+          <ShareMeta icon={CalendarDays} label={t('identity.share.issueDate')} value={`${credential.issueDate} ${credential.time ?? ''}`} colors={colors} />
+          <ShareMeta icon={CalendarDays} label={t('identity.share.expiryDate')} value={credential.expiryDate ?? t('identity.share.noExpiry')} colors={colors} divider />
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Sao chép ID thực chứng"
+            accessibilityLabel={t('identity.share.copyCredentialId')}
             onPress={copyCredentialId}
             style={[styles.shareMetaItem, styles.shareMetaDivider, { borderLeftColor: colors.border }]}
           >
-            <Text style={[styles.shareMetaLabel, { color: colors.textSecondary }]}>ID thực chứng</Text>
+            <Text style={[styles.shareMetaLabel, { color: colors.textSecondary }]}>{t('identity.share.credentialId')}</Text>
             <View style={styles.shareIdRow}>
               <Text numberOfLines={1} style={[styles.shareMetaValue, { color: colors.text }]}>{credentialId}</Text>
               <ClipboardCopy color={colors.textSecondary} size={15} />
@@ -161,14 +163,16 @@ export function ShareScreen({
       </View>
 
       <View style={styles.shareSectionHeader}>
-        <Text style={[styles.shareSectionTitle, { color: colors.text }]}>Chọn thông tin chia sẻ</Text>
-        <Text style={[styles.shareSelectedCount, { color: colors.primaryDark }]}>Đã chọn {selected.length}/{fields.length}</Text>
+        <Text style={[styles.shareSectionTitle, { color: colors.text }]}>{t('identity.share.selectInfo')}</Text>
+        <Text style={[styles.shareSelectedCount, { color: colors.primaryDark }]}>
+          {t('identity.share.selectedCount', { selected: selected.length, total: fields.length })}
+        </Text>
       </View>
 
       <View style={[styles.shareInfo, { backgroundColor: colors.surfaceMuted }]}>
         <Info color={colors.primaryDark} size={21} />
         <Text style={[styles.shareInfoText, { color: colors.textSecondary }]}>
-          Bên xác minh chỉ nhận được những thông tin bạn chọn chia sẻ. Bạn có thể thay đổi lựa chọn bất kỳ lúc nào.
+          {t('identity.share.info')}
         </Text>
       </View>
 
@@ -221,22 +225,22 @@ export function ShareScreen({
       <View style={styles.shareWarning}>
         <AlertTriangle color={colors.danger} size={24} strokeWidth={2.4} />
         <Text style={styles.shareWarningText}>
-          Lựa chọn tiết lộ quá nhiều dữ liệu có thể khiến bạn bị lộ thông tin cá nhân, các bên xác minh chỉ có quyền yêu cầu dữ liệu tối thiểu.
+          {t('identity.share.warning')}
         </Text>
       </View>
 
       <View style={styles.shareActions}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Hủy chia sẻ"
+          accessibilityLabel={t('identity.share.cancelAccessibility')}
           onPress={onBack}
           style={({ pressed }) => [styles.shareCancelButton, { borderColor: colors.textSecondary, opacity: pressed ? 0.68 : 1 }]}
         >
-          <Text style={[styles.shareCancelText, { color: colors.text }]}>Hủy</Text>
+          <Text style={[styles.shareCancelText, { color: colors.text }]}>{t('common.cancel')}</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Chia sẻ"
+          accessibilityLabel={t('identity.share.submitAccessibility')}
           disabled={!selected.length || loading}
           onPress={submit}
           style={({ pressed }) => [
@@ -244,14 +248,14 @@ export function ShareScreen({
             { backgroundColor: colors.primaryDark, opacity: pressed || !selected.length ? 0.58 : 1 },
           ]}
         >
-          {loading ? <ActivityIndicator color={palette.white} /> : <Text style={styles.shareSubmitText}>Chia sẻ</Text>}
+          {loading ? <ActivityIndicator color={palette.white} /> : <Text style={styles.shareSubmitText}>{t('common.share')}</Text>}
         </Pressable>
       </View>
 
       <View style={styles.shareEncryption}>
         <LockKeyhole color={colors.textSecondary} size={15} />
         <Text style={[styles.shareEncryptionText, { color: colors.textSecondary }]}>
-          Dữ liệu được mã hóa và chỉ chia sẻ cho bên xác minh.
+          {t('identity.share.encrypted')}
         </Text>
       </View>
     </ScreenScroll>
@@ -295,6 +299,7 @@ export function ShareQrScreen({
   onBack: () => void;
   onCancel: () => void;
 }) {
+  const { t } = useI18n();
   const [createdAt, setCreatedAt] = useState(Date.now());
   const [remaining, setRemaining] = useState(180);
   const did = credential.didHolder;
@@ -334,25 +339,25 @@ export function ShareQrScreen({
   return (
     <ScreenScroll id="screen-share-credential-qr" colors={colors} contentStyle={styles.shareQrScreenContent}>
       <View style={styles.shareQrBrandHeader}>
-        <IconButton label="Quay lại" colors={colors} onPress={onBack}>
+        <IconButton label={t('identity.share.qr.back')} colors={colors} onPress={onBack}>
           <ArrowLeft color={colors.text} size={25} />
         </IconButton>
-        <Text style={[styles.shareQrBrand, { color: colors.text }]}>Chia sẻ thực chứng</Text>
+        <Text style={[styles.shareQrBrand, { color: colors.text }]}>{t('identity.share.qr.title')}</Text>
         <View style={styles.shareQrHeaderSpacer} />
       </View>
 
       <Text style={[styles.shareQrSubtitle, { color: colors.textSecondary }]}>
-        Chia sẻ mã QR để xác minh danh tính hoặc chia sẻ thông tin
+        {t('identity.share.qr.subtitle')}
       </Text>
 
       <View style={[styles.shareQrCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <View style={styles.shareQrVerified}>
           <CheckCircle2 color={colors.success} fill={colors.success} size={15} />
-          <Text style={[styles.shareQrVerifiedText, { color: colors.success }]}>Đã xác minh</Text>
+          <Text style={[styles.shareQrVerifiedText, { color: colors.success }]}>{t('identity.share.verified')}</Text>
         </View>
         <Text style={[styles.shareQrCredentialTitle, { color: colors.text }]}>{credential.title}</Text>
         <Text style={[styles.shareQrIssuer, { color: colors.textSecondary }]}>{credential.issuer}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Sao chép DID" onPress={copyDid} style={styles.shareQrDidRow}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('identity.share.qr.copyDid')} onPress={copyDid} style={styles.shareQrDidRow}>
           <Text numberOfLines={1} style={[styles.shareQrDid, { color: colors.textSecondary }]}>DID: {did}</Text>
           <ClipboardCopy color={colors.textSecondary} size={16} />
         </Pressable>
@@ -366,7 +371,7 @@ export function ShareQrScreen({
 
         <View style={[styles.shareQrExpiry, { backgroundColor: colors.surfaceMuted }]}>
           <ShieldCheck color={colors.primaryDark} size={17} />
-          <Text style={[styles.shareQrExpiryText, { color: colors.textSecondary }]}>Mã QR này hết hạn sau</Text>
+          <Text style={[styles.shareQrExpiryText, { color: colors.textSecondary }]}>{t('identity.share.qr.expiry')}</Text>
           <Text style={[styles.shareQrExpiryTime, { color: remaining ? colors.primaryDark : colors.danger }]}>
             {minutes}:{seconds}
           </Text>
@@ -377,23 +382,23 @@ export function ShareQrScreen({
         <QrAction
           colors={colors}
           icon={Share2}
-          title="Chia sẻ"
-          description="Gửi mã QR"
-          onPress={() => Alert.alert('Chia sẻ mã QR', 'Mã QR đã sẵn sàng để chia sẻ.')}
+          title={t('identity.share.qr.shareTitle')}
+          description={t('identity.share.qr.shareDescription')}
+          onPress={() => Alert.alert(t('identity.share.qr.shareAlertTitle'), t('identity.share.qr.shareAlertDescription'))}
         />
         <QrAction
           colors={colors}
           icon={Download}
-          title="Tải xuống"
-          description="Lưu về máy"
-          onPress={() => Alert.alert('Tải xuống', 'Tính năng lưu ảnh QR sẽ được hoàn thiện trong phiên bản tiếp theo.')}
+          title={t('identity.share.qr.downloadTitle')}
+          description={t('identity.share.qr.downloadDescription')}
+          onPress={() => Alert.alert(t('identity.share.qr.downloadAlertTitle'), t('identity.share.qr.downloadAlertDescription'))}
         />
-        <QrAction colors={colors} icon={RefreshCw} title="Làm mới" description="Tạo mã mới" onPress={refresh} />
+        <QrAction colors={colors} icon={RefreshCw} title={t('identity.share.qr.refreshTitle')} description={t('identity.share.qr.refreshDescription')} onPress={refresh} />
       </View>
 
       <Pressable
         accessibilityRole="button"
-        onPress={() => Alert.alert('Chia sẻ an toàn', 'Chỉ gửi mã QR này cho người và tổ chức bạn tin tưởng.')}
+        onPress={() => Alert.alert(t('identity.share.qr.safetyAlertTitle'), t('identity.share.qr.safetyAlertDescription'))}
         style={({ pressed }) => [
           styles.shareQrSafetyCard,
           { backgroundColor: colors.surface, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
@@ -403,9 +408,9 @@ export function ShareQrScreen({
           <LockKeyhole color={palette.white} size={25} />
         </View>
         <View style={styles.shareQrSafetyMain}>
-          <Text style={[styles.shareQrSafetyTitle, { color: colors.text }]}>Chỉ chia sẻ cho người bạn tin tưởng</Text>
+          <Text style={[styles.shareQrSafetyTitle, { color: colors.text }]}>{t('identity.share.qr.safetyTitle')}</Text>
           <Text style={[styles.shareQrSafetyText, { color: colors.textSecondary }]}>
-            Người nhận có thể quét mã QR để xác minh danh tính hoặc yêu cầu thông tin của bạn.
+            {t('identity.share.qr.safetyText')}
           </Text>
         </View>
         <ChevronRight color={colors.textSecondary} size={22} />
@@ -413,17 +418,17 @@ export function ShareQrScreen({
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Hủy mã QR"
+        accessibilityLabel={t('identity.share.qr.cancelLabel')}
         onPress={() =>
-          Alert.alert('Hủy mã QR?', 'Mã QR hiện tại sẽ không còn được sử dụng.', [
-            { text: 'Tiếp tục sử dụng', style: 'cancel' },
-            { text: 'Hủy mã QR', style: 'destructive', onPress: onCancel },
+          Alert.alert(t('identity.share.qr.cancelTitle'), t('identity.share.qr.cancelDescription'), [
+            { text: t('identity.share.qr.keepUsing'), style: 'cancel' },
+            { text: t('identity.share.qr.cancelAction'), style: 'destructive', onPress: onCancel },
           ])
         }
         style={({ pressed }) => [styles.shareQrCancelCard, { opacity: pressed ? 0.7 : 1 }]}
       >
         <AlertTriangle color={colors.danger} size={25} strokeWidth={2.4} />
-        <Text style={styles.shareQrCancelText}>Nếu bạn nhận thấy bất kỳ điều gì bất thường, hãy hủy mã QR ngay lập tức.</Text>
+        <Text style={styles.shareQrCancelText}>{t('identity.share.qr.cancelWarning')}</Text>
         <ChevronRight color={colors.danger} size={22} />
       </Pressable>
     </ScreenScroll>
@@ -445,6 +450,7 @@ export function ConnectionQrScreen({
   onRefresh: (createdAt: number) => void;
   onCancel: () => void;
 }) {
+  const { t } = useI18n();
   const [createdAt, setCreatedAt] = useState(initialCreatedAt);
   const [remaining, setRemaining] = useState(180);
   const qrValue = useMemo(
@@ -474,9 +480,9 @@ export function ConnectionQrScreen({
   };
 
   const confirmBack = () => {
-    Alert.alert('Hủy mã QR?', 'Bạn có muốn hủy mã QR lời mời kết nối không?', [
-      { text: 'Không', style: 'cancel', onPress: onBack },
-      { text: 'Có', style: 'destructive', onPress: onCancel },
+    Alert.alert(t('identity.share.qr.cancelTitle'), t('identity.share.qr.connectionCancelPrompt'), [
+      { text: t('common.no'), style: 'cancel', onPress: onBack },
+      { text: t('common.yes'), style: 'destructive', onPress: onCancel },
     ]);
   };
 
@@ -486,15 +492,15 @@ export function ConnectionQrScreen({
   return (
     <ScreenScroll id="screen-connection-invitation-qr" colors={colors} contentStyle={styles.shareQrScreenContent}>
       <View style={styles.shareQrBrandHeader}>
-        <IconButton label="Quay lại" colors={colors} onPress={confirmBack}>
+        <IconButton label={t('identity.share.qr.back')} colors={colors} onPress={confirmBack}>
           <ArrowLeft color={colors.text} size={25} />
         </IconButton>
-        <Text style={[styles.shareQrBrand, { color: colors.text }]}>Lời mời kết nối</Text>
+        <Text style={[styles.shareQrBrand, { color: colors.text }]}>{t('identity.share.qr.connectionTitle')}</Text>
         <View style={styles.shareQrHeaderSpacer} />
       </View>
 
       <Text style={[styles.shareQrSubtitle, { color: colors.textSecondary }]}>
-        Chia sẻ mã QR để thực hiện kết nối SSI
+        {t('identity.share.qr.connectionSubtitle')}
       </Text>
 
       <View style={[styles.shareQrCard, styles.connectionQrCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -507,7 +513,7 @@ export function ConnectionQrScreen({
 
         <View style={[styles.shareQrExpiry, { backgroundColor: colors.surfaceMuted }]}>
           <ShieldCheck color={colors.primaryDark} size={17} />
-          <Text style={[styles.shareQrExpiryText, { color: colors.textSecondary }]}>Mã QR này hết hạn sau</Text>
+          <Text style={[styles.shareQrExpiryText, { color: colors.textSecondary }]}>{t('identity.share.qr.expiry')}</Text>
           <Text style={[styles.shareQrExpiryTime, { color: remaining ? colors.primaryDark : colors.danger }]}>
             {minutes}:{seconds}
           </Text>
@@ -518,23 +524,23 @@ export function ConnectionQrScreen({
         <QrAction
           colors={colors}
           icon={Share2}
-          title="Chia sẻ"
-          description="Gửi mã QR"
-          onPress={() => Alert.alert('Chia sẻ lời mời', 'Mã QR lời mời kết nối SSI đã sẵn sàng để chia sẻ.')}
+          title={t('identity.share.qr.shareTitle')}
+          description={t('identity.share.qr.shareDescription')}
+          onPress={() => Alert.alert(t('identity.share.qr.connectionShareAlertTitle'), t('identity.share.qr.connectionShareAlertDescription'))}
         />
         <QrAction
           colors={colors}
           icon={Download}
-          title="Tải xuống"
-          description="Lưu về máy"
-          onPress={() => Alert.alert('Tải xuống', 'Tính năng lưu ảnh QR sẽ được hoàn thiện trong phiên bản tiếp theo.')}
+          title={t('identity.share.qr.downloadTitle')}
+          description={t('identity.share.qr.downloadDescription')}
+          onPress={() => Alert.alert(t('identity.share.qr.downloadAlertTitle'), t('identity.share.qr.downloadAlertDescription'))}
         />
-        <QrAction colors={colors} icon={RefreshCw} title="Làm mới" description="Tạo mã mới" onPress={refresh} />
+        <QrAction colors={colors} icon={RefreshCw} title={t('identity.share.qr.refreshTitle')} description={t('identity.share.qr.refreshDescription')} onPress={refresh} />
       </View>
 
       <Pressable
         accessibilityRole="button"
-        onPress={() => Alert.alert('Kết nối an toàn', 'Chỉ chia sẻ lời mời kết nối với người và tổ chức bạn tin tưởng.')}
+        onPress={() => Alert.alert(t('identity.share.qr.connectionSafetyAlertTitle'), t('identity.share.qr.connectionSafetyAlertDescription'))}
         style={({ pressed }) => [
           styles.shareQrSafetyCard,
           { backgroundColor: colors.surface, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
@@ -544,9 +550,9 @@ export function ConnectionQrScreen({
           <LockKeyhole color={palette.white} size={25} />
         </View>
         <View style={styles.shareQrSafetyMain}>
-          <Text style={[styles.shareQrSafetyTitle, { color: colors.text }]}>Chỉ kết nối với người bạn tin tưởng</Text>
+          <Text style={[styles.shareQrSafetyTitle, { color: colors.text }]}>{t('identity.share.qr.connectionSafetyTitle')}</Text>
           <Text style={[styles.shareQrSafetyText, { color: colors.textSecondary }]}>
-            Người nhận có thể quét mã QR để thiết lập kết nối SSI với ví của bạn.
+            {t('identity.share.qr.connectionSafetyText')}
           </Text>
         </View>
         <ChevronRight color={colors.textSecondary} size={22} />
@@ -554,17 +560,17 @@ export function ConnectionQrScreen({
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Hủy lời mời kết nối"
+        accessibilityLabel={t('identity.share.qr.connectionCancelLabel')}
         onPress={() =>
-          Alert.alert('Hủy lời mời kết nối?', 'Mã QR hiện tại sẽ không còn được sử dụng.', [
-            { text: 'Tiếp tục sử dụng', style: 'cancel' },
-            { text: 'Hủy lời mời', style: 'destructive', onPress: onCancel },
+          Alert.alert(t('identity.share.qr.connectionCancelTitle'), t('identity.share.qr.cancelDescription'), [
+            { text: t('identity.share.qr.keepUsing'), style: 'cancel' },
+            { text: t('identity.share.qr.connectionCancelAction'), style: 'destructive', onPress: onCancel },
           ])
         }
         style={({ pressed }) => [styles.shareQrCancelCard, { opacity: pressed ? 0.7 : 1 }]}
       >
         <AlertTriangle color={colors.danger} size={25} strokeWidth={2.4} />
-        <Text style={styles.shareQrCancelText}>Nếu bạn nhận thấy bất kỳ điều gì bất thường, hãy hủy lời mời ngay lập tức.</Text>
+        <Text style={styles.shareQrCancelText}>{t('identity.share.qr.connectionCancelWarning')}</Text>
         <ChevronRight color={colors.danger} size={22} />
       </Pressable>
     </ScreenScroll>

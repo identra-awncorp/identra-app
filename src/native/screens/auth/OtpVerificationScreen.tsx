@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
+import { useI18n } from '../../i18n';
 import type { AppColors } from '../../theme';
 import { border, palette, radius, spacing, typography } from '../../theme';
 
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePhone, onVerified }: Props) {
+  const { t } = useI18n();
   const inputRef = useRef<TextInput>(null);
   const [otp, setOtp] = useState('');
   const [focused, setFocused] = useState(false);
@@ -56,11 +58,11 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
   const verify = () => {
     if (processing) return;
     if (otp.length !== OTP_LENGTH) {
-      Alert.alert('Mã xác thực chưa đầy đủ', 'Vui lòng nhập đủ 6 chữ số để tiếp tục.');
+      Alert.alert(t('auth.otp.incompleteTitle'), t('auth.otp.incompleteDescription'));
       return;
     }
     if (remainingSeconds === 0) {
-      Alert.alert('Mã xác thực đã hết hạn', 'Vui lòng gửi lại mã xác thực mới.');
+      Alert.alert(t('auth.otp.expiredTitle'), t('auth.otp.expiredDescription'));
       return;
     }
     Keyboard.dismiss();
@@ -88,7 +90,7 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
         >
         <View style={styles.header}>
           <Pressable
-            accessibilityLabel="Quay lại"
+            accessibilityLabel={t('common.back')}
             accessibilityRole="button"
             hitSlop={8}
             onPress={onBack}
@@ -97,21 +99,21 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
             <ArrowLeft color={colors.text} size={27} strokeWidth={1.9} />
           </Pressable>
           <Text accessibilityRole="header" style={[styles.headerTitle, { color: colors.text }]}>
-            Nhập mã xác thực
+            {t('auth.otp.title')}
           </Text>
           {/* <View style={styles.headerSpacer} /> */}
         </View>
 
         <View style={styles.intro}>
           <Text style={[styles.description, { color: colors.textSecondary }]}>
-            Nhập mã gồm 6 chữ số Identra đã gửi qua số
+            {t('auth.otp.description')}
           </Text>
           <Text style={[styles.phoneNumber, { color: colors.text }]}>{formatPhoneNumber(phoneNumber)}</Text>
         </View>
 
         <View style={[styles.otpCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Pressable
-            accessibilityLabel="Nhập mã xác thực gồm 6 chữ số"
+            accessibilityLabel={t('auth.otp.inputLabel')}
             accessibilityRole="button"
             onPress={() => inputRef.current?.focus()}
             style={styles.otpBoxes}
@@ -136,7 +138,7 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
           </Pressable>
           <TextInput
             ref={inputRef}
-            accessibilityLabel="Mã xác thực"
+            accessibilityLabel={t('auth.otp.codeLabel')}
             autoFocus
             caretHidden
             keyboardType="number-pad"
@@ -152,20 +154,20 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
           <View style={[styles.expiryRow, { backgroundColor: colors.surfaceMuted }]}>
             <MessageSquareText color={colors.primaryDark} size={21} strokeWidth={1.9} />
             <Text style={[styles.expiryText, { color: colors.textSecondary }]}>
-              Mã có hiệu lực trong <Text style={{ color: colors.primaryDark, fontWeight: '700' }}>{formatCountdown(remainingSeconds)}</Text>
+              {t('auth.otp.validFor')} <Text style={{ color: colors.primaryDark, fontWeight: '700' }}>{formatCountdown(remainingSeconds)}</Text>
             </Text>
           </View>
         </View>
 
         <View style={styles.actions}>
           <View style={styles.resendRow}>
-            <Text style={[styles.actionPrompt, { color: colors.textSecondary }]}>Chưa nhận được mã? </Text>
+            <Text style={[styles.actionPrompt, { color: colors.textSecondary }]}>{t('auth.otp.resendPrompt')} </Text>
             <Pressable accessibilityRole="button" hitSlop={8} onPress={resendCode}>
-              <Text style={[styles.actionLink, { color: colors.primaryDark }]}>Gửi lại mã</Text>
+              <Text style={[styles.actionLink, { color: colors.primaryDark }]}>{t('auth.otp.resend')}</Text>
             </Pressable>
           </View>
           <Pressable accessibilityRole="button" hitSlop={8} onPress={onChangePhone}>
-            <Text style={[styles.changePhone, { color: colors.primaryDark }]}>Đổi số điện thoại</Text>
+            <Text style={[styles.changePhone, { color: colors.primaryDark }]}>{t('auth.otp.changePhone')}</Text>
           </Pressable>
         </View>
 
@@ -180,18 +182,18 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
             start={{ x: 0, y: 0 }}
             style={styles.verifyGradient}
           >
-            <Text style={styles.verifyText}>Xác thực</Text>
+            <Text style={styles.verifyText}>{t('auth.otp.verify')}</Text>
           </LinearGradient>
         </Pressable>
 
         <Text style={[styles.legalText, { color: colors.textSecondary }]}>
-          Bằng việc tiếp tục, bạn xác nhận số điện thoại này thuộc quyền sử dụng của bạn.
+          {t('auth.otp.legal')}
         </Text>
         </ScrollView>
       </KeyboardAvoidingView>
       <LoadingOverlay
         colors={colors}
-        description="Vui lòng chờ trong giây lát, Identra đang xác thực số điện thoại của bạn."
+        description={t('auth.otp.loadingDescription')}
         visible={processing}
       />
     </>

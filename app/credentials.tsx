@@ -8,7 +8,7 @@ import { useAppRouterState } from '@/app/router/AppRouterContext';
 export default function CredentialsRoute() {
   const router = useRouter();
   const store = useAppStore();
-  const { colors, returnScreen, setSelectedCredential } = useAppRouterState();
+  const { colors, returnScreen } = useAppRouterState();
 
   return (
     <CredentialsScreen
@@ -16,8 +16,7 @@ export default function CredentialsRoute() {
       credentials={store.credentials}
       onBack={() => router.replace(getPathForScreen(returnScreen))}
       onOpenCredential={(credential) => {
-        setSelectedCredential(credential);
-        router.push('/credential-detail');
+        router.push({ pathname: '/credentials/[credentialId]', params: { credentialId: credential.id } });
       }}
       onScan={() => router.push('/scan')}
     />

@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import type { AppColors } from '../../theme';
 import { radius, spacing } from '../../theme';
+import { useI18n } from '../../i18n';
 import { ChatActionMenu } from './ChatActionMenu';
 import { AddBankAccountSheet, BankAccountSheet } from './action-sheets/BankAccountActionSheets';
 import { ContractSetupSheet } from './action-sheets/ContractSetupSheet';
@@ -42,6 +43,7 @@ export function ChatActionSheet({
   onClose: () => void;
   visible: boolean;
 }) {
+  const { t } = useI18n();
   const { height: windowHeight } = useWindowDimensions();
   const [actionSheetMode, setActionSheetMode] = useState<ActionSheetMode>('actions');
   const [pendingTransfer, setPendingTransfer] = useState<TransferDraft | null>(null);
@@ -145,7 +147,7 @@ export function ChatActionSheet({
     >
       <View style={styles.actionSheetOverlay}>
         <Pressable
-          accessibilityLabel="Đóng bảng hành động"
+          accessibilityLabel={t('chat.common.closeActionSheet')}
           accessibilityRole="button"
           onPress={() => closeActionSheet()}
           style={StyleSheet.absoluteFill}
@@ -179,13 +181,13 @@ export function ChatActionSheet({
                 <ContractSetupSheet
                   colors={colors}
                   onCancel={() => closeActionSheet()}
-                  onCreate={() => closeActionSheet(() => Alert.alert('Đã khởi tạo', 'Hợp đồng đã được gửi tới Minh Anh.'))}
+                  onCreate={() => closeActionSheet(() => Alert.alert(t('chat.actionSheet.contractCreatedTitle'), t('chat.actionSheet.contractCreatedDescription')))}
                 />
               ) : actionSheetMode === 'payment-qr' ? (
                 <PaymentQrSheet
                   colors={colors}
                   onCancel={() => closeActionSheet()}
-                  onShare={() => Alert.alert('Chia sẻ QR', 'Mã QR IDPay đã sẵn sàng để chia sẻ.')}
+                  onShare={() => Alert.alert(t('chat.actionSheet.qrShareTitle'), t('chat.actionSheet.qrShareDescription'))}
                 />
               ) : actionSheetMode === 'transfer' ? (
                 <DirectTransferSheet
@@ -203,7 +205,10 @@ export function ChatActionSheet({
                   note={pendingTransfer.note}
                   onBack={() => setActionSheetMode('transfer')}
                   onCancel={() => closeActionSheet()}
-                  onConfirm={() => closeActionSheet(() => Alert.alert('Chuyển khoản thành công', `${formatAmount(pendingTransfer.amount)} ${pendingTransfer.unit} đã được gửi tới Minh Anh.`))}
+                  onConfirm={() => closeActionSheet(() => Alert.alert(
+                    t('chat.actionSheet.transferSuccessTitle'),
+                    t('chat.actionSheet.transferSuccessDescription', { amount: formatAmount(pendingTransfer.amount), unit: pendingTransfer.unit }),
+                  ))}
                   rawAmount={pendingTransfer.amount}
                   unit={pendingTransfer.unit}
                 />
@@ -211,21 +216,27 @@ export function ChatActionSheet({
                 <ReminderSheet
                   colors={colors}
                   onCancel={() => closeActionSheet()}
-                  onCreate={(title) => closeActionSheet(() => Alert.alert('Đã tạo nhắc hẹn', `Nhắc hẹn "${title}" đã được tạo.`))}
+                  onCreate={(title) => closeActionSheet(() => Alert.alert(
+                    t('chat.actionSheet.reminderCreatedTitle'),
+                    t('chat.actionSheet.reminderCreatedDescription', { title }),
+                  ))}
                 />
               ) : actionSheetMode === 'bank-account' ? (
                 <BankAccountSheet
                   colors={colors}
                   onAdd={() => setActionSheetMode('add-bank-account')}
                   onCancel={() => closeActionSheet()}
-                  onShare={(bank) => closeActionSheet(() => Alert.alert('Đã chia sẻ', `Thông tin tài khoản ${bank} đã được gửi trong cuộc trò chuyện.`))}
+                  onShare={(bank) => closeActionSheet(() => Alert.alert(
+                    t('chat.actionSheet.bankSharedTitle'),
+                    t('chat.actionSheet.bankSharedDescription', { bank }),
+                  ))}
                 />
               ) : actionSheetMode === 'add-bank-account' ? (
                 <AddBankAccountSheet
                   colors={colors}
                   onBack={() => setActionSheetMode('bank-account')}
                   onSave={(bank) => {
-                    Alert.alert('Đã lưu tài khoản', `Tài khoản ${bank} đã được lưu vào ví IDPay.`);
+                    Alert.alert(t('chat.actionSheet.bankSavedTitle'), t('chat.actionSheet.bankSavedDescription', { bank }));
                     setActionSheetMode('bank-account');
                   }}
                 />
@@ -237,7 +248,7 @@ export function ChatActionSheet({
                   onOpenPaymentQr={openPaymentQr}
                   onOpenReminder={openReminder}
                   onOpenTransfer={openTransfer}
-                  onShareCredential={() => handleAction('Chia sẻ thực chứng', 'Gửi thực chứng từ ví của bạn')}
+                  onShareCredential={() => handleAction(t('chat.menu.credentialTitle'), t('chat.menu.credentialDescription'))}
                 />
             )}
           </Animated.View>

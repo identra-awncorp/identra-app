@@ -15,6 +15,7 @@ import {
 import { useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useI18n } from '../../../i18n';
 import { border, palette, radius, spacing, touchTarget, typography, type AppColors } from '../../../theme';
 
 type ReminderRepeat = 'none' | 'daily' | 'weekly' | 'multi-weekly' | 'monthly' | 'yearly';
@@ -29,6 +30,7 @@ export function ReminderSheet({
   onCancel: () => void;
   onCreate: (title: string) => void;
 }) {
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
@@ -37,7 +39,7 @@ export function ReminderSheet({
 
   const submitReminder = () => {
     if (!title.trim()) {
-      Alert.alert('Chưa nhập tiêu đề', 'Vui lòng nhập tiêu đề cho nhắc hẹn.');
+      Alert.alert(t('chat.reminder.missingTitle'), t('chat.reminder.missingDescription'));
       return;
     }
     onCreate(title.trim());
@@ -50,10 +52,10 @@ export function ReminderSheet({
       style={[styles.screen, { paddingTop: Math.max(10, insets.top) }]}
     >
       <View style={styles.header}>
-        <Pressable accessibilityLabel="Đóng tạo nhắc hẹn" accessibilityRole="button" onPress={onCancel} style={styles.headerButton}>
+        <Pressable accessibilityLabel={t('chat.reminder.close')} accessibilityRole="button" onPress={onCancel} style={styles.headerButton}>
           <X color={colors.text} size={27} />
         </Pressable>
-        <Text style={[styles.title, { color: colors.text }]}>Tạo nhắc hẹn</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{t('chat.reminder.title')}</Text>
         <View style={[styles.headerButton, styles.headerShield]}>
           <ShieldCheck color={colors.primaryDark} size={25} />
         </View>
@@ -66,16 +68,16 @@ export function ReminderSheet({
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.description, { color: colors.textSecondary }]}>
-          Tạo nhắc hẹn để không bỏ lỡ những việc quan trọng.
+          {t('chat.reminder.description')}
         </Text>
 
-        <Text style={[styles.fieldLabel, { color: colors.text }]}>Tiêu đề nhắc hẹn</Text>
+        <Text style={[styles.fieldLabel, { color: colors.text }]}>{t('chat.reminder.titleLabel')}</Text>
         <View style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={[styles.leadingIcon, { backgroundColor: colors.surfaceMuted }]}><FileCheck2 color={colors.primaryDark} size={21} /></View>
           <TextInput
             maxLength={100}
             onChangeText={setTitle}
-            placeholder="Nhập tiêu đề nhắc hẹn"
+            placeholder={t('chat.reminder.titlePlaceholder')}
             placeholderTextColor={colors.textSecondary}
             style={[styles.inputText, { color: colors.text }]}
             value={title}
@@ -83,16 +85,16 @@ export function ReminderSheet({
           <Text style={[styles.counter, { color: colors.textSecondary }]}>{title.length}/100</Text>
         </View>
 
-        <Text style={[styles.fieldLabel, { color: colors.text }]}>Thời gian nhắc</Text>
+        <Text style={[styles.fieldLabel, { color: colors.text }]}>{t('chat.reminder.timeLabel')}</Text>
         <Pressable
           accessibilityRole="button"
-          onPress={() => Alert.alert('Thời gian nhắc', 'Tính năng chọn ngày giờ sẽ sử dụng bộ chọn hệ thống.')}
+          onPress={() => Alert.alert(t('chat.reminder.timeLabel'), t('chat.reminder.timeAlertDescription'))}
           style={[styles.dateTime, { backgroundColor: colors.surface, borderColor: colors.border }]}
         >
           <View style={styles.datePart}>
             <View style={[styles.leadingIcon, { backgroundColor: colors.surfaceMuted }]}><CalendarDays color={colors.primaryDark} size={22} /></View>
             <View>
-              <Text style={[styles.meta, { color: colors.textSecondary }]}>Ngày</Text>
+              <Text style={[styles.meta, { color: colors.textSecondary }]}>{t('chat.reminder.date')}</Text>
               <Text style={[styles.dateValue, { color: colors.text }]}>22/06/2024</Text>
             </View>
           </View>
@@ -100,36 +102,36 @@ export function ReminderSheet({
           <View style={styles.datePart}>
             <View style={[styles.leadingIcon, { backgroundColor: colors.surfaceMuted }]}><Clock3 color={colors.primaryDark} size={22} /></View>
             <View>
-              <Text style={[styles.meta, { color: colors.textSecondary }]}>Giờ</Text>
+              <Text style={[styles.meta, { color: colors.textSecondary }]}>{t('chat.reminder.time')}</Text>
               <Text style={[styles.dateValue, { color: colors.text }]}>20:00</Text>
             </View>
           </View>
           <ChevronRight color={colors.textSecondary} size={20} />
         </Pressable>
 
-        <Text style={[styles.fieldLabel, { color: colors.text }]}>Kiểu lặp lại</Text>
+        <Text style={[styles.fieldLabel, { color: colors.text }]}>{t('chat.reminder.repeatType')}</Text>
         <View style={[styles.optionsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <ReminderOption colors={colors} description="Nhắc hẹn một lần duy nhất" icon={CalendarX2} label="Không lặp lại" onPress={() => setRepeat('none')} selected={repeat === 'none'} />
-          <ReminderOption colors={colors} description="Nhắc hẹn mỗi ngày" icon={RotateCw} label="Hàng ngày" onPress={() => setRepeat('daily')} selected={repeat === 'daily'} />
-          <ReminderOption colors={colors} description="Nhắc hẹn vào một ngày cố định mỗi tuần" icon={CalendarClock} label="Hàng tuần" onPress={() => setRepeat('weekly')} selected={repeat === 'weekly'} />
-          <ReminderOption colors={colors} description="Nhắc hẹn vào nhiều ngày mỗi tuần" icon={CalendarCheck2} label="Nhiều ngày hàng tuần" onPress={() => setRepeat('multi-weekly')} selected={repeat === 'multi-weekly'} />
-          <ReminderOption colors={colors} description="Nhắc hẹn vào một ngày cố định mỗi tháng" icon={CalendarCheck2} label="Hàng tháng" onPress={() => setRepeat('monthly')} selected={repeat === 'monthly'} />
-          <ReminderOption colors={colors} description="Nhắc hẹn vào một ngày cố định mỗi năm" icon={CalendarCheck2} label="Hàng năm" onPress={() => setRepeat('yearly')} selected={repeat === 'yearly'} last />
+          <ReminderOption colors={colors} description={t('chat.reminder.repeat.noneDescription')} icon={CalendarX2} label={t('chat.reminder.repeat.noneLabel')} onPress={() => setRepeat('none')} selected={repeat === 'none'} />
+          <ReminderOption colors={colors} description={t('chat.reminder.repeat.dailyDescription')} icon={RotateCw} label={t('chat.reminder.repeat.dailyLabel')} onPress={() => setRepeat('daily')} selected={repeat === 'daily'} />
+          <ReminderOption colors={colors} description={t('chat.reminder.repeat.weeklyDescription')} icon={CalendarClock} label={t('chat.reminder.repeat.weeklyLabel')} onPress={() => setRepeat('weekly')} selected={repeat === 'weekly'} />
+          <ReminderOption colors={colors} description={t('chat.reminder.repeat.multiWeeklyDescription')} icon={CalendarCheck2} label={t('chat.reminder.repeat.multiWeeklyLabel')} onPress={() => setRepeat('multi-weekly')} selected={repeat === 'multi-weekly'} />
+          <ReminderOption colors={colors} description={t('chat.reminder.repeat.monthlyDescription')} icon={CalendarCheck2} label={t('chat.reminder.repeat.monthlyLabel')} onPress={() => setRepeat('monthly')} selected={repeat === 'monthly'} />
+          <ReminderOption colors={colors} description={t('chat.reminder.repeat.yearlyDescription')} icon={CalendarCheck2} label={t('chat.reminder.repeat.yearlyLabel')} onPress={() => setRepeat('yearly')} selected={repeat === 'yearly'} last />
         </View>
 
-        <Text style={[styles.fieldLabel, { color: colors.text }]}>Nhắc cho</Text>
+        <Text style={[styles.fieldLabel, { color: colors.text }]}>{t('chat.reminder.remindFor')}</Text>
         <View style={[styles.optionsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <ReminderOption colors={colors} description="Chỉ bạn sẽ nhận được nhắc nhở này" icon={User} label="Chỉ mình tôi" onPress={() => setAudience('self')} selected={audience === 'self'} />
-          <ReminderOption colors={colors} description="Bạn và đối phương sẽ nhận được nhắc nhở" icon={Users} label="Cả hai" onPress={() => setAudience('both')} selected={audience === 'both'} last />
+          <ReminderOption colors={colors} description={t('chat.reminder.audience.selfDescription')} icon={User} label={t('chat.reminder.audience.selfLabel')} onPress={() => setAudience('self')} selected={audience === 'self'} />
+          <ReminderOption colors={colors} description={t('chat.reminder.audience.bothDescription')} icon={Users} label={t('chat.reminder.audience.bothLabel')} onPress={() => setAudience('both')} selected={audience === 'both'} last />
         </View>
 
-        <Text style={[styles.fieldLabel, { color: colors.text }]}>Ghi chú (tùy chọn)</Text>
+        <Text style={[styles.fieldLabel, { color: colors.text }]}>{t('chat.reminder.noteLabel')}</Text>
         <View style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={[styles.leadingIcon, { backgroundColor: colors.surfaceMuted }]}><FileCheck2 color={colors.primaryDark} size={21} /></View>
           <TextInput
             maxLength={200}
             onChangeText={setNote}
-            placeholder="Thêm ghi chú cho nhắc hẹn..."
+            placeholder={t('chat.reminder.notePlaceholder')}
             placeholderTextColor={colors.textSecondary}
             style={[styles.inputText, { color: colors.text }]}
             value={note}
@@ -140,10 +142,10 @@ export function ReminderSheet({
 
       <View style={[styles.footer, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: Math.max(12, insets.bottom + 8) }]}>
         <Pressable accessibilityRole="button" onPress={onCancel} style={[styles.cancelButton, { borderColor: colors.border }]}>
-          <Text style={[styles.cancelText, { color: colors.text }]}>Hủy bỏ</Text>
+          <Text style={[styles.cancelText, { color: colors.text }]}>{t('chat.common.cancelButton')}</Text>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={submitReminder} style={[styles.createButton, { backgroundColor: colors.primaryDark }]}>
-          <Text style={styles.createText}>Tạo nhắc hẹn</Text>
+          <Text style={styles.createText}>{t('chat.reminder.create')}</Text>
         </Pressable>
       </View>
     </View>

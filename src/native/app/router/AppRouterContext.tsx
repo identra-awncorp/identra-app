@@ -1,6 +1,5 @@
 import {
   createContext,
-  useCallback,
   useContext,
   useMemo,
   useRef,
@@ -13,7 +12,7 @@ import { Animated, useColorScheme } from 'react-native';
 
 import { NEWS_FEED_OVERLAY_HEIGHT } from '../../screens/news-feed';
 import { darkColors, lightColors, type AppColors } from '../../theme';
-import type { Credential, ScreenKey, SmartContractFeedPost } from '../../types';
+import type { Credential, ScreenKey } from '../../types';
 import { useAppStore } from '../../store';
 import { initialScreen } from '../navigation/navigationConfig';
 
@@ -40,14 +39,10 @@ interface AppRouterContextValue {
   openSideMenu: () => void;
   returnScreen: ScreenKey;
   selectedChatId: string;
-  selectedCredential: Credential | null;
-  selectedSmartContractPost: SmartContractFeedPost | null;
   setChatReturnScreen: Dispatch<SetStateAction<ScreenKey>>;
   setConnectionInvitation: Dispatch<SetStateAction<ConnectionInvitation | null>>;
   setReturnScreen: Dispatch<SetStateAction<ScreenKey>>;
   setSelectedChatId: Dispatch<SetStateAction<string>>;
-  setSelectedCredential: Dispatch<SetStateAction<Credential | null>>;
-  setSelectedSmartContractPost: Dispatch<SetStateAction<SmartContractFeedPost | null>>;
   setSharePayload: Dispatch<SetStateAction<SharePayload | null>>;
   sharePayload: SharePayload | null;
   sideMenuOpen: boolean;
@@ -59,8 +54,6 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
   const store = useAppStore();
   const systemScheme = useColorScheme();
   const [authCompleted, setAuthCompleted] = useState(false);
-  const [selectedCredential, setSelectedCredential] = useState<Credential | null>(null);
-  const [selectedSmartContractPost, setSelectedSmartContractPost] = useState<SmartContractFeedPost | null>(null);
   const [sharePayload, setSharePayload] = useState<SharePayload | null>(null);
   const [connectionInvitation, setConnectionInvitation] = useState<ConnectionInvitation | null>(null);
   const [returnScreen, setReturnScreen] = useState<ScreenKey>(initialScreen);
@@ -95,14 +88,10 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
       openSideMenu: () => setSideMenuOpen(true),
       returnScreen,
       selectedChatId,
-      selectedCredential,
-      selectedSmartContractPost,
       setChatReturnScreen,
       setConnectionInvitation,
       setReturnScreen,
       setSelectedChatId,
-      setSelectedCredential,
-      setSelectedSmartContractPost,
       setSharePayload,
       sharePayload,
       sideMenuOpen,
@@ -117,8 +106,6 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
       newsFeedScrollY,
       returnScreen,
       selectedChatId,
-      selectedCredential,
-      selectedSmartContractPost,
       sharePayload,
       sideMenuOpen,
     ],

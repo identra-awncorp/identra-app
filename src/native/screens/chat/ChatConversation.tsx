@@ -26,6 +26,7 @@ import { assetManifest } from '../../assets/assetManifest';
 import { AppLogo } from '../../components/AppLogo';
 import { IconButton } from '../../components/AppUiPrimitives';
 import { mediaPreviewImage } from '../../data/demo/chatDemoData';
+import { useI18n } from '../../i18n';
 import type {
   ChatMediaPreview,
   ChatMessage,
@@ -51,12 +52,13 @@ export function ChatConversation({
   onBack: () => void;
   onOpenActionSheet: () => void;
 }) {
+  const { locale, t } = useI18n();
   const insets = useSafeAreaInsets();
   const [message, setMessage] = useState('');
   const [noticeVisible, setNoticeVisible] = useState(true);
   const [messageInputFocused, setMessageInputFocused] = useState(false);
   const keyboard = useAnimatedKeyboard();
-  const contactVerified = Boolean(thread.verified || thread.subtitle.toLocaleLowerCase('vi-VN').includes('xác minh'));
+  const contactVerified = Boolean(thread.verified || thread.subtitle.toLocaleLowerCase(locale).includes(t('chat.conversation.verifiedKeyword').toLocaleLowerCase(locale)));
   useEffect(() => {
     setNoticeVisible(true);
   }, [thread.id]);
@@ -81,7 +83,7 @@ export function ChatConversation({
   return (
     <>
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <IconButton label="Quay lại" colors={colors} onPress={onBack}>
+        <IconButton label={t('chat.conversation.back')} colors={colors} onPress={onBack}>
           <ArrowLeft color={colors.text} size={25} />
         </IconButton>
         <ThreadAvatar colors={colors} thread={thread} size={42} style={styles.headerAvatar} />
@@ -98,7 +100,7 @@ export function ChatConversation({
         <View style={[styles.headerShield, { backgroundColor: colors.surfaceMuted }]}>
           <ShieldCheck color={colors.primaryDark} size={25} />
         </View>
-        <IconButton label="Tùy chọn cuộc trò chuyện" colors={colors}>
+        <IconButton label={t('chat.conversation.options')} colors={colors}>
           <MoreVertical color={colors.text} size={24} />
         </IconButton>
       </View>
@@ -119,7 +121,7 @@ export function ChatConversation({
             <Text style={[styles.noticeText, { color: colors.textSecondary }]}>
               {thread.notice}
             </Text>
-            <Pressable accessibilityRole="button" accessibilityLabel="Đóng cảnh báo" onPress={() => setNoticeVisible(false)} style={styles.noticeClose}>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('chat.conversation.closeNotice')} onPress={() => setNoticeVisible(false)} style={styles.noticeClose}>
               <X color={colors.textSecondary} size={20} />
             </Pressable>
           </View>
@@ -134,18 +136,18 @@ export function ChatConversation({
           style={[styles.quickActionsClip, quickActionsKeyboardStyle]}
         >
           <View style={[styles.quickActions, { backgroundColor: colors.surfaceMuted }]}>
-            <QuickChatAction colors={colors} icon={ShieldCheck} label="Thực chứng" />
-            <QuickChatAction colors={colors} icon={FileCheck2} label="Hợp đồng" />
-            <QuickChatAction colors={colors} icon={CircleDollarSign} label="Thanh toán" success />
+            <QuickChatAction colors={colors} icon={ShieldCheck} label={t('chat.conversation.quickCredential')} />
+            <QuickChatAction colors={colors} icon={FileCheck2} label={t('chat.conversation.quickContract')} />
+            <QuickChatAction colors={colors} icon={CircleDollarSign} label={t('chat.conversation.quickPayment')} success />
           </View>
         </Reanimated.View>
         <View style={styles.composerRow}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Thêm nội dung" onPress={onOpenActionSheet} style={[styles.roundButton, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('chat.conversation.addContent')} onPress={onOpenActionSheet} style={[styles.roundButton, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Plus color={colors.primaryDark} size={25} />
           </Pressable>
           <View style={[styles.inputWrap, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <TextInput
-              placeholder="Nhắn tin hoặc gửi thực chứng..."
+              placeholder={t('chat.conversation.messagePlaceholder')}
               placeholderTextColor={colors.textSecondary}
               value={message}
               onChangeText={setMessage}
@@ -155,7 +157,7 @@ export function ChatConversation({
             />
             <Smile color={colors.primaryDark} size={24} />
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Gửi ảnh" style={[styles.roundButton, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('chat.conversation.sendImage')} style={[styles.roundButton, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <ImageIcon color={colors.primaryDark} size={23} />
           </Pressable>
         </View>
@@ -307,11 +309,12 @@ function MediaMessage({
   message: Extract<ChatMessage, { type: 'media' }>;
   thread: ChatThread;
 }) {
+  const { t } = useI18n();
   const content = (
     <View style={[styles.mediaBubble, { backgroundColor: message.direction === 'outgoing' ? colors.surfaceMuted : colors.surface, borderColor: message.direction === 'outgoing' ? '#BFD1FF' : colors.border }]}>
       <MediaPreview colors={colors} media={message.media} />
       <Text numberOfLines={2} style={[styles.mediaMessageText, { color: message.media.type === 'photo' && !message.text ? colors.primaryDark : colors.text }]}>
-        {message.text || getMediaLabel(message.media)}
+        {message.text || getMediaLabel(message.media, t)}
       </Text>
     </View>
   );
@@ -398,13 +401,14 @@ function DeliveryStatusIcon({ colors, status }: { colors: AppColors; status: Del
   return <Check color={colors.textSecondary} size={14} strokeWidth={2.2} />;
 }
 
-function getMediaLabel(media: ChatMediaPreview) {
-  if (media.type === 'photo') return 'Photo';
+function getMediaLabel(media: ChatMediaPreview, t: ReturnType<typeof useI18n>['t']) {
+  if (media.type === 'photo') return t('chat.common.mediaPhoto');
   if (media.type === 'gif') return 'GIF';
-  return media.fileName ?? 'File';
+  return media.fileName ?? t('chat.common.mediaFile');
 }
 
 function CredentialMessage({ colors, credential }: { colors: AppColors; credential: CredentialChatPayload }) {
+  const { t } = useI18n();
   return (
     <View style={[styles.richCard, { backgroundColor: colors.surface, borderColor: '#BFD1FF' }]}>
       <View style={styles.richHeader}>
@@ -420,9 +424,9 @@ function CredentialMessage({ colors, credential }: { colors: AppColors; credenti
           <DetailRow key={`${item.label}-${item.value}`} colors={colors} icon={detailIconMap[item.icon]} label={item.label} value={item.value} />
         ))}
       </View>
-      <Pressable accessibilityRole="button" onPress={() => Alert.alert(credential.title, `Thực chứng đã được xác minh bởi ${credential.issuer}.`)} style={[styles.richFooter, { borderTopColor: colors.border }]}>
-        <View style={styles.verifiedRow}><Check color={colors.success} size={15} /><Text style={[styles.verifiedText, { color: colors.success }]}>Đã xác minh</Text></View>
-        <Text style={[styles.richLink, { color: colors.primaryDark }]}>Xem thực chứng</Text>
+      <Pressable accessibilityRole="button" onPress={() => Alert.alert(credential.title, t('chat.conversation.credentialVerifiedBy', { issuer: credential.issuer }))} style={[styles.richFooter, { borderTopColor: colors.border }]}>
+        <View style={styles.verifiedRow}><Check color={colors.success} size={15} /><Text style={[styles.verifiedText, { color: colors.success }]}>{t('chat.common.verified')}</Text></View>
+        <Text style={[styles.richLink, { color: colors.primaryDark }]}>{t('chat.common.viewCredential')}</Text>
         <ChevronRight color={colors.primaryDark} size={18} />
       </Pressable>
     </View>
@@ -436,6 +440,7 @@ const detailIconMap = {
 };
 
 function ContractMessage({ colors, contract }: { colors: AppColors; contract: ContractChatPayload }) {
+  const { t } = useI18n();
   return (
     <View style={[styles.contractCard, { backgroundColor: colors.surface, borderColor: '#BFD1FF' }]}>
       <View style={styles.contractHeader}>
@@ -445,19 +450,19 @@ function ContractMessage({ colors, contract }: { colors: AppColors; contract: Co
       </View>
       <View style={[styles.exchangeBox, { borderColor: colors.border }]}>
         <View style={styles.exchangeColumn}>
-          <Text style={[styles.exchangeLabel, { color: colors.textSecondary }]}>Vật phẩm giao dịch</Text>
+          <Text style={[styles.exchangeLabel, { color: colors.textSecondary }]}>{t('chat.common.tradeItem')}</Text>
           <View style={styles.exchangeValueRow}><Ticket color={colors.primaryDark} size={20} /><Text style={[styles.exchangeValue, { color: colors.text }]}>{contract.asset}</Text></View>
         </View>
         <View style={[styles.exchangeColumn, styles.exchangeDivider, { borderLeftColor: colors.border }]}>
-          <Text style={[styles.exchangeLabel, { color: colors.textSecondary }]}>Đối ứng</Text>
+          <Text style={[styles.exchangeLabel, { color: colors.textSecondary }]}>{t('chat.common.counterItem')}</Text>
           <View style={styles.exchangeValueRow}><CircleDollarSign color={colors.success} size={22} /><Text style={[styles.exchangeValue, { color: colors.text }]}>{contract.amount}</Text></View>
         </View>
-        <View style={[styles.paymentRow, { borderTopColor: colors.border }]}><CircleDollarSign color={colors.textSecondary} size={17} /><Text style={[styles.paymentText, { color: colors.textSecondary }]}>Thanh toán: Tiền pháp định hoặc USDT</Text></View>
+        <View style={[styles.paymentRow, { borderTopColor: colors.border }]}><CircleDollarSign color={colors.textSecondary} size={17} /><Text style={[styles.paymentText, { color: colors.textSecondary }]}>{t('chat.common.payment')}: {t('chat.common.fiatOrUsdt')}</Text></View>
       </View>
-      <View style={styles.contractInfo}><Info color={colors.primaryDark} size={15} /><Text style={[styles.contractInfoText, { color: colors.textSecondary }]}>Hợp đồng chỉ thực thi khi cả hai bên chấp nhận.</Text></View>
+      <View style={styles.contractInfo}><Info color={colors.primaryDark} size={15} /><Text style={[styles.contractInfoText, { color: colors.textSecondary }]}>{t('chat.common.contractExecutionNotice')}</Text></View>
       <View style={styles.contractActions}>
-        <Pressable style={[styles.contractSecondary, { borderColor: colors.primaryDark }]}><Text style={[styles.contractButtonText, { color: colors.primaryDark }]}>Từ chối</Text></Pressable>
-        <Pressable style={[styles.contractPrimary, { backgroundColor: colors.primaryDark }]}><Text style={styles.contractPrimaryText}>Trao đổi</Text></Pressable>
+        <Pressable style={[styles.contractSecondary, { borderColor: colors.primaryDark }]}><Text style={[styles.contractButtonText, { color: colors.primaryDark }]}>{t('chat.common.reject')}</Text></Pressable>
+        <Pressable style={[styles.contractPrimary, { backgroundColor: colors.primaryDark }]}><Text style={styles.contractPrimaryText}>{t('chat.common.exchange')}</Text></Pressable>
       </View>
     </View>
   );

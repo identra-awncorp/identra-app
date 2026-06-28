@@ -2,6 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Shield, ShieldCheck } from 'lucide-react-native';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, Modal, StyleSheet, Text, View } from 'react-native';
+import { useI18n } from '../i18n';
 import type { AppColors } from '../theme';
 import { border, palette, radius, spacing, typography } from '../theme';
 
@@ -14,10 +15,13 @@ interface Props {
 
 export function LoadingOverlay({
   colors,
-  description = 'Vui lòng chờ trong giây lát, Identra đang hoàn tất tác vụ của bạn.',
-  title = 'Đang xử lý',
+  description,
+  title,
   visible,
 }: Props) {
+  const { t } = useI18n();
+  const overlayTitle = title ?? t('loadingOverlay.title');
+  const overlayDescription = description ?? t('loadingOverlay.description');
   const rotation = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0.75)).current;
 
@@ -75,7 +79,7 @@ export function LoadingOverlay({
       visible={visible}
     >
       <View
-        accessibilityLabel={`${title}. ${description}`}
+        accessibilityLabel={`${overlayTitle}. ${overlayDescription}`}
         accessibilityLiveRegion="assertive"
         accessibilityRole="progressbar"
         accessibilityState={{ busy: true }}
@@ -103,8 +107,8 @@ export function LoadingOverlay({
             <View style={[styles.spinnerAccent, { borderTopColor: colors.primaryDark, borderRightColor: colors.primaryDark }]} />
           </Animated.View>
 
-          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-          <Text style={[styles.description, { color: colors.textSecondary }]}>{description}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{overlayTitle}</Text>
+          <Text style={[styles.description, { color: colors.textSecondary }]}>{overlayDescription}</Text>
 
           <View style={styles.steps} accessibilityElementsHidden>
             <View style={[styles.activeStep, { backgroundColor: colors.primaryDark }]} />
@@ -114,7 +118,7 @@ export function LoadingOverlay({
 
           <View style={styles.notice}>
             <ShieldCheck color={colors.primaryDark} size={21} strokeWidth={1.9} />
-            <Text style={[styles.noticeText, { color: colors.textSecondary }]}>Không đóng ứng dụng</Text>
+            <Text style={[styles.noticeText, { color: colors.textSecondary }]}>{t('loadingOverlay.keepOpen')}</Text>
           </View>
         </View>
       </View>

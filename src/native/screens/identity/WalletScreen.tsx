@@ -16,6 +16,7 @@ import type { AppColors } from '../../theme';
 import { border, palette, radius, shadows, spacing, typography } from '../../theme';
 import type { Credential } from '../../types';
 import { AppBrandLogo } from '../../components/AppLogo';
+import { useI18n } from '../../i18n';
 import {
   Card,
   CredentialIcon,
@@ -56,6 +57,7 @@ export function WalletScreen({
   onOpenChat,
   onOpenMenu,
 }: Props) {
+  const { t } = useI18n();
   const featured =
     credentials.find((item) => item.id === 'cred-degree') ??
     credentials.find((item) => item.status === 'verified') ??
@@ -71,10 +73,10 @@ export function WalletScreen({
     })
     .slice(0, 3);
   const quickActions = [
-    { id: 'profile', label: 'Thông tin\ncá nhân', icon: ContactRound, action: onOpenProfile },
-    { id: 'security', label: 'Bảo mật', icon: LockKeyhole, action: onOpenSecurity },
-    { id: 'history', label: 'Lịch sử\nhoạt động', icon: History, action: onOpenActivity },
-    { id: 'share', label: 'Chia sẻ\ndữ liệu', icon: Share2, action: onOpenShare },
+    { id: 'profile', label: t('identity.wallet.quickActions.profile'), icon: ContactRound, action: onOpenProfile },
+    { id: 'security', label: t('identity.wallet.quickActions.security'), icon: LockKeyhole, action: onOpenSecurity },
+    { id: 'history', label: t('identity.wallet.quickActions.activity'), icon: History, action: onOpenActivity },
+    { id: 'share', label: t('identity.wallet.quickActions.share'), icon: Share2, action: onOpenShare },
   ];
 
   return (
@@ -84,23 +86,23 @@ export function WalletScreen({
       contentStyle={styles.screenContent}
     >
       <View style={styles.brandHeader}>
-        <IconButton label="Mở menu" colors={colors} onPress={onOpenMenu}>
+        <IconButton label={t('identity.wallet.openMenu')} colors={colors} onPress={onOpenMenu}>
           <Menu color={colors.text} size={26} />
         </IconButton>
         <AppBrandLogo colors={colors} style={styles.brandLogo} />
-        <IconButton label="Mở Chat" colors={colors} onPress={onOpenChat}>
+        <IconButton label={t('identity.wallet.openChat')} colors={colors} onPress={onOpenChat}>
           <MessageCircle color={colors.text} size={25} />
         </IconButton>
       </View>
 
       <View style={styles.titleRow}>
         <View>
-          <Text style={[styles.screenTitle, { color: colors.text }]}>Ví của tôi</Text>
+          <Text style={[styles.screenTitle, { color: colors.text }]}>{t('identity.wallet.title')}</Text>
           <Text style={[styles.did, { color: colors.textSecondary }]}>{did}</Text>
         </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Mở thông báo"
+          accessibilityLabel={t('identity.wallet.openNotifications')}
           onPress={onOpenNotifications}
           style={({ pressed }) => [
             styles.notification,
@@ -124,19 +126,19 @@ export function WalletScreen({
             <View style={styles.walletGlowTwo} />
             <View style={styles.walletAvatarFrame}>
               <Image
-                accessibilityLabel="Ảnh đại diện sinh viên"
+                accessibilityLabel={t('identity.wallet.avatarAccessibility')}
                 source={assetManifest.app.studentAvatar}
                 style={styles.walletAvatar}
               />
             </View>
             <View style={styles.walletMain}>
-              <Text style={styles.walletTitle}>Sinh viên</Text>
-              <Text style={styles.walletIssuer}>Đại học Công nghệ</Text>
+              <Text style={styles.walletTitle}>{featured?.title ?? ''}</Text>
+              <Text style={styles.walletIssuer}>{featured?.issuer ?? ''}</Text>
               <View style={styles.walletVerified}>
                 <Check color={palette.white} size={14} strokeWidth={3} />
-                <Text style={styles.walletVerifiedText}>Đã xác minh</Text>
+                <Text style={styles.walletVerifiedText}>{t('common.verified')}</Text>
               </View>
-              <Text style={styles.walletDate}>Ngày cấp {featured?.issueDate ?? '20/06/2024'}</Text>
+              <Text style={styles.walletDate}>{t('identity.wallet.issueDatePrefix')} {featured?.issueDate ?? ''}</Text>
             </View>
             <ShieldCheck color="rgba(255,255,255,0.76)" size={76} strokeWidth={1.25} style={styles.walletShield} />
           </LinearGradient>
@@ -168,9 +170,9 @@ export function WalletScreen({
       </Card>
 
       <View style={styles.sectionHeading}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Danh tính của bạn</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('identity.wallet.sectionTitle')}</Text>
         <Pressable accessibilityRole="button" onPress={onOpenCredentials} hitSlop={8}>
-          <Text style={[styles.sectionAction, { color: colors.primaryDark }]}>Xem tất cả</Text>
+          <Text style={[styles.sectionAction, { color: colors.primaryDark }]}>{t('common.seeAll')}</Text>
         </Pressable>
       </View>
 
@@ -203,12 +205,12 @@ export function WalletScreen({
         </Card>
       ) : (
         <Card colors={colors} style={[styles.walletEmpty, styles.subtleCardShadow]}>
-          <Text style={[styles.walletEmptyTitle, { color: colors.text }]}>Ví chưa có thực chứng</Text>
+          <Text style={[styles.walletEmptyTitle, { color: colors.text }]}>{t('identity.wallet.emptyTitle')}</Text>
           <Text style={[styles.walletEmptyText, { color: colors.textSecondary }]}>
-            Quét mã QR để nhận thực chứng đầu tiên của bạn.
+            {t('identity.wallet.emptyDescription')}
           </Text>
           <Pressable onPress={onOpenScan} style={styles.walletEmptyButton}>
-            <Text style={styles.walletEmptyButtonText}>Quét mã QR</Text>
+            <Text style={styles.walletEmptyButtonText}>{t('identity.wallet.scanQr')}</Text>
           </Pressable>
         </Card>
       )}
@@ -221,15 +223,15 @@ export function WalletScreen({
           </View>
         </View>
         <View style={styles.bannerText}>
-          <Text style={styles.bannerTitle}>Dữ liệu của bạn, quyền của bạn</Text>
-          <Text style={styles.bannerDescription}>Bạn toàn quyền kiểm soát việc chia sẻ và sử dụng dữ liệu cá nhân.</Text>
+          <Text style={styles.bannerTitle}>{t('identity.wallet.bannerTitle')}</Text>
+          <Text style={styles.bannerDescription}>{t('identity.wallet.bannerDescription')}</Text>
         </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Tìm hiểu thêm về quyền dữ liệu"
+          accessibilityLabel={t('identity.wallet.bannerAccessibility')}
           style={({ pressed }) => [styles.bannerButton, { opacity: pressed ? 0.65 : 1 }]}
         >
-          <Text style={styles.bannerButtonText}>Tìm hiểu thêm</Text>
+          <Text style={styles.bannerButtonText}>{t('identity.wallet.bannerAction')}</Text>
         </Pressable>
       </LinearGradient>
     </ScreenScroll>

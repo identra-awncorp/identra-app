@@ -1,14 +1,17 @@
 import { Image, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { assetManifest } from '../assets/assetManifest';
+import { useI18n } from '../i18n';
 import type { AppColors } from '../theme';
 import { spacing, typography } from '../theme';
 
 const identraLogo = assetManifest.app.identraLogo;
 
 export function AppLogo({ size = 32 }: { size?: number }) {
+  const { t } = useI18n();
+
   return (
     <Image
-      accessibilityLabel="Logo Identra"
+      accessibilityLabel={t('app.logo.accessibility')}
       resizeMode="contain"
       source={identraLogo}
       style={{ width: size, height: size }}
@@ -29,8 +32,10 @@ export function AppBrandLogo({
   vertical?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
+  const { t } = useI18n();
+
   return (
-    <View accessibilityLabel="Identra" style={[styles.brand, vertical && styles.brandVertical, style]}>
+    <View accessibilityLabel={t('app.logo.brandAccessibility')} style={[styles.brand, vertical && styles.brandVertical, style]}>
       <AppLogo size={logoSize} />
       <Text
         style={[

@@ -12,7 +12,6 @@ export default function WalletRoute() {
     openSideMenu,
     setChatReturnScreen,
     setReturnScreen,
-    setSelectedCredential,
   } = useAppRouterState();
 
   return (
@@ -26,8 +25,7 @@ export default function WalletRoute() {
         router.replace('/chat-list');
       }}
       onOpenCredential={(credential) => {
-        setSelectedCredential(credential);
-        router.push('/credential-detail');
+        router.push({ pathname: '/credentials/[credentialId]', params: { credentialId: credential.id } });
       }}
       onOpenCredentials={() => {
         setReturnScreen('wallet');

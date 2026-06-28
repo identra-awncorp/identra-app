@@ -12,12 +12,24 @@ export default function SettingsGovernanceRoute() {
     <ConfigurableSettingsListScreen
       colors={colors}
       id="screen-settings-governance"
-      title="Cài đặt khung quản trị"
-      description="Quản lý các quy tắc tin cậy và đơn vị được phép tương tác với ví."
+      titleKey="settings.configurable.governanceTitle"
+      descriptionKey="settings.configurable.governanceDescription"
       rows={[
-        { icon: Building2, title: 'Tổ chức tin cậy', description: 'Cho phép thực chứng từ các tổ chức đã xác minh' },
-        { icon: FileCheck2, title: 'Kiểm tra chính sách', description: 'Xác minh chính sách trước khi nhận thực chứng' },
-        { icon: ShieldCheck, title: 'Cảnh báo thay đổi', description: 'Thông báo khi khung quản trị được cập nhật' },
+        {
+          icon: Building2,
+          titleKey: 'settings.configurable.trustedOrganizationsTitle',
+          descriptionKey: 'settings.configurable.trustedOrganizationsDescription',
+        },
+        {
+          icon: FileCheck2,
+          titleKey: 'settings.configurable.policyCheckTitle',
+          descriptionKey: 'settings.configurable.policyCheckDescription',
+        },
+        {
+          icon: ShieldCheck,
+          titleKey: 'settings.configurable.changeAlertsTitle',
+          descriptionKey: 'settings.configurable.changeAlertsDescription',
+        },
       ]}
       onBack={() => router.replace('/settings')}
     />

@@ -2,6 +2,7 @@ import { Plus } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 import type { ChatPreview } from '../../data/demo/chatDemoData';
 import type { AppColors } from '../../theme';
+import { useI18n } from '../../i18n';
 import { QUICK_AVATAR_INNER_SIZE, THOUGHT_BUBBLE_MAX_LENGTH } from './ChatListData';
 import { ChatAvatar } from './ChatListAvatar';
 import { styles } from './ChatListStyles';
@@ -17,16 +18,17 @@ export function QuickContact({
   onAvatarPress: (contact: ChatPreview) => void;
   onThoughtPress: (contact: ChatPreview) => void;
 }) {
+  const { t } = useI18n();
   const isStory = contact.id === 'story';
   const thought = contact.thought?.slice(0, THOUGHT_BUBBLE_MAX_LENGTH);
   const bubbleBackgroundColor = contact.thoughtBackgroundColor ?? '#FFFFFF';
   const bubbleTextColor = contact.thoughtTextColor ?? '#1F2A44';
   const avatarAccessibilityLabel = isStory
-    ? 'Tạo tin mới'
+    ? t('chatListExtras.quickContact.createStory')
     : contact.hasNewPost
-      ? `Xem Reels của ${contact.name}`
-      : `Mở trò chuyện với ${contact.name}`;
-  const thoughtAccessibilityLabel = isStory ? 'Chia sẻ suy nghĩ' : `Xem suy nghĩ của ${contact.name}`;
+      ? t('chatListExtras.quickContact.viewReels', { name: contact.name })
+      : t('chatListExtras.quickContact.openConversation', { name: contact.name });
+  const thoughtAccessibilityLabel = isStory ? t('chatListExtras.quickContact.shareThought') : t('chatListExtras.quickContact.viewThought', { name: contact.name });
   return (
     <View style={styles.quickContact}>
       <Pressable

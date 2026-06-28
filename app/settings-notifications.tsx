@@ -13,12 +13,24 @@ export default function SettingsNotificationsRoute() {
     <ConfigurableSettingsListScreen
       colors={colors}
       id="screen-settings-notifications"
-      title="Cài đặt thông báo"
-      description="Chọn các cập nhật và cảnh báo bạn muốn nhận từ Identra."
+      titleKey="settings.configurable.notificationsTitle"
+      descriptionKey="settings.configurable.notificationsDescription"
       rows={[
-        { icon: BellRing, title: 'Yêu cầu dữ liệu', description: 'Thông báo khi có bên xác minh yêu cầu dữ liệu' },
-        { icon: ShieldCheck, title: 'Cảnh báo bảo mật', description: 'Nhận cảnh báo đăng nhập và thay đổi bảo mật' },
-        { icon: FileCheck2, title: 'Cập nhật thực chứng', description: 'Thông báo khi thực chứng sắp hết hạn' },
+        {
+          icon: BellRing,
+          titleKey: 'settings.configurable.dataRequestTitle',
+          descriptionKey: 'settings.configurable.dataRequestDescription',
+        },
+        {
+          icon: ShieldCheck,
+          titleKey: 'settings.configurable.securityAlertsTitle',
+          descriptionKey: 'settings.configurable.securityAlertsDescription',
+        },
+        {
+          icon: FileCheck2,
+          titleKey: 'settings.configurable.credentialUpdatesTitle',
+          descriptionKey: 'settings.configurable.credentialUpdatesDescription',
+        },
       ]}
       onBack={() => router.replace(getPathForScreen(returnScreen))}
     />

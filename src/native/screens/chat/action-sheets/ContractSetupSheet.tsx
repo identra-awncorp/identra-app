@@ -15,6 +15,7 @@ import { useState } from 'react';
 import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { assetManifest } from '../../../assets/assetManifest';
+import { useI18n } from '../../../i18n';
 import { border, palette, radius, spacing, touchTarget, typography, type AppColors } from '../../../theme';
 
 const avatar = assetManifest.app.studentAvatar;
@@ -28,6 +29,7 @@ export function ContractSetupSheet({
   onCancel: () => void;
   onCreate: () => void;
 }) {
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const [currency, setCurrency] = useState('VND');
   const [allowCancellation, setAllowCancellation] = useState(true);
@@ -40,10 +42,10 @@ export function ContractSetupSheet({
       style={[styles.screen, { paddingTop: Math.max(10, insets.top) }]}
     >
       <View style={styles.header}>
-        <Pressable accessibilityLabel="Đóng cấu hình hợp đồng" accessibilityRole="button" onPress={onCancel} style={styles.headerButton}>
+        <Pressable accessibilityLabel={t('chat.contractSetup.close')} accessibilityRole="button" onPress={onCancel} style={styles.headerButton}>
           <X color={colors.text} size={27} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Cấu hình hợp đồng</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('chat.contractSetup.title')}</Text>
         <View style={[styles.headerButton, styles.headerShield]}>
           <ShieldCheck color={colors.primaryDark} size={25} />
         </View>
@@ -51,34 +53,34 @@ export function ContractSetupSheet({
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <Text style={[styles.description, { color: colors.textSecondary }]}>
-          Thiết lập các điều khoản giao dịch an toàn trước khi gửi cho đối phương.
+          {t('chat.contractSetup.description')}
         </Text>
 
-        <SectionTitle colors={colors} number="1" title="Vật phẩm giao dịch" />
+        <SectionTitle colors={colors} number="1" title={t('chat.contractSetup.tradeItem')} />
         <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
           <View style={styles.credentialHeader}>
             <View style={styles.ticketIcon}><Ticket color={palette.white} size={22} /></View>
             <View style={styles.grow}>
-              <Text style={[styles.strongText, { color: colors.text }]}>Thực chứng vé xem phim</Text>
+              <Text style={[styles.strongText, { color: colors.text }]}>{t('chat.contractSetup.ticketCredential')}</Text>
               <Text style={[styles.subText, { color: colors.textSecondary }]}>CGV Vincom</Text>
             </View>
             <Pressable
               accessibilityRole="button"
-              onPress={() => Alert.alert('Thay đổi vật phẩm', 'Chọn thực chứng khác từ ví của bạn.')}
+              onPress={() => Alert.alert(t('chat.contractSetup.changeItem'), t('chat.contractSetup.changeItemDescription'))}
               style={[styles.outlineButton, { borderColor: colors.border }]}
             >
-              <Text style={[styles.linkText, { color: colors.primaryDark }]}>Thay đổi</Text>
+              <Text style={[styles.linkText, { color: colors.primaryDark }]}>{t('chat.contractSetup.change')}</Text>
               <ChevronRight color={colors.primaryDark} size={16} />
             </Pressable>
           </View>
           <View style={[styles.credentialDetails, { borderColor: colors.border }]}>
-            <DetailRow colors={colors} icon={Ticket} label="Phim:" value="Dune 2" />
-            <DetailRow colors={colors} icon={Clock3} label="Suất chiếu:" value="20:00, 22/06/2024" />
-            <DetailRow colors={colors} icon={MapPin} label="Ghế:" value="A12" />
+            <DetailRow colors={colors} icon={Ticket} label={t('chat.contractSetup.movie')} value="Dune 2" />
+            <DetailRow colors={colors} icon={Clock3} label={t('chat.contractSetup.showtime')} value="20:00, 22/06/2024" />
+            <DetailRow colors={colors} icon={MapPin} label={t('chat.contractSetup.seat')} value="A12" />
           </View>
         </View>
 
-        <SectionTitle colors={colors} number="2" title="Đối ứng thanh toán" />
+        <SectionTitle colors={colors} number="2" title={t('chat.contractSetup.paymentCounterpart')} />
         <View style={[styles.card, styles.paymentCard, { borderColor: colors.border, backgroundColor: colors.surface }]}>
           <View style={[styles.currencyTabs, { borderColor: colors.border }]}>
             {['VND', 'USDT', 'USDC'].map((item) => (
@@ -93,33 +95,33 @@ export function ContractSetupSheet({
             ))}
           </View>
           <View style={[styles.amountField, { borderColor: colors.border }]}>
-            <Text style={[styles.amountLabel, { backgroundColor: colors.surface, color: colors.textSecondary }]}>Số tiền</Text>
+            <Text style={[styles.amountLabel, { backgroundColor: colors.surface, color: colors.textSecondary }]}>{t('chat.contractSetup.amount')}</Text>
             <TextInput defaultValue="450.000" keyboardType="numeric" style={[styles.amountInput, { color: colors.text }]} />
             <Text style={[styles.amountCurrency, { color: colors.textSecondary }]}>{currency}</Text>
           </View>
           <Text style={[styles.hint, { color: colors.textSecondary }]}>
-            Người mua sẽ thanh toán số tiền này khi chấp nhận hợp đồng.
+            {t('chat.contractSetup.paymentHint')}
           </Text>
         </View>
 
-        <SectionTitle colors={colors} number="3" title="Người giao dịch" />
+        <SectionTitle colors={colors} number="3" title={t('chat.contractSetup.participants')} />
         <View style={[styles.participantsCard, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-          <Participant colors={colors} label="Bên gửi" name="Bạn" />
+          <Participant colors={colors} label={t('chat.contractSetup.sender')} name={t('chat.contractSetup.you')} />
           <View style={[styles.swapBadge, { backgroundColor: colors.surfaceMuted }]}><Repeat2 color={colors.primaryDark} size={23} /></View>
-          <Participant colors={colors} label="Bên nhận" name="Minh Anh" recipient />
+          <Participant colors={colors} label={t('chat.contractSetup.receiver')} name="Minh Anh" recipient />
         </View>
 
         <Pressable accessibilityRole="button" onPress={() => setAdvancedOpen((value) => !value)}>
-          <SectionTitle colors={colors} number="4" rightIcon={advancedOpen ? ChevronUp : ChevronDown} title="Cài đặt nâng cao" />
+          <SectionTitle colors={colors} number="4" rightIcon={advancedOpen ? ChevronUp : ChevronDown} title={t('chat.contractSetup.advanced')} />
         </Pressable>
         {advancedOpen ? (
           <View style={[styles.card, styles.advancedCard, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-            <AdvancedRow colors={colors} icon={Clock3} label="Thời hạn phản hồi" value="24 giờ" />
-            <AdvancedRow colors={colors} icon={CalendarDays} label="Hạn hoàn tất giao dịch" value="22/06/2024 · 21:00" />
-            <AdvancedRow colors={colors} icon={Scale} label="Điều kiện thực thi" value="Chỉ thực thi khi cả hai bên chấp nhận" />
+            <AdvancedRow colors={colors} icon={Clock3} label={t('chat.contractSetup.responseDeadline')} value={t('chat.contractSetup.responseDeadlineValue')} />
+            <AdvancedRow colors={colors} icon={CalendarDays} label={t('chat.contractSetup.completionDeadline')} value="22/06/2024 · 21:00" />
+            <AdvancedRow colors={colors} icon={Scale} label={t('chat.contractSetup.executionCondition')} value={t('chat.contractSetup.executionConditionValue')} />
             <View style={styles.advancedRow}>
               <ShieldCheck color={colors.textSecondary} size={19} />
-              <Text style={[styles.advancedLabel, { color: colors.textSecondary }]}>Cho phép hủy trước khi chấp nhận</Text>
+              <Text style={[styles.advancedLabel, { color: colors.textSecondary }]}>{t('chat.contractSetup.allowCancel')}</Text>
               <Switch onValueChange={setAllowCancellation} trackColor={{ false: colors.border, true: colors.primaryDark }} value={allowCancellation} />
             </View>
           </View>
@@ -128,17 +130,17 @@ export function ContractSetupSheet({
         <View style={[styles.infoBanner, { backgroundColor: colors.surfaceMuted, borderColor: colors.secondary }]}>
           <ShieldCheck color={colors.primaryDark} size={24} />
           <Text style={[styles.infoBannerText, { color: colors.textSecondary }]}>
-            Hợp đồng chỉ khóa điều khoản giao dịch. Thực chứng và khoản thanh toán chỉ được xử lý khi các điều kiện được đáp ứng.
+            {t('chat.contractSetup.info')}
           </Text>
         </View>
       </ScrollView>
 
       <View style={[styles.footer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         <Pressable accessibilityRole="button" onPress={onCancel} style={[styles.cancelButton, { borderColor: colors.primaryDark }]}>
-          <Text style={[styles.footerText, { color: colors.primaryDark }]}>Hủy bỏ</Text>
+          <Text style={[styles.footerText, { color: colors.primaryDark }]}>{t('chat.common.cancelButton')}</Text>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={onCreate} style={[styles.createButton, { backgroundColor: colors.primaryDark }]}>
-          <Text style={styles.createText}>Khởi tạo</Text>
+          <Text style={styles.createText}>{t('chat.contractSetup.create')}</Text>
         </Pressable>
       </View>
     </View>
@@ -146,6 +148,7 @@ export function ContractSetupSheet({
 }
 
 function Participant({ colors, label, name, recipient = false }: { colors: AppColors; label: string; name: string; recipient?: boolean }) {
+  const { t } = useI18n();
   return (
     <View style={styles.participant}>
       <Text style={[styles.participantLabel, { color: colors.textSecondary }]}>{label}</Text>
@@ -157,7 +160,7 @@ function Participant({ colors, label, name, recipient = false }: { colors: AppCo
         )}
         <View style={styles.grow}>
           <Text style={[styles.strongText, { color: colors.text }]}>{name}</Text>
-          <View style={styles.verifiedRow}><ShieldCheck color={colors.success} fill={colors.success} size={14} /><Text style={[styles.verifiedText, { color: colors.success }]}>Đã xác minh SSI</Text></View>
+          <View style={styles.verifiedRow}><ShieldCheck color={colors.success} fill={colors.success} size={14} /><Text style={[styles.verifiedText, { color: colors.success }]}>{t('chat.common.verifiedSSI')}</Text></View>
         </View>
       </View>
     </View>

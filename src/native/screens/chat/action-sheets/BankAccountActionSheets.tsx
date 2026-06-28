@@ -4,6 +4,7 @@ import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, Vi
 import Svg, { Path, Polygon } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { demoBankAccounts, type DemoBankId } from '../../../data/demo/chatFlowDemoData';
+import { useI18n } from '../../../i18n';
 import { border, palette, radius, spacing, touchTarget, typography, type AppColors } from '../../../theme';
 
 
@@ -16,6 +17,7 @@ export function AddBankAccountSheet({
   onBack: () => void;
   onSave: (bank: string) => void;
 }) {
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const [bankId, setDemoBankId] = useState<DemoBankId>('tcb');
   const [accountNumber, setAccountNumber] = useState('');
@@ -25,7 +27,7 @@ export function AddBankAccountSheet({
 
   const save = () => {
     if (!accountNumber || !owner.trim()) {
-      Alert.alert('Thiếu thông tin', 'Vui lòng nhập đầy đủ số tài khoản và tên chủ tài khoản.');
+      Alert.alert(t('chat.bank.missingTitle'), t('chat.bank.missingDescription'));
       return;
     }
     onSave(selectedBank.bank);
@@ -37,7 +39,7 @@ export function AddBankAccountSheet({
       testID="screen-add-bank-account"
       style={[styles.screen, { paddingTop: Math.max(10, insets.top) }]}
     >
-      <SheetHeader colors={colors} label="Quay lại danh sách tài khoản" onClose={onBack} title="Thêm số tài khoản" />
+      <SheetHeader colors={colors} label={t('chat.bank.backToList')} onClose={onBack} title={t('chat.bank.addTitle')} />
 
       <ScrollView
         contentContainerStyle={styles.addContent}
@@ -46,28 +48,28 @@ export function AddBankAccountSheet({
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.description, styles.addScreenDescription, { color: colors.textSecondary }]}>
-          Thêm tài khoản ngân hàng để lưu và chia sẻ nhanh trong cuộc trò chuyện.
+          {t('chat.bank.addDescription')}
         </Text>
 
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Nhập từ mã QR có sẵn</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('chat.bank.importQrSection')}</Text>
         <Pressable
           accessibilityRole="button"
-          onPress={() => Alert.alert('Tải ảnh mã QR', 'Chọn ảnh QR ngân hàng từ thư viện để điền nhanh thông tin tài khoản.')}
+          onPress={() => Alert.alert(t('chat.bank.uploadQrTitle'), t('chat.bank.uploadQrAlertDescription'))}
           style={[styles.qrUploadCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
         >
           <View style={[styles.qrUploadIcon, { borderColor: colors.border }]}><QrCode color={colors.primaryDark} size={40} /></View>
           <View style={styles.grow}>
-            <Text style={[styles.qrUploadTitle, { color: colors.text }]}>Tải ảnh mã QR</Text>
-            <Text style={[styles.qrUploadDescription, { color: colors.textSecondary }]}>Tải ảnh lên để điền nhanh thông tin tài khoản</Text>
+            <Text style={[styles.qrUploadTitle, { color: colors.text }]}>{t('chat.bank.uploadQrTitle')}</Text>
+            <Text style={[styles.qrUploadDescription, { color: colors.textSecondary }]}>{t('chat.bank.uploadQrDescription')}</Text>
           </View>
           <View style={[styles.qrUploadButton, { borderColor: colors.border }]}>
-            <Text style={[styles.qrUploadButtonText, { color: colors.primaryDark }]}>Tải lên</Text>
+            <Text style={[styles.qrUploadButtonText, { color: colors.primaryDark }]}>{t('chat.bank.upload')}</Text>
             <ChevronRight color={colors.textSecondary} size={18} />
           </View>
         </Pressable>
 
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Nhập thủ công</Text>
-        <Text style={[styles.label, { color: colors.textSecondary }]}>Chọn ngân hàng</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('chat.bank.manualSection')}</Text>
+        <Text style={[styles.label, { color: colors.textSecondary }]}>{t('chat.bank.chooseBank')}</Text>
         <Pressable
           accessibilityRole="button"
           onPress={() => setBankPickerOpen((value) => !value)}
@@ -99,7 +101,7 @@ export function AddBankAccountSheet({
           </View>
         ) : null}
 
-        <Text style={[styles.label, { color: colors.textSecondary }]}>Chọn nhanh</Text>
+        <Text style={[styles.label, { color: colors.textSecondary }]}>{t('chat.bank.quickChoose')}</Text>
         <View style={styles.bankQuickGrid}>
           {demoBankAccounts.map((bank) => (
             <Pressable
@@ -114,37 +116,37 @@ export function AddBankAccountSheet({
           ))}
         </View>
 
-        <Text style={[styles.label, { color: colors.textSecondary }]}>Số tài khoản</Text>
+        <Text style={[styles.label, { color: colors.textSecondary }]}>{t('chat.bank.accountNumber')}</Text>
         <TextInput
           keyboardType="number-pad"
           onChangeText={(value) => setAccountNumber(value.replace(/\D/g, ''))}
-          placeholder="Nhập số tài khoản"
+          placeholder={t('chat.bank.accountNumberPlaceholder')}
           placeholderTextColor={colors.textSecondary}
           style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
           value={accountNumber}
         />
 
-        <Text style={[styles.label, { color: colors.textSecondary }]}>Chủ tài khoản</Text>
+        <Text style={[styles.label, { color: colors.textSecondary }]}>{t('chat.bank.accountOwner')}</Text>
         <TextInput
           autoCapitalize="characters"
           onChangeText={setOwner}
-          placeholder="Nhập tên chủ tài khoản"
+          placeholder={t('chat.bank.accountOwnerPlaceholder')}
           placeholderTextColor={colors.textSecondary}
           style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
           value={owner}
         />
 
         <SafetyNotice addAccount colors={colors}>
-          Tài khoản này sẽ được lưu trong ví IDPay của bạn để có thể chia sẻ nhanh khi cần.
+          {t('chat.bank.saveNotice')}
         </SafetyNotice>
       </ScrollView>
 
       <View style={[styles.footer, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: Math.max(12, insets.bottom + 8) }]}>
         <Pressable accessibilityRole="button" onPress={onBack} style={[styles.cancelButton, { borderColor: colors.primaryDark }]}>
-          <Text style={[styles.cancelText, { color: colors.primaryDark }]}>Hủy bỏ</Text>
+          <Text style={[styles.cancelText, { color: colors.primaryDark }]}>{t('chat.common.cancelButton')}</Text>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={save} style={[styles.primaryButton, { backgroundColor: colors.primaryDark }]}>
-          <Text style={styles.primaryText}>Lưu tài khoản</Text>
+          <Text style={styles.primaryText}>{t('chat.common.saveAccount')}</Text>
         </Pressable>
       </View>
     </View>
@@ -162,17 +164,18 @@ export function BankAccountSheet({
   onCancel: () => void;
   onShare: (bank: string) => void;
 }) {
+  const { locale, t } = useI18n();
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string>('tcb');
   const accounts = demoBankAccounts.filter((account) =>
-    `${account.bank} ${account.number}`.toLocaleLowerCase('vi').includes(query.trim().toLocaleLowerCase('vi')),
+    `${account.bank} ${account.number}`.toLocaleLowerCase(locale).includes(query.trim().toLocaleLowerCase(locale)),
   );
 
   const share = () => {
     const selected = demoBankAccounts.find((account) => account.id === selectedId);
     if (!selected) {
-      Alert.alert('Chưa chọn tài khoản', 'Vui lòng chọn tài khoản ngân hàng muốn chia sẻ.');
+      Alert.alert(t('chat.bank.noneSelectedTitle'), t('chat.bank.noneSelectedDescription'));
       return;
     }
     onShare(selected.bank);
@@ -184,7 +187,7 @@ export function BankAccountSheet({
       testID="screen-send-bank-account"
       style={[styles.screen, { paddingTop: Math.max(10, insets.top) }]}
     >
-      <SheetHeader colors={colors} label="Đóng gửi số tài khoản" onClose={onCancel} title="Gửi số tài khoản" />
+      <SheetHeader colors={colors} label={t('chat.bank.closeSend')} onClose={onCancel} title={t('chat.bank.sendTitle')} />
 
       <ScrollView
         contentContainerStyle={styles.accountContent}
@@ -193,20 +196,20 @@ export function BankAccountSheet({
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.description, { color: colors.textSecondary }]}>
-          Chọn tài khoản ngân hàng đã lưu để chia sẻ cho đối tác trò chuyện.
+          {t('chat.bank.sendDescription')}
         </Text>
         <View style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Search color={colors.textSecondary} size={23} />
           <TextInput
             onChangeText={setQuery}
-            placeholder="Tìm theo ngân hàng"
+            placeholder={t('chat.bank.searchPlaceholder')}
             placeholderTextColor={colors.textSecondary}
             style={[styles.searchInput, { color: colors.text }]}
             value={query}
           />
         </View>
 
-        <Text style={[styles.savedLabel, { color: colors.textSecondary }]}>Đã lưu {demoBankAccounts.length} tài khoản</Text>
+        <Text style={[styles.savedLabel, { color: colors.textSecondary }]}>{t('chat.bank.savedCount', { count: demoBankAccounts.length })}</Text>
         <View style={styles.list}>
           {accounts.map((account) => {
             const selected = account.id === selectedId;
@@ -240,7 +243,7 @@ export function BankAccountSheet({
           })}
           {!accounts.length ? (
             <View style={[styles.empty, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Không tìm thấy tài khoản phù hợp.</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('chat.bank.noResult')}</Text>
             </View>
           ) : null}
           <Pressable
@@ -252,24 +255,24 @@ export function BankAccountSheet({
               <Plus color={colors.primaryDark} size={25} />
             </View>
             <View style={styles.grow}>
-              <Text style={[styles.addTitle, { color: colors.text }]}>Thêm số tài khoản</Text>
-              <Text style={[styles.addDescription, { color: colors.textSecondary }]}>Liên kết thêm tài khoản ngân hàng mới</Text>
+              <Text style={[styles.addTitle, { color: colors.text }]}>{t('chat.bank.addAccountTitle')}</Text>
+              <Text style={[styles.addDescription, { color: colors.textSecondary }]}>{t('chat.bank.addAccountDescription')}</Text>
             </View>
             <ChevronRight color={colors.textSecondary} size={21} />
           </Pressable>
         </View>
 
         <SafetyNotice colors={colors}>
-          Thông tin này sẽ được gửi trong cuộc trò chuyện để đối tác có thể chuyển khoản cho bạn an toàn và chính xác.
+          {t('chat.bank.shareNotice')}
         </SafetyNotice>
       </ScrollView>
 
       <View style={[styles.footer, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: Math.max(12, insets.bottom + 8) }]}>
         <Pressable accessibilityRole="button" onPress={onCancel} style={[styles.cancelButton, { borderColor: colors.border }]}>
-          <Text style={[styles.cancelText, { color: colors.primaryDark }]}>Hủy bỏ</Text>
+          <Text style={[styles.cancelText, { color: colors.primaryDark }]}>{t('chat.common.cancelButton')}</Text>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={share} style={[styles.primaryButton, { backgroundColor: colors.primaryDark }]}>
-          <Text style={styles.primaryText}>Chia sẻ</Text>
+          <Text style={styles.primaryText}>{t('common.share')}</Text>
         </Pressable>
       </View>
     </View>

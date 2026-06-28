@@ -14,6 +14,7 @@ import {
   INITIAL_PROFILE,
   INITIAL_SETTINGS,
 } from './data/demo/identityDemoData';
+import { translate } from './i18n';
 import type { ActivityLog, AppSettings, Credential, PersonalInfo } from './types';
 
 const STORAGE_KEY = 'identra.native.state.v1';
@@ -74,7 +75,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
         const logs = current.logs.map((log) => {
           if (log.status === 'pending' && log.expiresAt && new Date(log.expiresAt).getTime() <= now) {
             changed = true;
-            return { ...log, status: 'failed' as const, description: 'Thất bại', unread: true, isNew: true };
+            return { ...log, status: 'failed' as const, description: translate(current.settings.language, 'activityLogs.failed'), unread: true, isNew: true };
           }
           return log;
         });

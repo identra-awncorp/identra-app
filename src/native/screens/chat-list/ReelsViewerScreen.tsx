@@ -25,6 +25,7 @@ import {
 import { demoAvatars } from '../../data/demo/chatDemoData';
 import type { ChatPreview } from '../../data/demo/chatDemoData';
 import { type ReelDemoItem } from '../../data/demo/chatListDemoData';
+import { useI18n } from '../../i18n';
 import { styles } from './ChatListStyles';
 
 export function ReelsViewerScreen({
@@ -46,6 +47,7 @@ export function ReelsViewerScreen({
   reels: ReelDemoItem[];
   topInset: number;
 }) {
+  const { t } = useI18n();
   const activeReel = reels[activeIndex] ?? reels[0];
   const avatarSource = contact.avatarSource ?? demoAvatars.catMask;
   const { height, width } = useWindowDimensions();
@@ -271,7 +273,7 @@ export function ReelsViewerScreen({
         <View style={styles.reelsHeaderRow}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Quay lại danh sách trò chuyện"
+            accessibilityLabel={t('chatListExtras.reels.back')}
             hitSlop={8}
             onPress={onClose}
             style={({ pressed }) => [styles.reelsIconButton, { opacity: pressed ? 0.62 : 1 }]}
@@ -292,7 +294,7 @@ export function ReelsViewerScreen({
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Tùy chọn Reels"
+            accessibilityLabel={t('chatListExtras.reels.options')}
             hitSlop={8}
             style={({ pressed }) => [styles.reelsMoreButton, { opacity: pressed ? 0.62 : 1 }]}
           >
@@ -304,13 +306,13 @@ export function ReelsViewerScreen({
           <View style={styles.reelsStoryPlus}>
             <Plus color="#FFFFFF" size={16} strokeWidth={2.2} />
           </View>
-          <Text style={styles.reelsStoryText}>Tin</Text>
+          <Text style={styles.reelsStoryText}>{t('chatListExtras.reels.story')}</Text>
         </View>
       </View>
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Vùng điều khiển Reels"
+        accessibilityLabel={t('chatListExtras.reels.controlArea')}
         onPress={(event) => handleScreenTap(event.nativeEvent.locationX)}
         style={styles.reelsGestureLayer}
         {...panResponder.panHandlers}
@@ -338,24 +340,24 @@ export function ReelsViewerScreen({
       <View style={[styles.reelsBottomBar, { paddingBottom: Math.max(bottomInset, 14) + 8 }]}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Nhắn tin cho ${contact.name}`}
+          accessibilityLabel={t('chatListExtras.reels.messageTo', { name: contact.name })}
           style={({ pressed }) => [styles.reelsReplyInput, { opacity: pressed ? 0.76 : 1 }]}
         >
           <MessageCircle color="#FFFFFF" size={28} strokeWidth={1.9} />
           <Text numberOfLines={1} style={styles.reelsReplyText}>
-            Nhắn tin cho {contact.name}
+            {t('chatListExtras.reels.messageTo', { name: contact.name })}
           </Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Gửi cảm xúc"
+          accessibilityLabel={t('chatListExtras.reels.sendReaction')}
           style={({ pressed }) => [styles.reelsRoundAction, { opacity: pressed ? 0.76 : 1 }]}
         >
           <Smile color="#FFFFFF" size={30} strokeWidth={2.1} />
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Gửi Reels"
+          accessibilityLabel={t('chatListExtras.reels.sendReels')}
           style={({ pressed }) => [styles.reelsRoundAction, { opacity: pressed ? 0.76 : 1 }]}
         >
           <Send color="#FFFFFF" size={29} strokeWidth={2.1} />
@@ -375,8 +377,8 @@ export function ReelsViewerScreen({
         >
           <View style={styles.reelsCommentsGrabber} />
           <View style={styles.reelsCommentsHeader}>
-            <Text style={styles.reelsCommentsTitle}>Bình luận</Text>
-            <Pressable accessibilityRole="button" accessibilityLabel="Đóng bình luận" onPress={closeComments} hitSlop={8}>
+            <Text style={styles.reelsCommentsTitle}>{t('chatListExtras.reels.comments')}</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('chatListExtras.reels.closeComments')} onPress={closeComments} hitSlop={8}>
               <X color="#11172F" size={24} strokeWidth={2} />
             </Pressable>
           </View>
@@ -389,7 +391,7 @@ export function ReelsViewerScreen({
           </View>
           <View style={styles.reelsCommentInput}>
             <MessageCircle color="#5E6885" size={22} strokeWidth={1.9} />
-            <Text style={styles.reelsCommentPlaceholder}>Viết bình luận...</Text>
+            <Text style={styles.reelsCommentPlaceholder}>{t('chatListExtras.reels.commentPlaceholder')}</Text>
           </View>
         </Animated.View>
       ) : null}

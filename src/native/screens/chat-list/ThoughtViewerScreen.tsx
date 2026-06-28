@@ -2,6 +2,7 @@ import { MoreHorizontal, Repeat2, Smile, X } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 import type { ChatPreview } from '../../data/demo/chatDemoData';
 import type { AppColors } from '../../theme';
+import { useI18n } from '../../i18n';
 import { ChatAvatar } from './ChatListAvatar';
 import { styles } from './ChatListStyles';
 
@@ -18,9 +19,10 @@ export function ThoughtViewerScreen({
   onClose: () => void;
   topInset: number;
 }) {
+  const { t } = useI18n();
   const thought = contact.thought ?? '';
-  const authorName = contact.id === 'story' ? 'Bạn' : contact.name;
-  const postedAt = contact.id === 'story' ? 'Vừa xong' : '22 giờ';
+  const authorName = contact.id === 'story' ? t('chatListExtras.thoughtViewer.you') : contact.name;
+  const postedAt = contact.id === 'story' ? t('chatListExtras.thoughtViewer.justNow') : t('chatListExtras.thoughtViewer.hoursAgo', { hours: 22 });
   const bubbleBackgroundColor = contact.thoughtBackgroundColor ?? colors.surface;
   const bubbleTextColor = contact.thoughtTextColor ?? colors.text;
   const reactions = ['😭', '👏', '😮', '🥲', '🔥'];
@@ -53,7 +55,7 @@ export function ThoughtViewerScreen({
         <View style={styles.thoughtViewerHeaderActions}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Tùy chọn suy nghĩ"
+            accessibilityLabel={t('chatListExtras.thoughtViewer.options')}
             style={({ pressed }) => [
               styles.thoughtViewerCircleButton,
               { backgroundColor: colors.surface, opacity: pressed ? 0.68 : 1 },
@@ -63,7 +65,7 @@ export function ThoughtViewerScreen({
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Đóng suy nghĩ"
+            accessibilityLabel={t('chatListExtras.thoughtViewer.close')}
             onPress={onClose}
             style={({ pressed }) => [
               styles.thoughtViewerCircleButton,
@@ -111,7 +113,7 @@ export function ThoughtViewerScreen({
           {reactions.map((reaction) => (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Thả cảm xúc ${reaction}`}
+              accessibilityLabel={t('chatListExtras.thoughtViewer.react', { reaction })}
               key={reaction}
               style={({ pressed }) => [
                 styles.thoughtViewerReactionChip,
@@ -126,7 +128,7 @@ export function ThoughtViewerScreen({
         <View style={styles.thoughtViewerReplyRow}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Chia sẻ lại suy nghĩ"
+            accessibilityLabel={t('chatListExtras.thoughtViewer.reshare')}
             style={({ pressed }) => [
               styles.thoughtViewerShareButton,
               { backgroundColor: colors.surface, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
@@ -137,14 +139,14 @@ export function ThoughtViewerScreen({
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Gửi tin nhắn cho ${authorName}`}
+            accessibilityLabel={t('chatListExtras.thoughtViewer.messageTo', { name: authorName })}
             style={({ pressed }) => [
               styles.thoughtViewerInput,
               { backgroundColor: colors.surface, borderColor: colors.border, opacity: pressed ? 0.78 : 1 },
             ]}
           >
             <Text numberOfLines={1} style={[styles.thoughtViewerInputText, { color: colors.textSecondary }]}>
-              Gửi tin nhắn
+              {t('chatListExtras.thoughtViewer.sendMessage')}
             </Text>
             <View style={[styles.thoughtViewerSmileButton, { backgroundColor: colors.primary }]}>
               <Smile color="#FFFFFF" size={21} strokeWidth={2.2} />
@@ -155,7 +157,7 @@ export function ThoughtViewerScreen({
             {quickReactions.map((reaction) => (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Gửi nhanh ${reaction}`}
+                accessibilityLabel={t('chatListExtras.thoughtViewer.quickSend', { reaction })}
                 key={reaction}
                 style={({ pressed }) => [
                   styles.thoughtViewerQuickReaction,

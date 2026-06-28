@@ -3,6 +3,7 @@ import { Music, Smile, X } from 'lucide-react-native';
 import { Image, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { demoAvatars } from '../../data/demo/chatDemoData';
 import type { AppColors } from '../../theme';
+import { useI18n } from '../../i18n';
 import { styles } from './ChatListStyles';
 
 export function ShareThoughtScreen({
@@ -20,6 +21,7 @@ export function ShareThoughtScreen({
   onSubmit: () => void;
   thought: string;
 }) {
+  const { t } = useI18n();
   const { width } = useWindowDimensions();
   const compactHeader = width < 360;
 
@@ -34,7 +36,7 @@ export function ShareThoughtScreen({
       <View style={styles.shareThoughtHeader}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Đóng chia sẻ suy nghĩ"
+          accessibilityLabel={t('chatListExtras.shareThought.close')}
           hitSlop={8}
           onPress={onClose}
           style={({ pressed }) => [styles.shareThoughtCloseButton, { opacity: pressed ? 0.62 : 1 }]}
@@ -49,11 +51,11 @@ export function ShareThoughtScreen({
             { color: colors.text },
           ]}
         >
-          Chia sẻ suy nghĩ
+          {t('chatListExtras.shareThought.title')}
         </Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Chia sẻ suy nghĩ"
+          accessibilityLabel={t('chatListExtras.shareThought.title')}
           onPress={onSubmit}
           style={({ pressed }) => [
             styles.shareThoughtSubmitButton,
@@ -67,7 +69,7 @@ export function ShareThoughtScreen({
             end={{ x: 1, y: 1 }}
             style={styles.shareThoughtSubmitGradient}
           >
-            <Text style={styles.shareThoughtSubmitText}>Chia sẻ</Text>
+            <Text style={styles.shareThoughtSubmitText}>{t('common.share')}</Text>
           </LinearGradient>
         </Pressable>
       </View>
@@ -78,10 +80,10 @@ export function ShareThoughtScreen({
           <View style={[styles.shareThoughtBubble, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={[styles.shareThoughtCaret, { backgroundColor: colors.primaryDark }]} />
             <TextInput
-              accessibilityLabel="Bạn đang nghĩ gì hôm nay?"
+              accessibilityLabel={t('chatListExtras.shareThought.placeholder')}
               maxLength={60}
               onChangeText={onChangeThought}
-              placeholder="Bạn đang nghĩ gì hôm nay?"
+              placeholder={t('chatListExtras.shareThought.placeholder')}
               placeholderTextColor="#9AA3B8"
               returnKeyType="done"
               selectionColor={colors.primaryDark}
@@ -96,18 +98,18 @@ export function ShareThoughtScreen({
         </View>
 
         <View style={styles.shareThoughtActions}>
-          <ThoughtActionChip colors={colors} icon="music" label="Âm nhạc" />
-          <ThoughtActionChip colors={colors} icon="gif" label="GIF" />
-          <ThoughtActionChip colors={colors} icon="mood" label="Cảm xúc" />
+          <ThoughtActionChip colors={colors} icon="music" label={t('chatListExtras.shareThought.music')} />
+          <ThoughtActionChip colors={colors} icon="gif" label={t('chatListExtras.shareThought.gif')} />
+          <ThoughtActionChip colors={colors} icon="mood" label={t('chatListExtras.shareThought.feeling')} />
         </View>
       </View>
 
       <View style={styles.shareThoughtFooter}>
         <Text style={[styles.shareThoughtHint, { color: colors.textSecondary }]}>
-          Suy nghĩ của bạn sẽ hiển thị với bạn bè trong vòng 24 giờ
+          {t('chatListExtras.shareThought.hint')}
         </Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Thay đổi quyền riêng tư" hitSlop={8}>
-          <Text style={[styles.shareThoughtPrivacy, { color: colors.primaryDark }]}>Thay đổi quyền riêng tư</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('chatListExtras.shareThought.changePrivacy')} hitSlop={8}>
+          <Text style={[styles.shareThoughtPrivacy, { color: colors.primaryDark }]}>{t('chatListExtras.shareThought.changePrivacy')}</Text>
         </Pressable>
       </View>
     </ScrollView>

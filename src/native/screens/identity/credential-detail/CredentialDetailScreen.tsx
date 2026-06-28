@@ -43,6 +43,7 @@ import { assetManifest } from '../../../assets/assetManifest';
 import type { AppColors } from '../../../theme';
 import { border, componentSize, palette, radius, spacing, touchTarget, typography } from '../../../theme';
 import type { AppSettings, Credential, PersonalInfo, SmartContractFeedPost } from '../../../types';
+import { useI18n } from '../../../i18n';
 import {
   notificationItems,
   notificationTabs,
@@ -77,6 +78,7 @@ export function CredentialDetailScreen({
   onBack: () => void;
   onShare: () => void;
 }) {
+  const { t } = useI18n();
   const credentialId = credential.icon === 'graduation' ? 'did:identra:vc:9876abcdef123456' : `did:identra:vc:${credential.id}`;
   const isDegree = credential.icon === 'graduation';
   const detailAttributes = isDegree
@@ -92,9 +94,9 @@ export function CredentialDetailScreen({
       ]
     : credential.attributes.map((attribute) => ({ ...attribute, highlight: false }));
   const statusContent = {
-    verified: { label: 'Đã xác minh', description: 'Thực chứng này đã được xác minh và hợp lệ.', color: colors.success, background: palette.green[100] },
-    pending: { label: 'Đang chờ xác nhận', description: 'Thực chứng này đang chờ được xác minh.', color: colors.warning, background: '#FFF3E8' },
-    expired: { label: 'Đã hết hạn', description: 'Thực chứng này đã hết hạn sử dụng.', color: colors.danger, background: palette.red[100] },
+    verified: { label: t('identity.detail.statuses.verified.label'), description: t('identity.detail.statuses.verified.description'), color: colors.success, background: palette.green[100] },
+    pending: { label: t('identity.detail.statuses.pending.label'), description: t('identity.detail.statuses.pending.description'), color: colors.warning, background: '#FFF3E8' },
+    expired: { label: t('identity.detail.statuses.expired.label'), description: t('identity.detail.statuses.expired.description'), color: colors.danger, background: palette.red[100] },
   }[credential.status];
 
   const copyDid = async () => {
@@ -106,12 +108,12 @@ export function CredentialDetailScreen({
     <ScreenScroll id="screen-credential-detail" colors={colors} contentStyle={styles.detailScreenContent}>
       <AppHeader
         colors={colors}
-        title="Chi tiết thực chứng"
+        title={t('identity.detail.title')}
         onBack={onBack}
         right={
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Chia sẻ thực chứng"
+            accessibilityLabel={t('identity.detail.shareCredential')}
             onPress={onShare}
             style={({ pressed }) => [
               styles.detailShareButton,
@@ -119,7 +121,7 @@ export function CredentialDetailScreen({
             ]}
           >
             <Share2 color={colors.primaryDark} size={18} />
-            <Text style={[styles.detailShareText, { color: colors.primaryDark }]}>Chia sẻ</Text>
+            <Text style={[styles.detailShareText, { color: colors.primaryDark }]}>{t('common.share')}</Text>
           </Pressable>
         }
       />
@@ -140,7 +142,7 @@ export function CredentialDetailScreen({
             <Text style={[styles.detailCredentialIssuer, { color: colors.textSecondary }]}>{credential.issuer}</Text>
             <View style={[styles.detailCategoryPill, { backgroundColor: colors.surfaceMuted }]}>
               <GraduationCap color={colors.primaryDark} size={13} />
-              <Text style={[styles.detailCategoryText, { color: colors.primaryDark }]}>Giáo dục</Text>
+              <Text style={[styles.detailCategoryText, { color: colors.primaryDark }]}>{t('identity.detail.categoryEducation')}</Text>
             </View>
           </View>
           <View style={[styles.detailShieldArt, { backgroundColor: colors.primary }]}>
@@ -150,30 +152,30 @@ export function CredentialDetailScreen({
 
         <View style={[styles.detailDateGrid, { borderTopColor: colors.border, borderBottomColor: colors.border }]}>
           <View style={styles.detailDateColumn}>
-            <Text style={[styles.detailMetaLabel, { color: colors.textSecondary }]}>Ngày cấp</Text>
+            <Text style={[styles.detailMetaLabel, { color: colors.textSecondary }]}>{t('identity.detail.issueDate')}</Text>
             <View style={styles.detailMetaValueRow}>
               <CalendarDays color={colors.textSecondary} size={16} />
               <Text style={[styles.detailMetaValue, { color: colors.text }]}>{credential.issueDate} {credential.time ?? ''}</Text>
             </View>
           </View>
           <View style={[styles.detailDateColumn, styles.detailDateColumnDivider, { borderLeftColor: colors.border }]}>
-            <Text style={[styles.detailMetaLabel, { color: colors.textSecondary }]}>Ngày hết hạn</Text>
+            <Text style={[styles.detailMetaLabel, { color: colors.textSecondary }]}>{t('identity.detail.expiryDate')}</Text>
             <View style={styles.detailMetaValueRow}>
               <CalendarDays color={colors.textSecondary} size={16} />
-              <Text style={[styles.detailMetaValue, { color: colors.text }]}>{credential.expiryDate ?? 'Không có'}</Text>
+              <Text style={[styles.detailMetaValue, { color: colors.text }]}>{credential.expiryDate ?? t('identity.detail.noExpiry')}</Text>
             </View>
           </View>
         </View>
 
-        <Text style={[styles.detailMetaLabel, { color: colors.textSecondary }]}>Mã thực chứng (ID)</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Sao chép mã thực chứng" onPress={copyDid} style={styles.detailIdRow}>
+        <Text style={[styles.detailMetaLabel, { color: colors.textSecondary }]}>{t('identity.detail.credentialId')}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('identity.detail.copyId')} onPress={copyDid} style={styles.detailIdRow}>
           <Text numberOfLines={1} style={[styles.detailIdValue, { color: colors.text }]}>{credentialId}</Text>
           <ClipboardCopy color={colors.textSecondary} size={19} />
         </Pressable>
       </View>
 
       <Card colors={colors} style={styles.detailIssuerCard}>
-        <Text style={[styles.detailCardHeading, { color: colors.text }]}>Tổ chức phát hành</Text>
+        <Text style={[styles.detailCardHeading, { color: colors.text }]}>{t('identity.detail.issuerSection')}</Text>
         <View style={styles.detailIssuerRow}>
           <View style={[styles.detailIssuerLogo, { borderColor: '#C9D8FF', backgroundColor: colors.surfaceMuted }]}>
             <Building2 color={colors.primaryDark} size={29} />
@@ -184,14 +186,14 @@ export function CredentialDetailScreen({
               <CheckCircle2 color={colors.success} fill={colors.success} size={16} />
             </View>
             <Text style={[styles.detailIssuerDescription, { color: colors.textSecondary }]}>
-              Cơ sở giáo dục đại học công lập trực thuộc Bộ Giáo dục và Đào tạo.
+              {t('identity.detail.issuerDescription')}
             </Text>
           </View>
           <ChevronRight color={colors.textSecondary} size={21} />
         </View>
       </Card>
 
-      <Text style={[styles.detailSectionTitle, { color: colors.text }]}>Thông tin chi tiết</Text>
+      <Text style={[styles.detailSectionTitle, { color: colors.text }]}>{t('identity.detail.detailSection')}</Text>
       <Card colors={colors} style={styles.detailAttributeCard}>
         {detailAttributes.map((attribute, index) => (
           <View
@@ -218,21 +220,21 @@ export function CredentialDetailScreen({
       {[
         {
           icon: ShieldCheck,
-          title: 'Xem bằng chứng xác minh',
-          description: 'Xem chi tiết dữ liệu và chữ ký số',
-          message: `Chữ ký số ${credential.signature} đã được xác minh hợp lệ.`,
+          title: t('identity.detail.actions.proofTitle'),
+          description: t('identity.detail.actions.proofDescription'),
+          message: t('identity.detail.actions.proofMessage', { signature: credential.signature }),
         },
         {
           icon: History,
-          title: 'Lịch sử xác minh',
-          description: 'Xem các lần thực chứng này được xác minh',
-          message: `Thực chứng được cấp và xác minh vào ${credential.issueDate} ${credential.time ?? ''}.`,
+          title: t('identity.detail.actions.historyTitle'),
+          description: t('identity.detail.actions.historyDescription'),
+          message: t('identity.detail.actions.historyMessage', { issuedAt: `${credential.issueDate} ${credential.time ?? ''}`.trim() }),
         },
         {
           icon: Info,
-          title: 'Thông tin kỹ thuật',
-          description: 'Xem thông tin kỹ thuật của thực chứng',
-          message: `DID đơn vị phát hành: ${credential.didIssuer}`,
+          title: t('identity.detail.actions.technicalTitle'),
+          description: t('identity.detail.actions.technicalDescription'),
+          message: t('identity.detail.actions.technicalMessage', { did: credential.didIssuer }),
         },
       ].map(({ icon: Icon, title, description, message }) => (
         <Pressable

@@ -12,12 +12,25 @@ export default function SettingsSharingRoute() {
     <ConfigurableSettingsListScreen
       colors={colors}
       id="screen-settings-sharing"
-      title="Quyền chia sẻ dữ liệu"
-      description="Kiểm soát cách dữ liệu của bạn được chia sẻ với các bên thứ ba."
+      titleKey="settings.configurable.sharingTitle"
+      descriptionKey="settings.configurable.sharingDescription"
       rows={[
-        { icon: UserCheck, title: 'Luôn yêu cầu xác nhận', description: 'Xác nhận trước mỗi lần chia sẻ dữ liệu' },
-        { icon: Share2, title: 'Ghi lại lịch sử chia sẻ', description: 'Lưu thông tin các lần chia sẻ trong Hoạt động' },
-        { icon: BellRing, title: 'Nhắc quyền truy cập', description: 'Nhắc xem lại quyền truy cập định kỳ', defaultValue: false },
+        {
+          icon: UserCheck,
+          titleKey: 'settings.configurable.alwaysConfirmTitle',
+          descriptionKey: 'settings.configurable.alwaysConfirmDescription',
+        },
+        {
+          icon: Share2,
+          titleKey: 'settings.configurable.shareHistoryTitle',
+          descriptionKey: 'settings.configurable.shareHistoryDescription',
+        },
+        {
+          icon: BellRing,
+          titleKey: 'settings.configurable.accessReminderTitle',
+          descriptionKey: 'settings.configurable.accessReminderDescription',
+          defaultValue: false,
+        },
       ]}
       onBack={() => router.replace('/settings')}
     />

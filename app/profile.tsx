@@ -4,10 +4,12 @@ import { ProfileScreen } from '@/screens/identity';
 import { useAppStore } from '@/store';
 import { getPathForScreen } from '@/app/navigation/navigationConfig';
 import { useAppRouterState } from '@/app/router/AppRouterContext';
+import { useI18n } from '@/i18n';
 
 export default function ProfileRoute() {
   const router = useRouter();
   const store = useAppStore();
+  const { t } = useI18n();
   const { colors, returnScreen } = useAppRouterState();
 
   return (
@@ -17,7 +19,12 @@ export default function ProfileRoute() {
       onBack={() => router.replace('/wallet')}
       onSave={(profile) => {
         store.updateProfile(profile);
-        store.addLog('Cập nhật hồ sơ', 'Thông tin cá nhân trong ví đã được cập nhật.', 'Hệ thống Identra', 'security');
+        store.addLog(
+          t('activityLogs.profileUpdateTitle'),
+          t('activityLogs.profileUpdateDescription'),
+          t('activityLogs.systemPartner'),
+          'security',
+        );
         router.replace(getPathForScreen(returnScreen));
       }}
     />

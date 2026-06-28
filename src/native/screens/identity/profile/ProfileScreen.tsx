@@ -43,6 +43,7 @@ import { assetManifest } from '../../../assets/assetManifest';
 import type { AppColors } from '../../../theme';
 import { border, componentSize, palette, radius, spacing, touchTarget, typography } from '../../../theme';
 import type { AppSettings, Credential, PersonalInfo, SmartContractFeedPost } from '../../../types';
+import { useI18n } from '../../../i18n';
 import {
   notificationItems,
   notificationTabs,
@@ -75,19 +76,20 @@ export function ProfileScreen({
   onBack: () => void;
   onSave: (profile: PersonalInfo) => void;
 }) {
+  const { t } = useI18n();
   const [draft, setDraft] = useState(profile);
   const fields: Array<{ key: keyof PersonalInfo; label: string; icon: typeof UserRound; keyboard?: 'email-address' | 'phone-pad' }> = [
-    { key: 'fullName', label: 'Họ và tên', icon: UserRound },
-    { key: 'dob', label: 'Ngày sinh', icon: UserRound },
-    { key: 'nationalId', label: 'Số CCCD', icon: LockKeyhole },
-    { key: 'email', label: 'Email', icon: Mail, keyboard: 'email-address' },
-    { key: 'phone', label: 'Số điện thoại', icon: Phone, keyboard: 'phone-pad' },
-    { key: 'address', label: 'Địa chỉ', icon: MapPin },
+    { key: 'fullName', label: t('identity.profile.fields.fullName'), icon: UserRound },
+    { key: 'dob', label: t('identity.profile.fields.dob'), icon: UserRound },
+    { key: 'nationalId', label: t('identity.profile.fields.nationalId'), icon: LockKeyhole },
+    { key: 'email', label: t('identity.profile.fields.email'), icon: Mail, keyboard: 'email-address' },
+    { key: 'phone', label: t('identity.profile.fields.phone'), icon: Phone, keyboard: 'phone-pad' },
+    { key: 'address', label: t('identity.profile.fields.address'), icon: MapPin },
   ];
 
   return (
     <ScreenScroll id="screen-personal-profile" colors={colors}>
-      <AppHeader colors={colors} title="Thông tin cá nhân" onBack={onBack} />
+      <AppHeader colors={colors} title={t('identity.profile.title')} onBack={onBack} />
       <View style={styles.profileHero}>
         <View style={[styles.profileAvatar, { backgroundColor: colors.primaryDark }]}>
           <UserRound color={palette.white} size={38} />
@@ -111,7 +113,7 @@ export function ProfileScreen({
           </View>
         ))}
       </Card>
-      <PrimaryButton colors={colors} title="Lưu thay đổi" onPress={() => onSave(draft)} />
+      <PrimaryButton colors={colors} title={t('identity.profile.save')} onPress={() => onSave(draft)} />
     </ScreenScroll>
   );
 }

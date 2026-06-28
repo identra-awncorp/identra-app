@@ -13,6 +13,7 @@ import { useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useI18n } from '../../../i18n';
 import { border, palette, radius, spacing, touchTarget, typography, type AppColors } from '../../../theme';
 import { formatAmount, parseRawAmount, type PaymentUnit } from '../paymentUtils';
 
@@ -25,6 +26,7 @@ export function PaymentQrSheet({
   onCancel: () => void;
   onShare: () => void;
 }) {
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [rawAmount, setRawAmount] = useState(0);
@@ -50,16 +52,16 @@ export function PaymentQrSheet({
       style={[styles.screen, { paddingTop: Math.max(10, insets.top) }]}
     >
       <View style={styles.header}>
-        <Pressable accessibilityLabel="Đóng QR chuyển khoản" accessibilityRole="button" onPress={onCancel} style={styles.headerButton}>
+        <Pressable accessibilityLabel={t('chat.paymentQr.close')} accessibilityRole="button" onPress={onCancel} style={styles.headerButton}>
           <X color={colors.text} size={27} />
         </Pressable>
-        <Text style={[styles.title, { color: colors.text }]}>QR chuyển khoản</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{t('chat.paymentQr.title')}</Text>
         <View style={[styles.headerButton, styles.headerShield]}><ShieldCheck color={colors.primaryDark} size={25} /></View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <Text style={[styles.description, { color: colors.textSecondary }]}>
-          Tạo mã QR để người khác quét và thanh toán qua IDPay.
+          {t('chat.paymentQr.description')}
         </Text>
 
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -73,7 +75,7 @@ export function PaymentQrSheet({
                 <Text style={[styles.provider, { color: colors.textSecondary }]}>IDPay by Identra</Text>
                 <ShieldCheck color={colors.primaryDark} size={15} />
               </View>
-              <Pressable accessibilityLabel="Sao chép IDPay" accessibilityRole="button" onPress={() => Alert.alert('Đã sao chép', 'idpay:minhanh')} style={styles.idRow}>
+              <Pressable accessibilityLabel={t('chat.paymentQr.copyIdPay')} accessibilityRole="button" onPress={() => Alert.alert(t('chat.common.copied'), 'idpay:minhanh')} style={styles.idRow}>
                 <Text style={[styles.id, { color: colors.textSecondary }]}>idpay:minhanh</Text>
                 <ClipboardCopy color={colors.textSecondary} size={15} />
               </Pressable>
@@ -100,23 +102,23 @@ export function PaymentQrSheet({
           <View style={[styles.info, { backgroundColor: colors.surfaceMuted }]}>
             <Info color={colors.primaryDark} size={22} />
             <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-              QR này dùng để nhận thanh toán qua IDPay. Có thể thanh toán bằng VND hoặc Plan A.
+              {t('chat.paymentQr.info')}
             </Text>
           </View>
         </View>
 
-        <Text style={[styles.fieldLabel, { color: colors.text }]}>Số tiền yêu cầu (tùy chọn)</Text>
+        <Text style={[styles.fieldLabel, { color: colors.text }]}>{t('chat.paymentQr.amountLabel')}</Text>
         <View style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <CircleDollarSign color={colors.primaryDark} size={20} />
           <TextInput
             keyboardType="numeric"
             onChangeText={(value) => setRawAmount(parseRawAmount(value))}
-            placeholder="Nhập số tiền"
+            placeholder={t('chat.paymentQr.amountPlaceholder')}
             placeholderTextColor={colors.textSecondary}
             style={[styles.inputText, { color: colors.text }]}
             value={formatAmount(rawAmount)}
           />
-          <Pressable accessibilityLabel="Chọn đơn vị thanh toán" accessibilityRole="button" onPress={() => setUnitPickerOpen((value) => !value)} style={styles.unitButton}>
+          <Pressable accessibilityLabel={t('chat.paymentQr.chooseUnit')} accessibilityRole="button" onPress={() => setUnitPickerOpen((value) => !value)} style={styles.unitButton}>
             <Text style={[styles.inputSuffix, { color: colors.text }]}>{paymentUnit}</Text>
             <ChevronDown color={colors.text} size={18} />
           </Pressable>
@@ -139,15 +141,15 @@ export function PaymentQrSheet({
             ))}
           </View>
         ) : null}
-        <Text style={[styles.fieldHint, { color: colors.textSecondary }]}>Để trống nếu bạn không muốn đặt số tiền cố định.</Text>
+        <Text style={[styles.fieldHint, { color: colors.textSecondary }]}>{t('chat.paymentQr.amountHint')}</Text>
 
-        <Text style={[styles.fieldLabel, { color: colors.text }]}>Nội dung chuyển khoản (tùy chọn)</Text>
+        <Text style={[styles.fieldLabel, { color: colors.text }]}>{t('chat.paymentQr.noteLabel')}</Text>
         <View style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Info color={colors.primaryDark} size={20} />
           <TextInput
             maxLength={100}
             onChangeText={setNote}
-            placeholder="Nhập nội dung (ví dụ: Thanh toán vé Dune 2)"
+            placeholder={t('chat.paymentQr.notePlaceholder')}
             placeholderTextColor={colors.textSecondary}
             style={[styles.inputText, { color: colors.text }]}
             value={note}
@@ -155,12 +157,12 @@ export function PaymentQrSheet({
           <Text style={[styles.counter, { color: colors.textSecondary }]}>{note.length}/100</Text>
         </View>
 
-        <Text style={[styles.fieldLabel, { color: colors.text }]}>Cài đặt khác</Text>
+        <Text style={[styles.fieldLabel, { color: colors.text }]}>{t('chat.paymentQr.otherSettings')}</Text>
         <Pressable accessibilityRole="button" onPress={() => setExpiryPickerOpen((value) => !value)} style={[styles.setting, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <TimerReset color={colors.primaryDark} size={21} />
           <View style={styles.grow}>
-            <Text style={[styles.settingTitle, { color: colors.text }]}>Thời hạn mã QR</Text>
-            <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>Mã QR sẽ hết hạn sau {expiryHours} giờ</Text>
+            <Text style={[styles.settingTitle, { color: colors.text }]}>{t('chat.paymentQr.expiryTitle')}</Text>
+            <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>{t('chat.paymentQr.expiryDescription', { hours: expiryHours })}</Text>
           </View>
           <ChevronDown color={colors.textSecondary} size={19} />
         </Pressable>
@@ -176,7 +178,7 @@ export function PaymentQrSheet({
                 }}
                 style={[styles.expiryOption, hours === expiryHours && { backgroundColor: colors.surfaceMuted, borderColor: colors.primaryDark }]}
               >
-                <Text style={[styles.expiryOptionText, { color: hours === expiryHours ? colors.primaryDark : colors.text }]}>{hours} giờ</Text>
+                <Text style={[styles.expiryOptionText, { color: hours === expiryHours ? colors.primaryDark : colors.text }]}>{t('chat.paymentQr.hours', { hours })}</Text>
               </Pressable>
             ))}
           </View>
@@ -185,9 +187,9 @@ export function PaymentQrSheet({
         <View style={[styles.warning, { backgroundColor: colors.surfaceMuted }]}>
           <Info color={colors.primaryDark} size={22} />
           <View style={styles.grow}>
-            <Text style={[styles.warningTitle, { color: colors.text }]}>Lưu ý</Text>
+            <Text style={[styles.warningTitle, { color: colors.text }]}>{t('chat.paymentQr.warningTitle')}</Text>
             <Text style={[styles.warningText, { color: colors.textSecondary }]}>
-              Chỉ chia sẻ mã QR này với người bạn tin tưởng. Không chia sẻ công khai để tránh rủi ro.
+              {t('chat.paymentQr.warningText')}
             </Text>
           </View>
         </View>
@@ -195,11 +197,11 @@ export function PaymentQrSheet({
 
       <View style={[styles.footer, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: Math.max(12, insets.bottom + 8) }]}>
         <Pressable accessibilityRole="button" onPress={onCancel} style={[styles.cancelButton, { borderColor: colors.border }]}>
-          <Text style={[styles.cancelText, { color: colors.text }]}>Hủy bỏ</Text>
+          <Text style={[styles.cancelText, { color: colors.text }]}>{t('chat.common.cancelButton')}</Text>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={onShare} style={[styles.shareButton, { backgroundColor: colors.primaryDark }]}>
           <Share2 color={palette.white} size={21} />
-          <Text style={styles.shareText}>Chia sẻ QR</Text>
+          <Text style={styles.shareText}>{t('chat.paymentQr.shareQr')}</Text>
         </Pressable>
       </View>
     </View>

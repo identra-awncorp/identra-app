@@ -26,6 +26,7 @@ import {
 import type { AppColors } from '../../theme';
 import { border, palette, radius, shadows, spacing, typography } from '../../theme';
 import { AppBrandLogo } from '../../components/AppLogo';
+import { useI18n } from '../../i18n';
 
 interface Props {
   colors: AppColors;
@@ -41,45 +42,44 @@ interface SlideData {
   illustration: 'control' | 'finance' | 'connection' | 'identity';
 }
 
-const slides: SlideData[] = [
-  {
-    id: 'control',
-    accent: 'Kiểm soát',
-    title: ' dữ liệu\ncủa bạn',
-    description: 'Tập trung tất cả thông tin tài chính và giấy tờ quan trọng của bạn tại một nơi an toàn.',
-    illustration: 'control',
-  },
-  {
-    id: 'finance',
-    accent: 'Thanh toán',
-    title: ' liền mạch\nvới IDPay',
-    description: 'Gửi, nhận và thanh toán bằng VNĐ hoặc Plan A ngay trong Identra. Nhanh chóng, an toàn và gắn liền với danh tính số đã xác minh.',
-    illustration: 'finance',
-  },
-  {
-    id: 'connection',
-    accent: 'Kết nối',
-    title: ' bảo mật,\nmã hóa đầu cuối',
-    description:
-      'Thiết lập kết nối SSI an toàn và trao đổi dữ liệu riêng tư bằng cơ chế mã hóa đầu cuối, giúp chỉ bên được cấp quyền mới có thể xem thông tin.',
-    illustration: 'connection',
-  },
-  {
-    id: 'identity',
-    accent: 'Trao đổi',
-    title: ' tin cậy với\nhợp đồng thông minh',
-    description: 'Thiết lập điều khoản, trao đổi tài sản và tự động thực thi thỏa thuận khi mọi điều kiện được đáp ứng. Minh bạch, an toàn và không cần bên trung gian.',
-    illustration: 'identity',
-  },
-];
-
 export function OnboardingScreen({ colors, onRegister, onLogin }: Props) {
+  const { t } = useI18n();
   const { width, height } = useWindowDimensions();
   const viewportWidth = Math.min(width, 430);
   const actionWidth = Math.max(viewportWidth - 48, 0);
   const compact = height < 720;
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
+  const slides: SlideData[] = [
+    {
+      id: 'control',
+      accent: t('onboarding.slides.control.accent'),
+      title: t('onboarding.slides.control.title'),
+      description: t('onboarding.slides.control.description'),
+      illustration: 'control',
+    },
+    {
+      id: 'finance',
+      accent: t('onboarding.slides.finance.accent'),
+      title: t('onboarding.slides.finance.title'),
+      description: t('onboarding.slides.finance.description'),
+      illustration: 'finance',
+    },
+    {
+      id: 'connection',
+      accent: t('onboarding.slides.connection.accent'),
+      title: t('onboarding.slides.connection.title'),
+      description: t('onboarding.slides.connection.description'),
+      illustration: 'connection',
+    },
+    {
+      id: 'identity',
+      accent: t('onboarding.slides.identity.accent'),
+      title: t('onboarding.slides.identity.title'),
+      description: t('onboarding.slides.identity.description'),
+      illustration: 'identity',
+    },
+  ];
   const handleScroll = Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
     useNativeDriver: true,
     listener: (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -139,7 +139,7 @@ export function OnboardingScreen({ colors, onRegister, onLogin }: Props) {
         ))}
       </Animated.ScrollView>
       <View style={[styles.footer, compact && styles.footerCompact]}>
-        <View accessibilityLabel={`Trang ${activeIndex + 1} trên ${slides.length}`} style={styles.indicators}>
+        <View accessibilityLabel={t('onboarding.pageIndicator', { current: activeIndex + 1, total: slides.length })} style={styles.indicators}>
           {slides.map((item, indicatorIndex) => {
             const inputRange = [
               (indicatorIndex - 1) * viewportWidth,
@@ -184,11 +184,11 @@ export function OnboardingScreen({ colors, onRegister, onLogin }: Props) {
             ]}
           >
             <View style={[styles.actionPanel, { width: actionWidth }]}>
-              <Text style={[styles.swipeHint, { color: colors.textSecondary }]}>Vuốt để khám phá</Text>
+              <Text style={[styles.swipeHint, { color: colors.textSecondary }]}>{t('onboarding.swipeHint')}</Text>
             </View>
             <View style={[styles.actionPanel, styles.ctaPanel, { width: actionWidth }]}>
-              <OnboardingButton title="Đăng ký" colors={colors} onPress={onRegister} />
-              <OnboardingButton title="Đăng nhập" colors={colors} onPress={onLogin} secondary />
+              <OnboardingButton title={t('onboarding.register')} colors={colors} onPress={onRegister} />
+              <OnboardingButton title={t('onboarding.login')} colors={colors} onPress={onLogin} secondary />
             </View>
           </Animated.View>
         </View>
@@ -230,12 +230,13 @@ function Illustration({
 }
 
 function ControlIllustration({ colors, compact }: { colors: AppColors; compact: boolean }) {
+  const { t } = useI18n();
   return (
     <View style={[styles.orbit, compact && styles.orbitCompact, { borderColor: `${colors.primaryDark}2C` }]}>
-      <FeatureCard colors={colors} style={styles.featureTopLeft} icon={Landmark} label="Ngân hàng" />
-      <FeatureCard colors={colors} style={styles.featureTopRight} icon={WalletCards} label="Ví điện tử" />
-      <FeatureCard colors={colors} style={styles.featureBottomLeft} icon={ShieldCheck} label="Bảo hiểm" />
-      <FeatureCard colors={colors} style={styles.featureBottomRight} icon={TrendingUp} label="Đầu tư" />
+      <FeatureCard colors={colors} style={styles.featureTopLeft} icon={Landmark} label={t('onboarding.features.bank')} />
+      <FeatureCard colors={colors} style={styles.featureTopRight} icon={WalletCards} label={t('onboarding.features.eWallet')} />
+      <FeatureCard colors={colors} style={styles.featureBottomLeft} icon={ShieldCheck} label={t('onboarding.features.insurance')} />
+      <FeatureCard colors={colors} style={styles.featureBottomRight} icon={TrendingUp} label={t('onboarding.features.investment')} />
       <View style={[styles.heroShieldHalo, { backgroundColor: `${colors.primaryDark}0D` }]}>
         <LinearGradient colors={['#8BA5FF', colors.primaryDark]} style={styles.heroShield}>
           <ShieldCheck color="#FFFFFF" size={compact ? 82 : 98} strokeWidth={1.6} />
@@ -250,15 +251,16 @@ function ControlIllustration({ colors, compact }: { colors: AppColors; compact: 
 }
 
 function FinanceIllustration({ colors, compact }: { colors: AppColors; compact: boolean }) {
+  const { t } = useI18n();
   return (
     <View style={[styles.orbit, compact && styles.orbitCompact, { borderColor: `${colors.primaryDark}2C` }]}>
       <FloatingIcon colors={colors} style={styles.floatLeft} icon={ShieldCheck} />
       <FloatingIcon colors={colors} style={styles.floatRight} icon={BarChart3} />
       <FloatingIcon colors={colors} style={styles.floatBottomRight} icon={LockKeyhole} />
       <Phone colors={colors} compact={compact}>
-        <Text style={[styles.phoneTitle, { color: colors.text }]}>Ví điện tử</Text>
+        <Text style={[styles.phoneTitle, { color: colors.text }]}>{t('onboarding.finance.walletTitle')}</Text>
         <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Số dư ví</Text>
+          <Text style={styles.balanceLabel}>{t('onboarding.finance.balanceLabel')}</Text>
           <Text style={styles.balanceValue}>2.560.000 đ</Text>
         </LinearGradient>
         <View style={styles.phoneActions}>
@@ -268,8 +270,8 @@ function FinanceIllustration({ colors, compact }: { colors: AppColors; compact: 
             </View>
           ))}
         </View>
-        <Text style={[styles.phoneSection, { color: colors.text }]}>Giao dịch gần đây</Text>
-        {['Chuyển tiền đến Mai Anh', 'Nhận tiền từ Minh Tuấn', 'Thanh toán dịch vụ'].map((label, index) => (
+        <Text style={[styles.phoneSection, { color: colors.text }]}>{t('onboarding.finance.recentTransactions')}</Text>
+        {[t('onboarding.finance.transferTo'), t('onboarding.finance.receiveFrom'), t('onboarding.finance.servicePayment')].map((label, index) => (
           <View key={label} style={styles.transaction}>
             <View style={[styles.transactionDot, { backgroundColor: index === 1 ? colors.success : colors.primary }]} />
             <View style={styles.transactionCopy}>
@@ -287,25 +289,26 @@ function FinanceIllustration({ colors, compact }: { colors: AppColors; compact: 
 }
 
 function ConnectionIllustration({ colors, compact }: { colors: AppColors; compact: boolean }) {
+  const { t } = useI18n();
   return (
     <View style={[styles.orbit, compact && styles.orbitCompact, { borderColor: `${colors.primaryDark}34` }]}>
-      <FeatureCard colors={colors} style={styles.featureTopLeft} icon={ShieldCheck} label="Kết nối an toàn" />
-      <FeatureCard colors={colors} style={styles.featureTopRight} icon={LockKeyhole} label="Mã hóa đầu cuối" />
-      <FeatureCard colors={colors} style={styles.featureBottomRight} icon={MessageSquareText} label="Trao đổi riêng tư" />
+      <FeatureCard colors={colors} style={styles.featureTopLeft} icon={ShieldCheck} label={t('onboarding.features.secureConnection')} />
+      <FeatureCard colors={colors} style={styles.featureTopRight} icon={LockKeyhole} label={t('onboarding.features.endToEndEncryption')} />
+      <FeatureCard colors={colors} style={styles.featureBottomRight} icon={MessageSquareText} label={t('onboarding.features.privateExchange')} />
       <Phone colors={colors} compact={compact}>
         <Text style={[styles.connectionPill, { color: colors.primaryDark, backgroundColor: colors.surfaceMuted }]}>
-          Kết nối bảo mật
+          {t('onboarding.connection.secureConnection')}
         </Text>
-        <Text style={[styles.phoneTitle, { color: colors.text }]}>Kết nối với tôi</Text>
+        <Text style={[styles.phoneTitle, { color: colors.text }]}>{t('onboarding.connection.connectWithMe')}</Text>
         <View style={[styles.qrCard, { borderColor: colors.border, backgroundColor: colors.surface }]}>
           <QrPattern colors={colors} />
-          <Text style={[styles.qrCaption, { color: colors.text }]}>Quét mã để kết nối</Text>
+          <Text style={[styles.qrCaption, { color: colors.text }]}>{t('onboarding.connection.scanToConnect')}</Text>
         </View>
         <View style={[styles.encryptionCard, { backgroundColor: colors.surfaceMuted }]}>
           <ShieldCheck color={colors.primaryDark} size={20} />
           <View>
-            <Text style={[styles.encryptionTitle, { color: colors.text }]}>Mã hóa đầu cuối</Text>
-            <Text style={[styles.encryptionText, { color: colors.textSecondary }]}>Chỉ bạn và đối tác có thể xem</Text>
+            <Text style={[styles.encryptionTitle, { color: colors.text }]}>{t('onboarding.connection.endToEndEncryption')}</Text>
+            <Text style={[styles.encryptionText, { color: colors.textSecondary }]}>{t('onboarding.connection.onlyParticipantsCanView')}</Text>
           </View>
           <Check color={colors.success} size={18} />
         </View>
@@ -316,6 +319,7 @@ function ConnectionIllustration({ colors, compact }: { colors: AppColors; compac
 }
 
 function IdentityIllustration({ colors, compact }: { colors: AppColors; compact: boolean }) {
+  const { t } = useI18n();
   return (
     <View style={[styles.orbit, compact && styles.orbitCompact, { borderColor: `${colors.primaryDark}2C` }]}>
       <FloatingIcon colors={colors} style={styles.floatLeft} icon={UserRound} />
@@ -326,9 +330,9 @@ function IdentityIllustration({ colors, compact }: { colors: AppColors; compact:
           <AppBrandLogo colors={colors} logoSize={26} wordmarkSize={15} />
         </View>
         {[
-          { icon: ShieldCheck, title: 'Bảo mật tuyệt đối' },
-          { icon: UserRound, title: 'Kiểm soát toàn diện' },
-          { icon: Check, title: 'Xác thực tin cậy' },
+          { icon: ShieldCheck, title: t('onboarding.features.absoluteSecurity') },
+          { icon: UserRound, title: t('onboarding.features.fullControl') },
+          { icon: Check, title: t('onboarding.features.trustedVerification') },
         ].map((item) => {
           const Icon = item.icon;
           return (

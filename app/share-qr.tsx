@@ -5,7 +5,7 @@ import { useAppRouterState } from '@/app/router/AppRouterContext';
 
 export default function ShareQrRoute() {
   const router = useRouter();
-  const { colors, setSelectedCredential, setSharePayload, sharePayload } = useAppRouterState();
+  const { colors, setSharePayload, sharePayload } = useAppRouterState();
 
   if (!sharePayload) return <Redirect href="/wallet" />;
 
@@ -14,10 +14,11 @@ export default function ShareQrRoute() {
       colors={colors}
       credential={sharePayload.credential}
       attributes={sharePayload.attributes}
-      onBack={() => router.replace('/share')}
+      onBack={() =>
+        router.replace({ pathname: '/share', params: { credentialId: sharePayload.credential.id } })
+      }
       onCancel={() => {
         setSharePayload(null);
-        setSelectedCredential(null);
         router.replace('/activity');
       }}
     />

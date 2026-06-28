@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppBrandLogo } from '../../components/AppLogo';
 import { IconButton, ScreenScroll } from '../../components/AppUiPrimitives';
+import { useI18n } from '../../i18n';
 import type { AppColors } from '../../theme';
 import { border, palette, radius, spacing, typography } from '../../theme';
 
@@ -29,6 +30,7 @@ export function QrScannerScreen({
   onOpenMyQr: () => void;
   onOpenChat: () => void;
 }) {
+  const { t } = useI18n();
   const [permission, requestPermission] = useCameraPermissions();
   const [torchEnabled, setTorchEnabled] = useState(false);
   const [zoom, setZoom] = useState(0);
@@ -42,25 +44,25 @@ export function QrScannerScreen({
   }, [permission, requestPermission]);
 
   const showPendingMessage = (title: string) => {
-    Alert.alert(title, 'Tính năng này sẽ được hoàn thiện trong phiên bản tiếp theo.');
+    Alert.alert(title, t('scan.pendingDescription'));
   };
 
   return (
     <ScreenScroll id="screen-scanner" colors={colors} contentStyle={styles.screenContent}>
       <View style={styles.brandHeader}>
-        <IconButton label="Mở menu" colors={colors}>
+        <IconButton label={t('scan.openMenu')} colors={colors}>
           <Menu color={colors.text} size={26} />
         </IconButton>
         <AppBrandLogo colors={colors} style={styles.brandLogo} />
-        <IconButton label="Mở Chat" colors={colors} onPress={onOpenChat}>
+        <IconButton label={t('scan.openChat')} colors={colors} onPress={onOpenChat}>
           <MessageCircle color={colors.text} size={25} />
         </IconButton>
       </View>
 
       <View style={styles.intro}>
-        <Text style={[styles.title, { color: colors.text }]}>Quét mã QR</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{t('scan.title')}</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Quét mã QR để xác minh và chia sẻ thông tin
+          {t('scan.subtitle')}
         </Text>
       </View>
 
@@ -70,15 +72,15 @@ export function QrScannerScreen({
         ) : (
           <View style={styles.permissionFallback}>
             <ScanLine color={palette.white} size={48} strokeWidth={1.6} />
-            <Text style={styles.permissionTitle}>Cho phép truy cập camera</Text>
-            <Text style={styles.permissionText}>Camera được dùng để hiển thị mã QR trong khung quét.</Text>
+            <Text style={styles.permissionTitle}>{t('scan.permissionTitle')}</Text>
+            <Text style={styles.permissionText}>{t('scan.permissionDescription')}</Text>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Cho phép truy cập camera"
+              accessibilityLabel={t('scan.permissionTitle')}
               onPress={() => void requestPermission()}
               style={({ pressed }) => [styles.permissionButton, { opacity: pressed ? 0.72 : 1 }]}
             >
-              <Text style={styles.permissionButtonText}>Mở camera</Text>
+              <Text style={styles.permissionButtonText}>{t('scan.openCamera')}</Text>
             </Pressable>
           </View>
         )}
@@ -86,7 +88,7 @@ export function QrScannerScreen({
         <View pointerEvents="box-none" style={styles.cameraOverlay}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={torchEnabled ? 'Tắt đèn pin' : 'Bật đèn pin'}
+            accessibilityLabel={torchEnabled ? t('scan.torchOff') : t('scan.torchOn')}
             onPress={() => setTorchEnabled((current) => !current)}
             style={({ pressed }) => [
               styles.torchButton,
@@ -95,7 +97,7 @@ export function QrScannerScreen({
             ]}
           >
             <Flashlight color={palette.white} size={19} fill={torchEnabled ? palette.white : 'none'} />
-            <Text style={styles.torchText}>{torchEnabled ? 'Tắt đèn pin' : 'Bật đèn pin'}</Text>
+            <Text style={styles.torchText}>{torchEnabled ? t('scan.torchOff') : t('scan.torchOn')}</Text>
           </Pressable>
 
           <View pointerEvents="none" style={styles.scannerFrame}>
@@ -109,7 +111,7 @@ export function QrScannerScreen({
           <View style={styles.zoomControl}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Thu nhỏ camera"
+              accessibilityLabel={t('scan.zoomOut')}
               onPress={() => setZoom((current) => Math.max(0, current - 0.1))}
               style={({ pressed }) => [styles.zoomButton, { opacity: pressed ? 0.6 : 1 }]}
             >
@@ -118,7 +120,7 @@ export function QrScannerScreen({
             <Text style={styles.zoomText}>{(1 + zoom * 4).toFixed(1)}x</Text>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Phóng to camera"
+              accessibilityLabel={t('scan.zoomIn')}
               onPress={() => setZoom((current) => Math.min(1, current + 0.1))}
               style={({ pressed }) => [styles.zoomButton, { opacity: pressed ? 0.6 : 1 }]}
             >
@@ -128,27 +130,27 @@ export function QrScannerScreen({
         </View>
       </View>
 
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Hoặc chọn hành động</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('scan.actionSection')}</Text>
       <View style={styles.actions}>
         <QuickAction
           colors={colors}
           icon={ImageUp}
-          title="Chọn ảnh từ thư viện"
-          description="Tải ảnh có mã QR"
-          onPress={() => showPendingMessage('Chọn ảnh từ thư viện')}
+          title={t('scan.pickImage.title')}
+          description={t('scan.pickImage.description')}
+          onPress={() => showPendingMessage(t('scan.pickImage.title'))}
         />
         <QuickAction
           colors={colors}
           icon={QrCode}
-          title="Mã QR của tôi"
-          description="Hiển thị mã QR cá nhân"
+          title={t('scan.myQr.title')}
+          description={t('scan.myQr.description')}
           onPress={onOpenMyQr}
         />
         <QuickAction
           colors={colors}
           icon={History}
-          title="Lịch sử quét"
-          description="Xem các lần quét gần đây"
+          title={t('scan.history.title')}
+          description={t('scan.history.description')}
           onPress={onOpenActivity}
         />
       </View>
@@ -158,9 +160,9 @@ export function QrScannerScreen({
           <ShieldCheck color={palette.white} size={28} strokeWidth={2} />
         </View>
         <View style={styles.securityText}>
-          <Text style={[styles.securityTitle, { color: colors.text }]}>An toàn & bảo mật</Text>
+          <Text style={[styles.securityTitle, { color: colors.text }]}>{t('scan.securityTitle')}</Text>
           <Text style={[styles.securityDescription, { color: colors.textSecondary }]}>
-            Identra chỉ quét mã QR để xác minh. Chúng tôi không lưu trữ hay chia sẻ dữ liệu của bạn.
+            {t('scan.securityDescription')}
           </Text>
         </View>
       </View>

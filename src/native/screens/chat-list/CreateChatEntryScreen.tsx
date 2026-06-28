@@ -1,6 +1,7 @@
 import { ChevronRight, MessageCircle, X } from 'lucide-react-native';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 import type { AppColors } from '../../theme';
+import { useI18n } from '../../i18n';
 import {
   createActions,
   createSuggestedContacts,
@@ -20,6 +21,7 @@ export function CreateChatEntryScreen({
   onClose: () => void;
   onOpenConversation: (conversationId: string) => void;
 }) {
+  const { t } = useI18n();
   const openSuggestedContact = (contact: CreateSuggestedContact) => {
     onClose();
     onOpenConversation(contact.id);
@@ -35,7 +37,7 @@ export function CreateChatEntryScreen({
       <View style={styles.createHeader}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Đóng tạo mới"
+          accessibilityLabel={t('chatListExtras.create.close')}
           hitSlop={8}
           onPress={onClose}
           style={({ pressed }) => [styles.createCloseButton, { opacity: pressed ? 0.62 : 1 }]}
@@ -43,9 +45,9 @@ export function CreateChatEntryScreen({
           <X color={colors.text} size={29} strokeWidth={2} />
         </Pressable>
         <View style={styles.createHeaderCopy}>
-          <Text style={[styles.createTitle, { color: colors.text }]}>Tạo mới</Text>
+          <Text style={[styles.createTitle, { color: colors.text }]}>{t('chatListExtras.create.title')}</Text>
           <Text style={[styles.createSubtitle, { color: colors.textSecondary }]}>
-            Bắt đầu cuộc trò chuyện hoặc tác vụ mới
+            {t('chatListExtras.create.subtitle')}
           </Text>
         </View>
         <View style={styles.createHeaderSpacer} />
@@ -63,9 +65,9 @@ export function CreateChatEntryScreen({
       </View>
 
       <View style={styles.createSectionCopy}>
-        <Text style={[styles.createSectionTitle, { color: colors.text }]}>Liên hệ gợi ý</Text>
+        <Text style={[styles.createSectionTitle, { color: colors.text }]}>{t('chatListExtras.create.suggestedTitle')}</Text>
         <Text style={[styles.createSectionDescription, { color: colors.textSecondary }]}>
-          Gần đây và thường xuyên liên hệ
+          {t('chatListExtras.create.suggestedDescription')}
         </Text>
       </View>
 
@@ -132,10 +134,11 @@ function SuggestedContactRow({
   onPress: () => void;
   showDivider: boolean;
 }) {
+  const { t } = useI18n();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Mở trò chuyện với ${contact.name}`}
+      accessibilityLabel={t('chatListExtras.create.openConversation', { name: contact.name })}
       onPress={onPress}
       style={({ pressed }) => [styles.suggestedContactRow, { opacity: pressed ? 0.68 : 1 }]}
     >

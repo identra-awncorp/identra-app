@@ -17,6 +17,7 @@ import { useRef, useState } from 'react';
 import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { assetManifest } from '../../../assets/assetManifest';
+import { useI18n } from '../../../i18n';
 import { border, palette, radius, spacing, touchTarget, typography, type AppColors } from '../../../theme';
 import { formatAmount, IDPAY_BALANCES, parseRawAmount, type PaymentUnit, type TransferDraft } from '../paymentUtils';
 
@@ -33,6 +34,7 @@ export function DirectTransferSheet({
   onCancel: () => void;
   onTransfer: (amount: number, unit: PaymentUnit, note: string) => void;
 }) {
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const [rawAmount, setRawAmount] = useState(initialTransfer?.amount ?? 0);
   const [note, setNote] = useState(initialTransfer?.note ?? '');
@@ -42,11 +44,11 @@ export function DirectTransferSheet({
 
   const submitTransfer = () => {
     if (rawAmount <= 0) {
-      Alert.alert('Chưa nhập số tiền', 'Vui lòng nhập số tiền bạn muốn chuyển cho Minh Anh.');
+      Alert.alert(t('chat.transfer.missingAmountTitle'), t('chat.transfer.missingAmountDescription'));
       return;
     }
     if (rawAmount > IDPAY_BALANCES[paymentUnit]) {
-      Alert.alert('Số dư không đủ', `Số tiền chuyển vượt quá số dư ${paymentUnit} hiện có của bạn.`);
+      Alert.alert(t('chat.transfer.insufficientBalanceTitle'), t('chat.transfer.insufficientBalanceDescription', { unit: paymentUnit }));
       return;
     }
     onTransfer(rawAmount, paymentUnit, note);
@@ -58,7 +60,7 @@ export function DirectTransferSheet({
       testID="screen-direct-transfer"
       style={[styles.screen, { paddingTop: Math.max(10, insets.top) }]}
     >
-      <SheetHeader colors={colors} label="Đóng chuyển khoản" onClose={onCancel} title="Chuyển khoản" />
+      <SheetHeader colors={colors} label={t('chat.transfer.close')} onClose={onCancel} title={t('chat.transfer.title')} />
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -67,20 +69,20 @@ export function DirectTransferSheet({
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.description, { color: colors.textSecondary }]}>
-          Chuyển tiền trực tiếp cho đối tác trò chuyện qua IDPay.
+          {t('chat.transfer.description')}
         </Text>
 
         <View style={[styles.recipientCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.recipientHeading, { color: colors.text }]}>Người nhận</Text>
+          <Text style={[styles.recipientHeading, { color: colors.text }]}>{t('chat.transfer.recipient')}</Text>
           <View style={styles.recipientMain}>
             <Image source={avatar} style={styles.recipientAvatar} />
             <View style={styles.grow}>
               <Text style={[styles.recipientName, { color: colors.text }]}>Minh Anh</Text>
               <VerifiedIdentity colors={colors} />
               <Pressable
-                accessibilityLabel="Sao chép IDPay người nhận"
+                accessibilityLabel={t('chat.transfer.copyRecipient')}
                 accessibilityRole="button"
-                onPress={() => Alert.alert('Đã sao chép', 'idpay:minhanh')}
+                onPress={() => Alert.alert(t('chat.common.copied'), 'idpay:minhanh')}
                 style={styles.recipientIdRow}
               >
                 <Text style={[styles.recipientId, { color: colors.textSecondary }]}>idpay:minhanh</Text>
@@ -93,9 +95,9 @@ export function DirectTransferSheet({
 
         <View style={[styles.balanceCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.balanceHeader}>
-            <Text style={[styles.balanceTitle, { color: colors.text }]}>Số dư ví IDPay</Text>
+            <Text style={[styles.balanceTitle, { color: colors.text }]}>{t('chat.transfer.balanceTitle')}</Text>
             <Pressable
-              accessibilityLabel={balancesVisible ? 'Ẩn số dư' : 'Hiển thị số dư'}
+              accessibilityLabel={balancesVisible ? t('chat.transfer.hideBalance') : t('chat.transfer.showBalance')}
               accessibilityRole="button"
               onPress={() => setBalancesVisible((value) => !value)}
               style={styles.balanceEyeButton}
@@ -127,23 +129,23 @@ export function DirectTransferSheet({
           </View>
           <View style={[styles.balanceHintRow, { borderTopColor: colors.border, backgroundColor: colors.surfaceMuted }]}>
             <Info color={colors.textSecondary} size={14} />
-            <Text style={[styles.balanceHintText, { color: colors.textSecondary }]}>Nhấn vào biểu tượng mắt để hiển thị số dư</Text>
+            <Text style={[styles.balanceHintText, { color: colors.textSecondary }]}>{t('chat.transfer.balanceHint')}</Text>
           </View>
         </View>
 
-        <Text style={[styles.fieldLabel, { color: colors.text }]}>Số tiền</Text>
+        <Text style={[styles.fieldLabel, { color: colors.text }]}>{t('chat.transfer.amount')}</Text>
         <View style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <TextInput
             keyboardType="numeric"
             onChangeText={(value) => setRawAmount(parseRawAmount(value))}
-            placeholder="Nhập số tiền"
+            placeholder={t('chat.transfer.amountPlaceholder')}
             placeholderTextColor={colors.textSecondary}
             style={[styles.inputText, { color: colors.text }]}
             value={formatAmount(rawAmount)}
           />
           <View style={[styles.inputDivider, { backgroundColor: colors.border }]} />
           <Pressable
-            accessibilityLabel="Chọn đơn vị chuyển khoản"
+            accessibilityLabel={t('chat.transfer.chooseUnit')}
             accessibilityRole="button"
             onPress={() => setUnitPickerOpen((value) => !value)}
             style={styles.unitButton}
@@ -170,14 +172,14 @@ export function DirectTransferSheet({
             ))}
           </View>
         ) : null}
-        <Text style={[styles.fieldHint, { color: colors.textSecondary }]}>Nhập số tiền bạn muốn chuyển cho Minh Anh.</Text>
+        <Text style={[styles.fieldHint, { color: colors.textSecondary }]}>{t('chat.transfer.amountHint')}</Text>
 
-        <Text style={[styles.fieldLabel, { color: colors.text }]}>Nội dung chuyển khoản (tùy chọn)</Text>
+        <Text style={[styles.fieldLabel, { color: colors.text }]}>{t('chat.transfer.noteLabel')}</Text>
         <View style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <TextInput
             maxLength={100}
             onChangeText={setNote}
-            placeholder="Nhập nội dung chuyển khoản"
+            placeholder={t('chat.transfer.notePlaceholder')}
             placeholderTextColor={colors.textSecondary}
             style={[styles.inputText, { color: colors.text }]}
             value={note}
@@ -188,18 +190,18 @@ export function DirectTransferSheet({
         <View style={[styles.notice, { backgroundColor: colors.surfaceMuted, borderColor: colors.secondary }]}>
           <View style={[styles.noticeIcon, { borderColor: colors.secondary }]}><ShieldCheck color={colors.primaryDark} size={25} /></View>
           <Text style={[styles.noticeText, { color: colors.textSecondary }]}>
-            Khoản chuyển sẽ được gửi qua IDPay.{'\n'}Hãy kiểm tra đúng người nhận và số tiền trước khi xác nhận.
+            {t('chat.transfer.notice')}
           </Text>
         </View>
       </ScrollView>
 
       <View style={[styles.footer, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: Math.max(12, insets.bottom + 8) }]}>
         <Pressable accessibilityRole="button" onPress={onCancel} style={[styles.cancelButton, { borderColor: colors.border }]}>
-          <Text style={[styles.cancelText, { color: colors.text }]}>Hủy bỏ</Text>
+          <Text style={[styles.cancelText, { color: colors.text }]}>{t('chat.common.cancelButton')}</Text>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={submitTransfer} style={[styles.submitButton, { backgroundColor: colors.primaryDark }]}>
           <CircleDollarSign color={palette.white} size={23} />
-          <Text style={styles.submitText}>Chuyển khoản</Text>
+          <Text style={styles.submitText}>{t('chat.transfer.submit')}</Text>
         </Pressable>
       </View>
     </View>
@@ -223,6 +225,7 @@ export function TransferConfirmationSheet({
   rawAmount: number;
   unit: PaymentUnit;
 }) {
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const [pin, setPin] = useState('');
   const [biometricVerified, setBiometricVerified] = useState(false);
@@ -232,20 +235,20 @@ export function TransferConfirmationSheet({
     const supported = await LocalAuthentication.hasHardwareAsync();
     const enrolled = await LocalAuthentication.isEnrolledAsync();
     if (!supported || !enrolled) {
-      Alert.alert('Sinh trắc học chưa sẵn sàng', 'Hãy nhập mã bảo mật để xác nhận giao dịch.');
+      Alert.alert(t('chat.transferConfirm.biometricUnavailableTitle'), t('chat.transferConfirm.biometricUnavailableDescription'));
       return;
     }
     const result = await LocalAuthentication.authenticateAsync({
-      promptMessage: 'Xác nhận chuyển khoản',
-      cancelLabel: 'Hủy',
-      fallbackLabel: 'Dùng mã PIN hệ thống',
+      promptMessage: t('chat.transferConfirm.promptMessage'),
+      cancelLabel: t('chat.transferConfirm.cancelLabel'),
+      fallbackLabel: t('chat.transferConfirm.fallbackLabel'),
     });
     if (result.success) setBiometricVerified(true);
   };
 
   const confirm = () => {
     if (pin.length !== 6 && !biometricVerified) {
-      Alert.alert('Chưa xác thực', 'Nhập đủ mã bảo mật 6 số hoặc sử dụng sinh trắc học.');
+      Alert.alert(t('chat.transferConfirm.notAuthenticatedTitle'), t('chat.transferConfirm.notAuthenticatedDescription'));
       return;
     }
     onConfirm();
@@ -258,16 +261,16 @@ export function TransferConfirmationSheet({
       style={[styles.screen, { paddingTop: Math.max(10, insets.top) }]}
     >
       <View style={styles.header}>
-        <Pressable accessibilityLabel="Quay lại màn hình chuyển khoản" accessibilityRole="button" onPress={onBack} style={styles.headerButton}>
+        <Pressable accessibilityLabel={t('chat.transferConfirm.back')} accessibilityRole="button" onPress={onBack} style={styles.headerButton}>
           <ArrowLeft color={colors.text} size={27} />
         </Pressable>
-        <Text style={[styles.confirmTitle, { color: colors.text }]}>Xác nhận chuyển khoản</Text>
+        <Text style={[styles.confirmTitle, { color: colors.text }]}>{t('chat.transferConfirm.title')}</Text>
         <View style={[styles.headerButton, styles.headerShield]}><ShieldCheck color={colors.primaryDark} size={25} /></View>
       </View>
 
       <ScrollView contentContainerStyle={styles.confirmContent} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <Text style={[styles.confirmDescription, { color: colors.textSecondary }]}>
-          Nhập mã bảo mật hoặc dùng sinh trắc học để hoàn tất giao dịch.
+          {t('chat.transferConfirm.description')}
         </Text>
 
         <View style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -285,18 +288,18 @@ export function TransferConfirmationSheet({
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <View style={styles.summaryRow}>
             <View style={[styles.summaryIcon, { backgroundColor: colors.surfaceMuted }]}><WalletCards color={colors.primaryDark} size={22} /></View>
-            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Số tiền chuyển</Text>
+            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t('chat.transferConfirm.amount')}</Text>
             <Text style={[styles.summaryAmount, { color: colors.text }]}>{formatAmount(rawAmount)} {unit}</Text>
           </View>
           <View style={styles.summaryRow}>
             <View style={[styles.summaryIcon, { backgroundColor: colors.surfaceMuted }]}><Info color={colors.primaryDark} size={22} /></View>
-            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Nội dung</Text>
-            <Text numberOfLines={2} style={[styles.summaryNote, { color: colors.text }]}>{note || 'Chuyển khoản trong chat'}</Text>
+            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t('chat.transferConfirm.note')}</Text>
+            <Text numberOfLines={2} style={[styles.summaryNote, { color: colors.text }]}>{note || t('chat.transferConfirm.defaultNote')}</Text>
           </View>
         </View>
 
-        <Text style={[styles.pinTitle, { color: colors.text }]}>Mã bảo mật</Text>
-        <Pressable accessibilityLabel="Nhập mã bảo mật" accessibilityRole="button" onPress={() => pinInputRef.current?.focus()} style={styles.pinBoxes}>
+        <Text style={[styles.pinTitle, { color: colors.text }]}>{t('chat.transferConfirm.securityCode')}</Text>
+        <Pressable accessibilityLabel={t('chat.transferConfirm.enterSecurityCode')} accessibilityRole="button" onPress={() => pinInputRef.current?.focus()} style={styles.pinBoxes}>
           {Array.from({ length: 6 }).map((_, index) => (
             <View
               key={index}
@@ -328,28 +331,28 @@ export function TransferConfirmationSheet({
         >
           <View style={[styles.biometricIcon, { backgroundColor: colors.surfaceMuted }]}><Fingerprint color={biometricVerified ? colors.success : colors.primaryDark} size={27} /></View>
           <Text style={[styles.biometricText, { color: biometricVerified ? colors.success : colors.primaryDark }]}>
-            {biometricVerified ? 'Đã xác thực sinh trắc học' : 'Sử dụng sinh trắc học'}
+            {biometricVerified ? t('chat.transferConfirm.biometricVerified') : t('chat.transferConfirm.useBiometric')}
           </Text>
         </Pressable>
 
         <View style={[styles.confirmNotice, { backgroundColor: colors.surfaceMuted, borderColor: colors.secondary }]}>
           <Info color={colors.primaryDark} size={24} />
           <Text style={[styles.confirmNoticeText, { color: colors.text }]}>
-            Giao dịch sẽ được xác nhận sau khi mã bảo mật hoặc sinh trắc học hợp lệ.
+            {t('chat.transferConfirm.notice')}
           </Text>
         </View>
       </ScrollView>
 
       <View style={[styles.confirmFooter, { backgroundColor: colors.surface, paddingBottom: Math.max(12, insets.bottom + 8) }]}>
         <Pressable accessibilityRole="button" onPress={onCancel} style={[styles.confirmCancelButton, { borderColor: colors.border }]}>
-          <Text style={[styles.confirmCancelText, { color: colors.text }]}>Hủy giao dịch</Text>
+          <Text style={[styles.confirmCancelText, { color: colors.text }]}>{t('chat.transferConfirm.cancelTransaction')}</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
           onPress={confirm}
           style={[styles.confirmSubmitButton, { backgroundColor: pin.length === 6 || biometricVerified ? colors.primaryDark : colors.primary }]}
         >
-          <Text style={styles.confirmSubmitText}>Xác nhận</Text>
+          <Text style={styles.confirmSubmitText}>{t('chat.transferConfirm.confirm')}</Text>
         </Pressable>
       </View>
     </View>
@@ -369,10 +372,11 @@ function SheetHeader({ colors, label, onClose, title }: { colors: AppColors; lab
 }
 
 function VerifiedIdentity({ colors }: { colors: AppColors }) {
+  const { t } = useI18n();
   return (
     <View style={styles.verifiedRow}>
       <ShieldCheck color={colors.success} fill={colors.success} size={17} />
-      <Text style={[styles.verifiedText, { color: colors.success }]}>IDPay đã kích hoạt</Text>
+      <Text style={[styles.verifiedText, { color: colors.success }]}>{t('chat.common.idPayActivated')}</Text>
     </View>
   );
 }

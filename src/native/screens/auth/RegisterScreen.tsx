@@ -2,6 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MessageSquareText, Phone } from 'lucide-react-native';
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useI18n } from '../../i18n';
 import type { AppColors } from '../../theme';
 import { border, palette, radius, spacing, typography } from '../../theme';
 import { OtpVerificationScreen } from './OtpVerificationScreen';
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function RegisterScreen({ colors, onBack, onContinue, onLogin }: Props) {
+  const { t } = useI18n();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [confirmationVisible, setConfirmationVisible] = useState(false);
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
@@ -40,15 +42,15 @@ export function RegisterScreen({ colors, onBack, onContinue, onLogin }: Props) {
     <>
       <PhoneAuthScreen
         colors={colors}
-        description="Sử dụng số điện thoại để tạo ví định tính của bạn."
+        description={t('auth.register.description')}
         initialPhoneNumber={phoneNumber}
         mode="register"
         onBack={onBack}
         onContinue={requestVerification}
         onSwitch={onLogin}
-        switchAction="Đăng nhập ngay"
-        switchPrompt="Bạn đã có tài khoản?"
-        title="Đăng ký"
+        switchAction={t('auth.register.switchAction')}
+        switchPrompt={t('auth.register.switchPrompt')}
+        title={t('auth.register.title')}
       />
       <PhoneConfirmationModal
         colors={colors}
@@ -77,6 +79,8 @@ function PhoneConfirmationModal({
   onChangeNumber: () => void;
   onContinue: () => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <Modal
       animationType="fade"
@@ -86,16 +90,16 @@ function PhoneConfirmationModal({
       visible={visible}
     >
       <View style={styles.modalRoot}>
-        <Pressable accessibilityLabel="Đóng xác nhận số điện thoại" onPress={onChangeNumber} style={styles.backdrop} />
+        <Pressable accessibilityLabel={t('auth.register.closeConfirmation')} onPress={onChangeNumber} style={styles.backdrop} />
         <View style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={[styles.modalIcon, { backgroundColor: colors.surfaceMuted }]}>
             <MessageSquareText color={colors.primaryDark} size={28} strokeWidth={1.9} />
           </View>
           <Text accessibilityRole="header" style={[styles.modalTitle, { color: colors.text }]}>
-            Xác thực số điện thoại
+            {t('auth.register.confirmTitle')}
           </Text>
           <Text style={[styles.modalDescription, { color: colors.textSecondary }]}>
-            Identra sẽ gửi mã xác minh qua số
+            {t('auth.register.confirmDescription')}
           </Text>
           <View style={[styles.phonePill, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
             <Phone color={colors.primaryDark} size={20} strokeWidth={1.9} />
@@ -112,7 +116,7 @@ function PhoneConfirmationModal({
               start={{ x: 0, y: 0 }}
               style={styles.primaryGradient}
             >
-              <Text style={styles.primaryText}>Tiếp tục</Text>
+              <Text style={styles.primaryText}>{t('common.continue')}</Text>
             </LinearGradient>
           </Pressable>
           <Pressable
@@ -123,7 +127,7 @@ function PhoneConfirmationModal({
               { borderColor: colors.primaryDark, opacity: pressed ? 0.65 : 1 },
             ]}
           >
-            <Text style={[styles.secondaryText, { color: colors.primaryDark }]}>Đổi số khác</Text>
+            <Text style={[styles.secondaryText, { color: colors.primaryDark }]}>{t('auth.register.changeNumber')}</Text>
           </Pressable>
         </View>
       </View>

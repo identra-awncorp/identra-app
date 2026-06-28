@@ -1,6 +1,7 @@
 import { CheckCircle2, Moon, Smartphone, Sun, type LucideIcon } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 import { AppHeader, Card, ScreenScroll } from '../../../components/AppUiPrimitives';
+import { useI18n } from '../../../i18n';
 import type { AppColors } from '../../../theme';
 import type { AppSettings, ThemeMode } from '../../../types';
 import { settingsStyles as styles } from '../settingsStyles';
@@ -16,15 +17,17 @@ export function DisplaySettingsScreen({
   onBack: () => void;
   onSettings: (settings: Partial<AppSettings>) => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <ScreenScroll id="screen-settings-display" colors={colors}>
-      <AppHeader colors={colors} title="Quản lý hiển thị" onBack={onBack} />
-      <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Giao diện</Text>
+      <AppHeader colors={colors} title={t('settings.display.title')} onBack={onBack} />
+      <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>{t('settings.display.themeSection')}</Text>
       <Card colors={colors} style={styles.themeCard}>
         {([
-          ['system', 'Theo hệ thống', Smartphone],
-          ['light', 'Sáng', Sun],
-          ['dark', 'Tối', Moon],
+          ['system', t('settings.display.themes.system'), Smartphone],
+          ['light', t('settings.display.themes.light'), Sun],
+          ['dark', t('settings.display.themes.dark'), Moon],
         ] as Array<[ThemeMode, string, LucideIcon]>).map(([value, label, Icon]) => {
           const active = settings.theme === value;
           return (
@@ -48,11 +51,11 @@ export function DisplaySettingsScreen({
           );
         })}
       </Card>
-      <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Ngôn ngữ</Text>
+      <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>{t('settings.display.languageSection')}</Text>
       <Card colors={colors} style={styles.settingsList}>
         {[
-          ['vi', 'Tiếng Việt', 'Ngôn ngữ mặc định'],
-          ['en', 'English', 'English interface'],
+          ['vi', t('settings.display.languages.viTitle'), t('settings.display.languages.viDescription')],
+          ['en', t('settings.display.languages.enTitle'), t('settings.display.languages.enDescription')],
         ].map(([value, title, description], index) => (
           <Pressable
             key={value}
