@@ -42,7 +42,7 @@ export type NotificationItem = {
   };
 };
 
-export const notificationTabs: Array<{ key: NotificationFilter; label: string }> = [
+export const notificationTabs: { key: NotificationFilter; label: string }[] = [
   { key: 'all', label: 'Tất cả' },
   { key: 'mentions', label: 'Nhắc đến' },
   { key: 'follows', label: 'Theo dõi' },

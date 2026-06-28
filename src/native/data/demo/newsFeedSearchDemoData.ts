@@ -59,7 +59,7 @@ export type NewsFeedSearchTab = 'all' | 'trends' | 'accounts' | 'groups' | 'mini
 export type FilterDateDirection = 'after' | 'before';
 export type FilterSortMode = 'relevant' | 'latest';
 
-export const tabs: Array<{ key: NewsFeedSearchTab; label: string }> = [
+export const tabs: { key: NewsFeedSearchTab; label: string }[] = [
   { key: 'all', label: 'Tất cả' },
   { key: 'trends', label: 'Xu hướng' },
   { key: 'accounts', label: 'Tài khoản' },

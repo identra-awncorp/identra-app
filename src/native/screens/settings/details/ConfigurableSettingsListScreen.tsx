@@ -19,7 +19,7 @@ export function ConfigurableSettingsListScreen({
   id: string;
   titleKey: I18nKey;
   descriptionKey: I18nKey;
-  rows: Array<{ icon: LucideIcon; titleKey: I18nKey; descriptionKey: I18nKey; defaultValue?: boolean }>;
+  rows: { icon: LucideIcon; titleKey: I18nKey; descriptionKey: I18nKey; defaultValue?: boolean }[];
   onBack: () => void;
 }) {
   const { t } = useI18n();

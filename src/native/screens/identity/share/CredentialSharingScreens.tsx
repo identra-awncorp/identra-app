@@ -13,58 +13,33 @@ import {
   CheckCircle2,
   ChevronRight,
   ClipboardCopy,
-  Clock3,
   Download,
-  FileCheck2,
   GraduationCap,
-  Heart,
-  History,
   IdCard,
   Info,
   LockKeyhole,
-  Mail,
-  MapPin,
   Medal,
-  MoreVertical,
-  Phone,
   RefreshCw,
-  ScanLine,
-  Settings,
   Share2,
   ShieldCheck,
-  Ticket,
-  Trash2,
   UserRound,
-  X,
   type LucideIcon,
 } from 'lucide-react-native';
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
-import { assetManifest } from '../../../assets/assetManifest';
+import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
 import type { AppColors } from '../../../theme';
-import { border, componentSize, palette, radius, spacing, touchTarget, typography } from '../../../theme';
-import type { AppSettings, Credential, PersonalInfo, SmartContractFeedPost } from '../../../types';
+import { palette } from '../../../theme';
+import type { Credential } from '../../../types';
 import { useI18n } from '../../../i18n';
-import {
-  notificationItems,
-  notificationTabs,
-  type NotificationFilter,
-  type NotificationItem,
-} from '../../../data/demo/newsFeedNotificationDemoData';
+
+
 import {
   AppHeader,
-  Card,
   CredentialIcon,
-  EmptyState,
   IconButton,
-  ListChevron,
-  PrimaryButton,
   ScreenScroll,
-  SectionHeading,
-  StatusPill,
 } from '../../../components/AppUiPrimitives';
 import { styles } from '../../shared/DetailScreenSharedStyles';
 
-const verifiedBadgeIcon = assetManifest.badges.verified;
 export function ShareScreen({
   colors,
   credential,

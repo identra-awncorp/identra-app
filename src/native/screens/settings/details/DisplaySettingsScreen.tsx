@@ -28,7 +28,7 @@ export function DisplaySettingsScreen({
           ['system', t('settings.display.themes.system'), Smartphone],
           ['light', t('settings.display.themes.light'), Sun],
           ['dark', t('settings.display.themes.dark'), Moon],
-        ] as Array<[ThemeMode, string, LucideIcon]>).map(([value, label, Icon]) => {
+        ] as [ThemeMode, string, LucideIcon][]).map(([value, label, Icon]) => {
           const active = settings.theme === value;
           return (
             <Pressable

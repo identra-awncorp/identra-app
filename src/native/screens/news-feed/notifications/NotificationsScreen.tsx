@@ -1,69 +1,28 @@
-import * as Clipboard from 'expo-clipboard';
-import * as Haptics from 'expo-haptics';
-import QRCode from 'react-native-qrcode-svg';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
-  AlertTriangle,
   ArrowLeft,
-  Award,
-  BookOpen,
-  Building2,
-  CalendarDays,
-  Check,
   CheckCircle2,
-  ChevronRight,
-  ClipboardCopy,
-  Clock3,
-  Download,
   FileCheck2,
-  GraduationCap,
   Heart,
-  History,
-  IdCard,
-  Info,
-  LockKeyhole,
-  Mail,
-  MapPin,
-  Medal,
   MoreVertical,
-  Phone,
-  RefreshCw,
-  ScanLine,
   Settings,
-  Share2,
-  ShieldCheck,
-  Ticket,
-  Trash2,
-  UserRound,
-  X,
-  type LucideIcon,
 } from 'lucide-react-native';
-import { ActivityIndicator, Alert, FlatList, Image, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useI18n, type I18nKey } from '../../../i18n';
-import { assetManifest } from '../../../assets/assetManifest';
 import type { AppColors } from '../../../theme';
-import { border, componentSize, layout, palette, radius, spacing, touchTarget, typography } from '../../../theme';
-import type { AppSettings, Credential, PersonalInfo, SmartContractFeedPost } from '../../../types';
+import { border, layout, palette, spacing } from '../../../theme';
 import {
   notificationItems,
   type NotificationFilter,
   type NotificationItem,
 } from '../../../data/demo/newsFeedNotificationDemoData';
 import {
-  AppHeader,
-  Card,
-  CredentialIcon,
   EmptyState,
   IconButton,
-  ListChevron,
-  PrimaryButton,
-  SectionHeading,
-  StatusPill,
 } from '../../../components/AppUiPrimitives';
 import { styles } from '../../shared/DetailScreenSharedStyles';
 
-const verifiedBadgeIcon = assetManifest.badges.verified;
-const notificationFilterTabs: Array<{ key: NotificationFilter; labelKey: I18nKey }> = [
+const notificationFilterTabs: { key: NotificationFilter; labelKey: I18nKey }[] = [
   { key: 'all', labelKey: 'notifications.tabs.all' },
   { key: 'mentions', labelKey: 'notifications.tabs.mentions' },
   { key: 'follows', labelKey: 'notifications.tabs.follows' },

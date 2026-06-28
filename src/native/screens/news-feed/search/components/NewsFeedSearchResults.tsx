@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronRight, MoreVertical, Sparkles, Users } from 'lucide-react-native';
+import { ChevronRight, MoreVertical, Users } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { AppLogo } from '../../../../components/AppLogo';

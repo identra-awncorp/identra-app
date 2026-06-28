@@ -12,9 +12,12 @@
   "include": [
     "src/native/i18n/**/*.ts",
     "src/native/i18n/**/*.tsx",
+    "src/native/app/navigation/navigationLogic.ts",
     "src/native/screens/chat/paymentUtils.ts",
     "src/native/screens/chat-list/chatListLogic.ts",
     "src/native/screens/chat-list/chatSearchLogic.ts",
+    "src/native/domain/app-store/appStoreStateService.ts",
+    "src/native/screens/settings/activity/activityLogLogic.ts",
     "src/native/screens/news-feed/search/newsFeedSearchLogic.ts"
   ]
 }

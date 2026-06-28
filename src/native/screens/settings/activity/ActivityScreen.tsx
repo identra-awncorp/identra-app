@@ -24,46 +24,37 @@ import type { AppColors } from '../../../theme';
 import { palette } from '../../../theme';
 import type { ActivityLog } from '../../../types';
 import { settingsStyles as styles } from '../settingsStyles';
-
-type StatusFilter = 'all' | NonNullable<ActivityLog['status']>;
-type TypeFilter = 'all' | 'verify' | 'share';
-type PeriodFilter = 'all' | 'today' | 'yesterday';
-type ActivityFilters = { status: StatusFilter; type: TypeFilter; period: PeriodFilter };
-
-const defaultFilters: ActivityFilters = { status: 'all', type: 'all', period: 'all' };
+import {
+  defaultActivityFilters,
+  filterActivityLogs,
+  formatActivityPercentage,
+  getActiveActivityFilterCount,
+  getActivityPeriod,
+  getActivityStatus,
+  getActivitySummary,
+  type ActivityPeriodFilter,
+  type ActivityStatusFilter,
+  type ActivityTypeFilter,
+} from './activityLogLogic';
 
 export function ActivityScreen({ colors, logs, onOpenChat }: { colors: AppColors; logs: ActivityLog[]; onOpenChat: () => void }) {
   const { t } = useI18n();
-  const [filters, setFilters] = useState<ActivityFilters>(defaultFilters);
-  const [draftFilters, setDraftFilters] = useState<ActivityFilters>(defaultFilters);
+  const [filters, setFilters] = useState(defaultActivityFilters);
+  const [draftFilters, setDraftFilters] = useState(defaultActivityFilters);
   const [filterOpen, setFilterOpen] = useState(false);
 
   const visible = useMemo(
-    () =>
-      logs.filter((log) => {
-        const status = activityStatus(log);
-        return (filters.status === 'all' || filters.status === status) &&
-          (filters.type === 'all' || filters.type === log.type) &&
-          (filters.period === 'all' || filters.period === activityPeriod(log));
-      }),
+    () => filterActivityLogs(logs, filters),
     [filters, logs],
   );
 
-  const hasDemoData = logs.some((log) => log.isDemo);
-  const summary = hasDemoData
-    ? { total: 24, success: 22, pending: 2, failed: 0 }
-    : {
-        total: logs.length,
-        success: logs.filter((log) => activityStatus(log) === 'success').length,
-        pending: logs.filter((log) => activityStatus(log) === 'pending').length,
-        failed: logs.filter((log) => activityStatus(log) === 'failed').length,
-      };
+  const summary = getActivitySummary(logs);
   const grouped = [
-    { key: 'today' as const, label: t('settings.activity.groups.today'), items: visible.filter((log) => activityPeriod(log) === 'today') },
-    { key: 'yesterday' as const, label: t('settings.activity.groups.yesterday'), items: visible.filter((log) => activityPeriod(log) === 'yesterday') },
-    { key: 'older' as const, label: t('settings.activity.groups.older'), items: visible.filter((log) => activityPeriod(log) === 'older') },
+    { key: 'today' as const, label: t('settings.activity.groups.today'), items: visible.filter((log) => getActivityPeriod(log) === 'today') },
+    { key: 'yesterday' as const, label: t('settings.activity.groups.yesterday'), items: visible.filter((log) => getActivityPeriod(log) === 'yesterday') },
+    { key: 'older' as const, label: t('settings.activity.groups.older'), items: visible.filter((log) => getActivityPeriod(log) === 'older') },
   ].filter((group) => group.items.length);
-  const activeFilterCount = Object.values(filters).filter((value) => value !== 'all').length;
+  const activeFilterCount = getActiveActivityFilterCount(filters);
 
   const openFilters = () => {
     setDraftFilters(filters);
@@ -113,9 +104,9 @@ export function ActivityScreen({ colors, logs, onOpenChat }: { colors: AppColors
 
         <View style={styles.activitySummary}>
           <ActivitySummaryCard colors={colors} icon={ShieldCheck} label={t('settings.activity.summary.total')} value={summary.total} footer={t('settings.activity.summary.totalFooter')} tone="primary" />
-          <ActivitySummaryCard colors={colors} icon={CheckCircle2} label={t('settings.activity.summary.success')} value={summary.success} footer={percentage(summary.success, summary.total)} tone="success" />
-          <ActivitySummaryCard colors={colors} icon={Clock3} label={t('settings.activity.summary.pending')} value={summary.pending} footer={percentage(summary.pending, summary.total)} tone="pending" />
-          <ActivitySummaryCard colors={colors} icon={CircleX} label={t('settings.activity.summary.failed')} value={summary.failed} footer={percentage(summary.failed, summary.total)} tone="failed" />
+          <ActivitySummaryCard colors={colors} icon={CheckCircle2} label={t('settings.activity.summary.success')} value={summary.success} footer={formatActivityPercentage(summary.success, summary.total)} tone="success" />
+          <ActivitySummaryCard colors={colors} icon={Clock3} label={t('settings.activity.summary.pending')} value={summary.pending} footer={formatActivityPercentage(summary.pending, summary.total)} tone="pending" />
+          <ActivitySummaryCard colors={colors} icon={CircleX} label={t('settings.activity.summary.failed')} value={summary.failed} footer={formatActivityPercentage(summary.failed, summary.total)} tone="failed" />
         </View>
 
         {grouped.length ? grouped.map((group) => (
@@ -142,7 +133,7 @@ export function ActivityScreen({ colors, logs, onOpenChat }: { colors: AppColors
               ? t('settings.activity.emptyFilteredDescription')
               : t('settings.activity.emptyDescription')}
             action={logs.length ? t('common.reset') : undefined}
-            onAction={logs.length ? () => setFilters(defaultFilters) : undefined}
+            onAction={logs.length ? () => setFilters(defaultActivityFilters) : undefined}
           />
         )}
       </ScreenScroll>
@@ -162,26 +153,26 @@ export function ActivityScreen({ colors, logs, onOpenChat }: { colors: AppColors
               title={t('settings.activity.statusSection')}
               options={[['all', t('settings.activity.all')], ['success', t('settings.activity.summary.success')], ['pending', t('settings.activity.summary.pending')], ['failed', t('settings.activity.summary.failed')]]}
               selected={draftFilters.status}
-              onSelect={(status) => setDraftFilters((current) => ({ ...current, status: status as StatusFilter }))}
+              onSelect={(status) => setDraftFilters((current) => ({ ...current, status: status as ActivityStatusFilter }))}
             />
             <ActivityFilterSection
               colors={colors}
               title={t('settings.activity.typeSection')}
               options={[['all', t('settings.activity.all')], ['verify', t('settings.activity.verify')], ['share', t('settings.activity.share')]]}
               selected={draftFilters.type}
-              onSelect={(type) => setDraftFilters((current) => ({ ...current, type: type as TypeFilter }))}
+              onSelect={(type) => setDraftFilters((current) => ({ ...current, type: type as ActivityTypeFilter }))}
             />
             <ActivityFilterSection
               colors={colors}
               title={t('settings.activity.periodSection')}
               options={[['all', t('settings.activity.all')], ['today', t('settings.activity.groups.today')], ['yesterday', t('settings.activity.groups.yesterday')]]}
               selected={draftFilters.period}
-              onSelect={(period) => setDraftFilters((current) => ({ ...current, period: period as PeriodFilter }))}
+              onSelect={(period) => setDraftFilters((current) => ({ ...current, period: period as ActivityPeriodFilter }))}
             />
             <View style={styles.activityFilterActions}>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => setDraftFilters(defaultFilters)}
+                onPress={() => setDraftFilters(defaultActivityFilters)}
                 style={[styles.activityFilterReset, { borderColor: colors.border }]}
               >
                 <Text style={[styles.activityFilterResetText, { color: colors.text }]}>{t('common.reset')}</Text>
@@ -202,31 +193,6 @@ export function ActivityScreen({ colors, logs, onOpenChat }: { colors: AppColors
       </Modal>
     </>
   );
-}
-
-function percentage(value: number, total: number) {
-  if (!total) return '0%';
-  return `${Number(((value / total) * 100).toFixed(1))}%`;
-}
-
-function activityStatus(log: ActivityLog): NonNullable<ActivityLog['status']> {
-  if (log.status) return log.status;
-  const content = `${log.title} ${log.description}`.toLocaleLowerCase('vi');
-  if (content.includes('thất bại') || content.includes('từ chối')) return 'failed';
-  if (content.includes('chờ')) return 'pending';
-  return 'success';
-}
-
-function activityPeriod(log: ActivityLog): 'today' | 'yesterday' | 'older' {
-  if (log.isDemo) return ['activity-1', 'activity-2', 'activity-3'].includes(log.id) ? 'today' : 'yesterday';
-  const date = new Date(log.timestamp);
-  const today = new Date();
-  const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const yesterdayStart = new Date(dayStart);
-  yesterdayStart.setDate(dayStart.getDate() - 1);
-  if (date >= dayStart) return 'today';
-  if (date >= yesterdayStart) return 'yesterday';
-  return 'older';
 }
 
 function ActivitySummaryCard({
@@ -265,7 +231,7 @@ function ActivitySummaryCard({
 
 function ActivityRow({ colors, log, showDate, divider }: { colors: AppColors; log: ActivityLog; showDate: boolean; divider: boolean }) {
   const { t } = useI18n();
-  const status = activityStatus(log);
+  const status = getActivityStatus(log);
   const statusStyle = {
     success: { color: palette.green[600], icon: CheckCircle2 },
     pending: { color: palette.orange[500], icon: Clock3 },
@@ -315,7 +281,7 @@ function ActivityLeadingIcon({ log }: { log: ActivityLog }) {
     return <View style={[styles.activityLeadingIcon, { backgroundColor: palette.blue[100] }]}><View style={styles.activityIelts}><Text style={styles.activityIeltsText}>IELTS</Text></View></View>;
   }
   if (log.title === 'KYC Level 2') {
-    const failed = activityStatus(log) === 'failed';
+    const failed = getActivityStatus(log) === 'failed';
     return (
       <View style={[styles.activityLeadingIcon, { backgroundColor: failed ? palette.red[100] : palette.blue[100] }]}>
         <Shield color={failed ? '#FF5C63' : palette.slate[700]} fill={failed ? '#FF7379' : palette.slate[700]} size={35} strokeWidth={1.5} />
@@ -348,7 +314,7 @@ function ActivityFilterSection({
 }: {
   colors: AppColors;
   title: string;
-  options: Array<[string, string]>;
+  options: [string, string][];
   selected: string;
   onSelect: (value: string) => void;
 }) {

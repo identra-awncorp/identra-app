@@ -41,7 +41,6 @@ export function AppShell() {
     isDark,
     newsFeedChromeProgress,
     newsFeedScrollY,
-    openSideMenu,
     setReturnScreen,
     sideMenuOpen,
   } = useAppRouterState();

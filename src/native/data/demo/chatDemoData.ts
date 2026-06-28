@@ -41,7 +41,7 @@ export interface ChatPreview {
 export interface CredentialChatPayload {
   title: string;
   issuer: string;
-  details: Array<{ label: string; value: string; icon: 'ticket' | 'clock' | 'map' }>;
+  details: { label: string; value: string; icon: 'ticket' | 'clock' | 'map' }[];
 }
 
 export interface ContractChatPayload {

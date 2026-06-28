@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { BellRing, Building2, FileCheck2, ShieldCheck } from 'lucide-react-native';
+import { Building2, FileCheck2, ShieldCheck } from 'lucide-react-native';
 
 import { ConfigurableSettingsListScreen } from '@/screens/settings';
 import { useAppRouterState } from '@/app/router/AppRouterContext';

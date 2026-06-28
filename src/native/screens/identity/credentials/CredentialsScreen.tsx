@@ -47,7 +47,7 @@ export function CredentialsScreen({
     [credentials, filter, locale, query],
   );
 
-  const filters: Array<{ key: FilterKey; label: string }> = [
+  const filters: { key: FilterKey; label: string }[] = [
     { key: 'all', label: t('identity.credentials.tabs.all') },
     { key: 'verified', label: t('identity.credentials.tabs.verified') },
     { key: 'pending', label: t('identity.credentials.tabs.pending') },
