@@ -1,8 +1,9 @@
 import { Image, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { assetManifest } from '../assets/assetManifest';
 import type { AppColors } from '../theme';
 import { spacing, typography } from '../theme';
 
-const identraLogo = require('../../assets/images/identra-logo.png');
+const identraLogo = assetManifest.app.identraLogo;
 
 export function AppLogo({ size = 32 }: { size?: number }) {
   return (

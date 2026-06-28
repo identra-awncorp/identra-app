@@ -1,6 +1,6 @@
 import { Plus } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
-import type { ChatPreview } from '../../data/chatDemoData';
+import type { ChatPreview } from '../../data/demo/chatDemoData';
 import type { AppColors } from '../../theme';
 import { QUICK_AVATAR_INNER_SIZE, THOUGHT_BUBBLE_MAX_LENGTH } from './ChatListData';
 import { ChatAvatar } from './ChatListAvatar';

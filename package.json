@@ -9,6 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "test": "tsc -p tsconfig.test.json && node --test \"tests/**/*.test.js\"",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

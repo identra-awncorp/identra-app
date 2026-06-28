@@ -14,11 +14,11 @@ import {
 import type { AppColors } from '../../theme';
 import { radius, spacing } from '../../theme';
 import { ChatActionMenu } from './ChatActionMenu';
-import { AddBankAccountSheet, BankAccountSheet } from './flows/BankAccountSheets';
-import { ContractSetupSheet } from './flows/ContractSetupSheet';
-import { PaymentQrSheet } from './flows/PaymentQrSheet';
-import { ReminderSheet } from './flows/ReminderSheet';
-import { DirectTransferSheet, TransferConfirmationSheet } from './flows/TransferSheets';
+import { AddBankAccountSheet, BankAccountSheet } from './action-sheets/BankAccountActionSheets';
+import { ContractSetupSheet } from './action-sheets/ContractSetupSheet';
+import { PaymentQrSheet } from './action-sheets/PaymentQrSheet';
+import { ReminderSheet } from './action-sheets/ReminderSheet';
+import { DirectTransferSheet, TransferConfirmationSheet } from './action-sheets/DirectTransferSheets';
 import { formatAmount, type TransferDraft } from './paymentUtils';
 
 type ActionSheetMode =

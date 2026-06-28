@@ -1,5 +1,5 @@
-import { IdentraApp } from '@/IdentraApp';
+import { Redirect } from 'expo-router';
 
 export default function IndexScreen() {
-  return <IdentraApp />;
+  return <Redirect href="/onboarding" />;
 }

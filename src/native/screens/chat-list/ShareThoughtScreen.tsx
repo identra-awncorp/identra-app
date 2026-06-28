@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { Music, Smile, X } from 'lucide-react-native';
 import { Image, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native';
-import { demoAvatars } from '../../data/chatDemoData';
+import { demoAvatars } from '../../data/demo/chatDemoData';
 import type { AppColors } from '../../theme';
 import { styles } from './ChatListStyles';
 

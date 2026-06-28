@@ -45,7 +45,12 @@ The rules in this document must be applied when designing, editing, or comparing
 ## 4. Implementation Rules
 
 - Prefer existing components and design tokens.
+- All reusable UI copy must go through `src/native/i18n` and `useI18n`; do not hardcode Vietnamese or English UI text directly in components, navigation config, accessibility labels, tabs, buttons, empty states, or modal copy.
+- Navigation/config files should store translation keys such as `labelKey` and `descriptionKey`; the rendering component should call `t(...)`.
+- Demo/user-generated content may remain in `/data/demo` because it represents replaceable API data, but labels that describe UI state or actions must still be translated through i18n.
+- Multilingual text and demo content must be saved as clean UTF-8. Before handing off text-heavy changes, scan edited files for mojibake patterns such as `Ã`, `Ä`, `Æ`, `áº`, `á»`, `â€`, `Â·`, or `�`; valid Vietnamese content must display correctly in source.
 - The only official app logo is `src/assets/images/identra-logo.png`. Whenever the interface needs to display the app logo or Identra brand, it must use this PNG asset through the `AppLogo` or `AppBrandLogo` component; do not reuse the SVG and do not build the logo manually with icons, shapes, or replacement wordmarks.
+- Static image assets must be declared in `src/native/assets/assetManifest.ts`; components, screens, and data modules must import from the manifest instead of calling `require(...)` directly. Keep manifest asset declarations as static `require(...)` calls so Metro can bundle them correctly.
 - When handling asynchronous tasks, API calls, authentication, signing/sending transactions, QR creation, or any action that may take time, lock interaction and show the shared `LoadingOverlay` component until the task completes or fails; do not create separate one-off loading overlays unless there is a clear design requirement.
 - Every screen or view must have its own stable and unique `nativeID` and `testID`.
 - Screen IDs use the `screen-` prefix and kebab-case names, for example `screen-wallet-home` or `screen-data-request`.

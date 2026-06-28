@@ -1,6 +1,6 @@
 import { MoreHorizontal, Repeat2, Smile, X } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
-import type { ChatPreview } from '../../data/chatDemoData';
+import type { ChatPreview } from '../../data/demo/chatDemoData';
 import type { AppColors } from '../../theme';
 import { ChatAvatar } from './ChatListAvatar';
 import { styles } from './ChatListStyles';

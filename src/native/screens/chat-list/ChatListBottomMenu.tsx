@@ -1,5 +1,6 @@
 import { MessageCircle, Newspaper, ScanLine, UserRound, WalletCards } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
+import { useI18n } from '../../i18n';
 import type { AppColors } from '../../theme';
 import { styles } from './ChatListStyles';
 
@@ -18,12 +19,13 @@ export function ChatListBottomMenu({
   onOpenProfile: () => void;
   onOpenScan: () => void;
 }) {
+  const { t } = useI18n();
   const items = [
-    { key: 'chat', label: 'Trò chuyện', icon: MessageCircle, active: true, onPress: () => undefined },
-    { key: 'feed', label: 'Bảng tin', icon: Newspaper, active: false, onPress: onOpenFeed },
-    { key: 'scan', label: 'Quét mã', icon: ScanLine, active: false, onPress: onOpenScan },
-    { key: 'idpay', label: 'IDPay', icon: WalletCards, active: false, onPress: onOpenIDPay },
-    { key: 'profile', label: 'Cá nhân', icon: UserRound, active: false, onPress: onOpenProfile },
+    { key: 'chat', label: t('chatList.bottomMenu.chat'), icon: MessageCircle, active: true, onPress: () => undefined },
+    { key: 'feed', label: t('chatList.bottomMenu.feed'), icon: Newspaper, active: false, onPress: onOpenFeed },
+    { key: 'scan', label: t('chatList.bottomMenu.scan'), icon: ScanLine, active: false, onPress: onOpenScan },
+    { key: 'idpay', label: t('chatList.bottomMenu.idpay'), icon: WalletCards, active: false, onPress: onOpenIDPay },
+    { key: 'profile', label: t('chatList.bottomMenu.profile'), icon: UserRound, active: false, onPress: onOpenProfile },
   ];
 
   return (

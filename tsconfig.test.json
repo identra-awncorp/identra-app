@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "noEmit": false,
+    "outDir": ".tmp-test",
+    "rootDir": ".",
+    "target": "ES2022"
+  },
+  "include": [
+    "src/native/i18n/**/*.ts",
+    "src/native/i18n/**/*.tsx",
+    "src/native/screens/chat/paymentUtils.ts",
+    "src/native/screens/chat-list/chatListLogic.ts",
+    "src/native/screens/chat-list/chatSearchLogic.ts",
+    "src/native/screens/news-feed/search/newsFeedSearchLogic.ts"
+  ]
+}

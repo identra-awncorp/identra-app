@@ -22,9 +22,9 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { demoAvatars } from '../../data/chatDemoData';
-import type { ChatPreview } from '../../data/chatDemoData';
-import { type ReelDemoItem } from './ChatListData';
+import { demoAvatars } from '../../data/demo/chatDemoData';
+import type { ChatPreview } from '../../data/demo/chatDemoData';
+import { type ReelDemoItem } from '../../data/demo/chatListDemoData';
 import { styles } from './ChatListStyles';
 
 export function ReelsViewerScreen({

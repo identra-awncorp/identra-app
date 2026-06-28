@@ -13,7 +13,7 @@ import {
   INITIAL_CREDENTIALS,
   INITIAL_PROFILE,
   INITIAL_SETTINGS,
-} from './data';
+} from './data/demo/identityDemoData';
 import type { ActivityLog, AppSettings, Credential, PersonalInfo } from './types';
 
 const STORAGE_KEY = 'identra.native.state.v1';

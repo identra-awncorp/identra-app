@@ -1,38 +1,9 @@
+export type { ScreenKey, TabKey } from './app/navigation/navigationTypes';
+
 export type Language = 'vi' | 'en';
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type CredentialStatus = 'verified' | 'pending' | 'expired';
 export type SmartContractAvailability = 'available' | 'soldOut';
-export type TabKey = 'chat' | 'feed' | 'scan' | 'payment' | 'identity';
-
-export type ScreenKey =
-  | 'wallet'
-  | 'news-feed'
-  | 'news-feed-search'
-  | 'compose-post'
-  | 'live-stream'
-  | 'smart-contract-detail'
-  | 'payment'
-  | 'credentials'
-  | 'credential-detail'
-  | 'profile'
-  | 'security'
-  | 'share'
-  | 'share-qr'
-  | 'connection-qr'
-  | 'chat-list'
-  | 'chat'
-  | 'notifications'
-  | 'scan'
-  | 'activity'
-  | 'settings'
-  | 'settings-backup'
-  | 'settings-display'
-  | 'settings-governance'
-  | 'settings-notifications'
-  | 'settings-sharing'
-  | 'settings-data'
-  | 'settings-help'
-  | 'settings-about';
 
 export type CredentialIconName =
   | 'graduation'

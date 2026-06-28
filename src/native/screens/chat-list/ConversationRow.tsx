@@ -1,11 +1,17 @@
 import { BellOff, Check, CheckCheck, Clock3, FileText } from 'lucide-react-native';
 import { Image, Pressable, Text, View } from 'react-native';
-import { mediaPreviewImage } from '../../data/chatDemoData';
-import type { ChatMediaPreview, ChatPreview, DeliveryStatus } from '../../data/chatDemoData';
+import { mediaPreviewImage } from '../../data/demo/chatDemoData';
+import type { ChatMediaPreview, ChatPreview, DeliveryStatus } from '../../data/demo/chatDemoData';
 import type { AppColors } from '../../theme';
 import { LIST_AVATAR_SIZE } from './ChatListData';
 import { ChatAvatar, VerifiedBadgeIcon } from './ChatListAvatar';
 import { styles } from './ChatListStyles';
+import {
+  getConversationPreviewText,
+  getMediaThumbPresentation,
+  getVisibleDeliveryStatus,
+  shouldShowGroupSender,
+} from './chatListLogic';
 
 export function ConversationRow({
   colors,
@@ -17,7 +23,7 @@ export function ConversationRow({
   onPress: () => void;
 }) {
   const hasUnread = Boolean(conversation.unread);
-  const visibleDeliveryStatus = conversation.lastMessageFromMe ? conversation.deliveryStatus : undefined;
+  const visibleDeliveryStatus = getVisibleDeliveryStatus(conversation);
   return (
     <Pressable
       accessibilityRole="button"
@@ -80,7 +86,8 @@ function ConversationPreview({
   hasUnread: boolean;
 }) {
   const mediaOnly = Boolean(conversation.media && !conversation.message);
-  const previewText = conversation.message || getMediaLabel(conversation.media);
+  const previewText = getConversationPreviewText(conversation);
+  const showGroupSender = shouldShowGroupSender(conversation);
 
   return (
     <View style={styles.previewRow}>
@@ -98,7 +105,7 @@ function ConversationPreview({
           {previewText}
         </Text>
       </View>
-      {conversation.groupSender ? (
+      {showGroupSender ? (
         <Text numberOfLines={1} style={[styles.groupSender, { color: colors.textSecondary }]}>
           {conversation.groupSender}
         </Text>
@@ -120,13 +127,12 @@ function DeliveryStatusIcon({ colors, status }: { colors: AppColors; status: Del
 }
 
 function MediaThumbStack({ colors, media }: { colors: AppColors; media: ChatMediaPreview }) {
-  const count = Math.min(media.count ?? 1, 4);
-  const overflowCount = Math.max((media.count ?? 1) - count, 0);
+  const { overflowCount, visibleCount } = getMediaThumbPresentation(media);
 
   return (
     <View style={styles.mediaThumbStack}>
-      {Array.from({ length: count }).map((_, index) => {
-        const showOverflow = index === count - 1 && overflowCount > 0;
+      {Array.from({ length: visibleCount }).map((_, index) => {
+        const showOverflow = index === visibleCount - 1 && overflowCount > 0;
         return (
           <View
             key={`${media.type}-${index}`}
@@ -156,11 +162,4 @@ function MediaThumbStack({ colors, media }: { colors: AppColors; media: ChatMedi
       })}
     </View>
   );
-}
-
-function getMediaLabel(media?: ChatMediaPreview) {
-  if (!media) return '';
-  if (media.type === 'photo') return 'Photo';
-  if (media.type === 'gif') return 'GIF';
-  return media.fileName ?? 'File';
 }

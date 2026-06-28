@@ -22,9 +22,10 @@ import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View 
 import type { ImageStyle, StyleProp } from 'react-native';
 import Reanimated, { Extrapolation, interpolate, useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { assetManifest } from '../../assets/assetManifest';
 import { AppLogo } from '../../components/AppLogo';
-import { IconButton } from '../../components/ui';
-import { mediaPreviewImage } from '../../data/chatDemoData';
+import { IconButton } from '../../components/AppUiPrimitives';
+import { mediaPreviewImage } from '../../data/demo/chatDemoData';
 import type {
   ChatMediaPreview,
   ChatMessage,
@@ -32,12 +33,12 @@ import type {
   ContractChatPayload,
   CredentialChatPayload,
   DeliveryStatus,
-} from '../../data/chatDemoData';
+} from '../../data/demo/chatDemoData';
 import type { AppColors } from '../../theme';
 import { border, palette, radius, spacing, typography } from '../../theme';
 
 const QUICK_ACTIONS_HEIGHT = 49;
-const verifiedBadgeIcon = require('../../../assets/images/verified-badge-icon.png');
+const verifiedBadgeIcon = assetManifest.badges.verified;
 
 export function ChatConversation({
   colors,
