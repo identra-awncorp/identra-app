@@ -1,202 +1,285 @@
-# Identra Interface Development Rules
+# Identra Development Rules Draft
 
-The rules in this document must be applied when designing, editing, or comparing the project's interface.
+This file is a proposed replacement for `codex.md`. It is not the official rule file until it has been reviewed and approved.
 
-## 1. Distinguish App UI From Device UI
+The rules in this document apply when designing, coding, refactoring, reviewing, testing, or comparing the Identra mobile app against reference designs.
 
-- Reference images may contain both app UI and UI shown by the operating system or device.
-- Implement only the elements that belong to the app UI.
-- Do not implement fake status bars, including:
-  - System time
-  - Battery state
-  - Wi-Fi or mobile network state
-  - Dynamic Island, notches, or camera cutouts
-- Do not implement fake home indicators, system navigation bars, or Android navigation buttons.
-- Do not add phone frames, device bezels, or cameras to the app.
-- Simulate these elements only when the user explicitly requests a device mockup or a presentation inside a phone frame.
+## 1. Rule Priority
 
-## 2. When Comparing Against Design Images
+When rules conflict, follow this order:
 
-- Before editing code, classify each element in the image as:
-  1. App UI
-  2. Operating system or device UI
-  3. Decorative content for the mockup only
-- Match the layout, colors, typography, spacing, radius, shadow, and icons of the app UI portion.
-- Do not mechanically copy the entire reference image.
-- Preserve existing functionality and interaction flows unless the request explicitly asks for a change.
+1. The user's latest explicit request.
+2. This development rule file after approval.
+3. `design.md` for visual design principles, UI behavior, and design tokens.
+4. Existing code architecture and local patterns.
+5. General React Native, Expo, and TypeScript best practices.
 
-## 3. Rules for the Expo React Native App
+Before coding or changing UI, read `design.md` and the current approved development rule file. If a requirement is unclear or would require changing architecture, ask before implementing.
 
-- The project uses Expo and React Native; do not implement screens with HTML, DOM, or CSS.
-- The operating system is responsible for displaying the status bar and system navigation area.
-- The interface must start with the app bar or the first app content.
-- Respect safe areas with `SafeAreaView` and `useSafeAreaInsets`; do not redraw system UI.
-- The app's bottom navigation may be shown, but it must not contain a fake home indicator.
-- The latest approved bottom navigation is icon-only: Chat, News Feed, Scan QR, Payment, Identity.
-- Do not render text labels inside the bottom navigation unless a later approved design explicitly brings them back.
-- The active bottom navigation item uses the primary color for the icon; do not add rounded backgrounds or pills if the design does not include them.
-- When the bottom navigation design image changes, prioritize matching the latest image's icon, label, color, spacing, border, and height.
-- Bottom navigation must continue to be shown on `screen-credentials-library`.
-- Card shadow, elevation, and border must match the latest design image; do not automatically use a shared shadow if it makes the UI heavier than the image.
-- On main screens, cards should use only very subtle shadow; prefer refined borders and avoid high elevation.
-- Do not lock the UI to a specific device height if that breaks the experience on real screens.
-- Camera, biometric, clipboard, and secure storage APIs must use Expo modules compatible with both Android and iOS.
+Document boundary:
 
-## 4. Implementation Rules
+- `codex.md` owns development behavior: stack decisions, project structure, routing, store/domain boundaries, i18n enforcement, asset import rules, test/lint expectations, security implementation constraints, and worktree safety.
+- `design.md` owns product design: visual direction, tokens, typography, spacing, radius, shadows, layout rhythm, component appearance, motion, and platform design constraints.
+- `codex.md` may reference design rules only as implementation obligations. It should not become a second design system.
+- `design.md` may mention architecture only when needed to explain product-level UI surfaces. It should not define file placement, route ownership, store/domain implementation, lint commands, test commands, or git workflow.
 
-- Prefer existing components and design tokens.
-- All reusable UI copy must go through `src/native/i18n` and `useI18n`; do not hardcode Vietnamese or English UI text directly in components, navigation config, accessibility labels, tabs, buttons, empty states, or modal copy.
-- Navigation/config files should store translation keys such as `labelKey` and `descriptionKey`; the rendering component should call `t(...)`.
-- Demo/user-generated content may remain in `/data/demo` because it represents replaceable API data, but labels that describe UI state or actions must still be translated through i18n.
-- Multilingual text and demo content must be saved as clean UTF-8. Before handing off text-heavy changes, scan edited files for mojibake patterns such as `Ã`, `Ä`, `Æ`, `áº`, `á»`, `â€`, `Â·`, or `�`; valid Vietnamese content must display correctly in source.
-- The only official app logo is `src/assets/images/identra-logo.png`. Whenever the interface needs to display the app logo or Identra brand, it must use this PNG asset through the `AppLogo` or `AppBrandLogo` component; do not reuse the SVG and do not build the logo manually with icons, shapes, or replacement wordmarks.
-- Static image assets must be declared in `src/native/assets/assetManifest.ts`; components, screens, and data modules must import from the manifest instead of calling `require(...)` directly. Keep manifest asset declarations as static `require(...)` calls so Metro can bundle them correctly.
-- When handling asynchronous tasks, API calls, authentication, signing/sending transactions, QR creation, or any action that may take time, lock interaction and show the shared `LoadingOverlay` component until the task completes or fails; do not create separate one-off loading overlays unless there is a clear design requirement.
-- Every screen or view must have its own stable and unique `nativeID` and `testID`.
-- Screen IDs use the `screen-` prefix and kebab-case names, for example `screen-wallet-home` or `screen-data-request`.
-- States that form different screens must have different IDs.
-- Do not use screen IDs for cards, items, or decorative elements.
-- Do not add an element only because it appears in the chrome of a reference image.
+## 2. Product And Stack
+
+- Identra is an Expo React Native mobile super app for digital identity, chat, news feed, payment, QR scanning, credentials, and settings.
+- The project uses Expo SDK 56, React Native, TypeScript, and Expo Router.
+- Do not implement app screens with HTML, DOM APIs, CSS files, or web-only UI assumptions.
+- Every feature must work well on both Android and iOS.
+- Platform APIs such as camera, clipboard, biometrics, haptics, safe area, system UI, and linking must use Expo or React Native APIs that support Android and iOS.
+- Web preview may be used for quick inspection, but it is not enough to prove mobile compatibility.
+
+## 3. Device UI Boundaries
+
+- Reference images may include both app UI and operating-system/device UI.
+- Implement only app UI.
+- Do not implement fake status bars, including system time, battery, Wi-Fi, mobile signal, Dynamic Island, notch, camera cutout, or status icons.
+- Do not implement fake home indicators, Android navigation bars, device bezels, phone frames, or camera holes.
+- Use `expo-status-bar`, `SafeAreaView`, and `useSafeAreaInsets` to respect real device UI.
+- If a reference contains device chrome, classify it as non-app UI unless the user explicitly asks for a phone mockup.
+
+## 4. Design Interpretation
+
+- Before comparing against a design image, classify each visible element as app UI, operating-system UI, or decorative mockup content.
+- Match the app UI portion: layout, spacing, typography, color, radius, icon treatment, border, and shadow.
+- Do not mechanically copy the full screenshot when it contains device chrome.
+- Preserve existing functionality and navigation flow unless the user explicitly requests a behavior change.
+- Treat `design.md` as the mobile visual foundation, but respect later approved product decisions in this file.
+- Visual hierarchy, spacing, shadows, borders, and responsive width expectations are governed by `design.md`; do not override them in code without approval.
+
+## 5. Project Architecture
+
+### Route Layer
+
+- `app/` is the Expo Router route layer.
+- Files in `app/` should be thin route entries that connect URL routes to screen components in `src/native/screens`.
+- Do not put large UI implementations, business logic, demo data, or styling systems directly in route files.
+- Use route params for detail pages, for example:
+  - `app/credentials/[credentialId].tsx`
+  - `app/smart-contracts/[postId].tsx`
+- When adding a screen that needs a route, add the route file in `app/` and the actual implementation under `src/native/screens/<feature>`.
+
+### App Shell And Router State
+
+- `src/native/app/router/AppShell.tsx` owns the shared app frame, auth redirect, bottom navigation, side menu, and global route chrome.
+- `src/native/app/router/AppRouterContext.tsx` owns shared router UI state such as side menu state, return screens, selected chat, share payloads, connection invitations, and News Feed chrome animation state.
+- Do not duplicate shell, bottom navigation, side menu, auth redirect, or global route state inside individual screens.
+- If a new feature needs cross-screen route state, extend the router context deliberately and keep feature-local state inside the feature screen.
+
+### Navigation Config
+
+- `src/native/app/navigation/navigationTypes.ts` defines `ScreenKey` and `TabKey`.
+- `src/native/app/navigation/navigationLogic.ts` contains pure navigation logic such as route mapping, tab mapping, active tab selection, bottom nav visibility, and return-screen rules.
+- `src/native/app/navigation/navigationConfig.ts` contains render config such as bottom nav items and side menu items.
+- Navigation config must store translation keys such as `labelKey` and `descriptionKey`; rendering components call `t(...)`.
+- When adding, removing, or renaming a route, update the route file, `ScreenKey`, `screenPaths`, tab/side-menu config if needed, and navigation tests.
+
+### Feature Screens
+
+- Main and feature screens live in `src/native/screens`.
+- Use clear feature folders and clear file names. Prefer names like `NewsFeedSearchScreen.tsx`, `SmartContractDetailScreen.tsx`, or `CredentialDetailScreen.tsx` over generic names like `SearchScreen.tsx`, `DetailScreen.tsx`, or `SecondaryScreen.tsx`.
+- Related subflows stay inside the parent feature folder, for example:
+  - `src/native/screens/news-feed/search`
+  - `src/native/screens/news-feed/notifications`
+  - `src/native/screens/news-feed/smart-contract`
+  - `src/native/screens/identity/credential-detail`
+  - `src/native/screens/settings/details`
+- Shared UI components used across multiple features belong in `src/native/components`.
+- Shared styles or helpers used only by a screen family can remain inside that feature folder.
+
+## 6. Current Navigation Product Rules
+
+- Initial authenticated screen is `chat-list`.
+- Bottom navigation is icon-only and represents:
+  - Chat
+  - News Feed
+  - Scan QR
+  - Payment
+  - Identity
+- Do not render text labels inside bottom navigation unless a later approved design explicitly reintroduces labels.
+- Active bottom nav item uses the primary color for the icon only; do not add a rounded active background unless approved.
+- Bottom nav icons are React Native SVG components under `src/native/components/icons/bottom-nav`.
+- Bottom navigation visibility is controlled by `navigationLogic.ts`; do not hardcode it in screens.
+- `credentials` remains under the Identity tab and keeps bottom navigation visible.
+- Settings, Activity, Profile, Security, Notifications, and related secondary screens are reached through side menu or route flows, not as bottom nav tabs.
+- The Activity history quick menu must open `screen-activity`; do not recreate `screen-wallet-history-log`.
+
+## 7. State, Store, And Domain Services
+
+- UI reads and writes app state through `src/native/store`.
+- `AppStoreProvider.tsx` owns React context, persistence orchestration, and public store actions.
+- `appStoreStorage.ts` owns AsyncStorage persistence.
+- `appStoreInitialState.ts` owns initial app state.
+- Pure state transformations belong in `src/native/domain/app-store/appStoreStateService.ts`.
+- Do not bury important state mutation logic inside UI components when it can be expressed as a pure function.
+- New important store/domain behavior should have tests.
+- Demo data removal must remain supported. Lists backed by demo data must show valid empty states after demo data is removed.
+
+## 8. Data And Demo Data
+
+- Demo data belongs in `src/native/data/demo`.
+- Demo data represents replaceable API data. UI should not depend on demo-only assumptions.
+- User-generated content, names, messages, post content, and demo conversation/post text may remain as data and do not need to be translated.
+- Labels that describe UI state or actions still must go through i18n, even when used near demo data.
+- If a feature can show a list, support loading, empty, and no-result states as appropriate.
+- For lists that may become long, use `FlatList` or another virtualized list, not `ScrollView`.
+
+## 9. Assets And Icons
+
+- Static image assets must be declared in `src/native/assets/assetManifest.ts`.
+- Components, screens, and data modules must import assets from the manifest instead of calling `require(...)` directly.
+- Keep asset manifest declarations as static `require(...)` calls so Metro can bundle them.
+- The only official app logo is `src/assets/images/identra-logo.png`.
+- When showing Identra branding, use `AppLogo` or `AppBrandLogo`; do not rebuild the logo manually or substitute a different mark.
+- Verified badges should use the approved verified badge asset from `src/assets/images` through the asset manifest.
+- SVG icons used in React Native should be converted to typed React Native components with `react-native-svg`, preserving viewBox, shape, and ratio.
+
+## 10. i18n And Text
+
+- All reusable system UI copy must go through `src/native/i18n` and `useI18n`.
+- Do not hardcode Vietnamese or English system UI text in components, navigation config, tabs, buttons, modal copy, empty states, accessibility labels, or reusable UI states.
+- Locale files are `src/native/i18n/locales/vi.ts` and `src/native/i18n/locales/en.ts`.
+- Keep `en.ts` structurally aligned with `vi.ts`.
+- Use typed `I18nKey` whenever a config object stores a translation key.
+- User-generated content and demo content that simulates real users does not need translation.
+- Save multilingual files as clean UTF-8.
+- Before handing off text-heavy changes, scan edited files for mojibake patterns such as `U+00C3`, `U+00C4`, `U+00C6`, UTF-8-decoded-as-Windows-1252 sequences, and the replacement character `U+FFFD`.
+
+## 11. Theme And Styling
+
+- Shared design tokens live in `src/native/theme.ts`.
+- Prefer existing tokens for color, spacing, radius, typography, border, motion, touch target, icon size, layout, and shadows.
+- Do not move every one-off screen style into `theme.ts`; only shared foundational tokens belong there.
+- Screen-specific layout differences can stay in local `StyleSheet.create(...)` files.
+- Avoid heavy shadows, heavy borders, and nested cards that make screens feel cramped.
+- Keep touch targets at least `44x44px`.
+- Content must not be covered by bottom navigation, keyboard, safe areas, or gesture areas.
+- Dark mode must preserve the same hierarchy as light mode when the edited area supports dark mode.
+
+## 12. Async Work And Loading
+
+- For async tasks that may take noticeable time, lock relevant interaction and show the shared `LoadingOverlay`.
+- Use `LoadingOverlay` for authentication, API calls, signing/sending transactions, QR creation, credential sharing, backup/restore, and other blocking actions.
+- Do not create one-off full-screen loading overlays unless there is a clear design requirement.
+- Preserve user-entered data on errors and provide a clear retry or safe return path.
+
+## 13. Accessibility And Test IDs
+
+- Every screen or screen-like state must have a stable unique `nativeID` and `testID`.
+- Screen IDs use the `screen-` prefix and kebab-case names.
+- States that behave as different screens need different screen IDs.
+- Do not use screen IDs for ordinary cards, list items, or decorative elements.
 - Every icon button must have an `accessibilityLabel`.
-- Minimum touch target is `44x44px`.
-- Content must not be covered by bottom navigation.
-- Check the interface at `320px`, `390px`, and `430px` widths.
-- Check both light mode and dark mode if the edited area supports both modes.
-- The "Activity history" quick menu must open `screen-activity`; do not recreate `screen-wallet-history-log`.
-- Demo data must be fully removable, and every related list must still show a valid empty state.
+- Use `accessibilityRole` and `accessibilityState` where appropriate for buttons, tabs, switches, and selected states.
+- Do not communicate state using color alone.
+- Content should read in a logical order for screen readers.
 
-## 5. Chat List Rendering Logic
+## 14. Chat List Rendering Rules
 
-The chat list must use the same display logic on mobile, web, and desktop. Platform-specific components may differ, but the underlying data semantics and rendering rules must stay consistent.
+Chat list rendering semantics must remain consistent across mobile, web preview, and future surfaces.
 
-### Required Conversation Fields
-
-Each chat preview should be derived from a normalized conversation item with these semantic fields:
+Each conversation preview should be derived from normalized data fields:
 
 - `id`: stable conversation ID.
 - `name`: conversation title or participant display name.
-- `message`: latest message text or caption. Use an empty string when the latest message is media-only.
+- `message`: latest message text or caption, empty for media-only messages.
 - `time`: formatted timestamp for display.
-- `avatar`: semantic avatar kind, such as `photo`, `group`, `identra`, or `initial`.
-- `avatarSource`: optional image source for real user or group avatars.
-- `initials`: fallback initials when no avatar image is available.
-- `online`: whether a direct contact is currently online.
-- `verified`: whether the conversation is an official or verified identity.
-- `muted`: whether notification mute is enabled for the conversation.
-- `unread`: unread message count. Omit or use `0` when there are no unread messages.
-- `lastMessageFromMe`: whether the latest message in the conversation was sent by the current user.
-- `deliveryStatus`: latest outgoing message state. Valid values are `sent`, `seen`, and `pending`.
-- `groupSender`: display name of the latest sender in a group conversation when the latest message is not from the current user.
-- `media`: optional preview metadata for media or attachment messages.
+- `avatar`: semantic avatar kind such as `photo`, `group`, `identra`, or `initial`.
+- `avatarSource`: optional image source for real avatars.
+- `initials`: fallback when no image is available.
+- `online`: whether direct-contact presence is meaningful.
+- `verified`: whether the conversation is official or verified.
+- `muted`: whether notifications are muted.
+- `unread`: unread count.
+- `lastMessageFromMe`: whether the latest message was sent by the current user.
+- `deliveryStatus`: `sent`, `seen`, or `pending`.
+- `groupSender`: sender display name for group conversations.
+- `media`: optional media or attachment preview metadata.
 
-### Delivery Status
+Delivery status rules:
 
 - Show delivery status only when `lastMessageFromMe === true`.
-- Do not show sent, seen, or pending indicators when the latest message was sent by another participant, even in direct conversations.
-- Do not show delivery status for system conversations unless the current user actually sent the latest message.
-- `sent` displays a single check icon.
-- `seen` displays a double check icon.
-- `pending` displays a pending or clock icon to indicate the message has not been sent yet.
-- A conversation may have `deliveryStatus`, but the UI must still suppress it when `lastMessageFromMe !== true`.
+- Do not show sent, seen, or pending indicators for messages sent by others.
+- In group conversations, show `groupSender` for messages from other participants and delivery status for messages from the current user.
 
-### Group Conversations
+Preview rules:
 
-- When the latest group message is from another participant, show `groupSender` on the right side of the message preview row.
-- When the latest group message is from the current user, do not show `groupSender`; show delivery status instead when available.
-- Group conversations can still be muted, unread, verified, and include media previews.
+- Media-only messages display a media label such as Photo, GIF, or file name.
+- Multiple photos show at most four thumbnails with an overflow count.
+- The message preview row must stay compact and must not force rows to grow excessively.
+- Official Identra conversations must use `AppLogo` or `AppBrandLogo`, not a demo avatar.
 
-### Avatar, Online, and Mute Indicators
+## 15. News Feed Rules
 
-- Prefer `avatarSource` for real user and group avatars.
-- Fall back to `initials` only when no avatar image is available.
-- Official Identra conversations must use the official app logo through `AppLogo` or `AppBrandLogo`, not a demo avatar.
-- Show the online dot only for real contacts where online presence is meaningful.
-- Show the mute indicator beside or over the avatar when `muted === true`.
-- Mute state does not hide unread badges or delivery status.
+- News Feed uses a virtualized feed list for potentially long content.
+- Feed overlay chrome animation must be scroll-linked and smooth, not delayed threshold animation.
+- When the user scrolls down, bottom nav can slide down and header/FAB can respond according to the current approved product behavior.
+- Tabs in News Feed must remain available according to the latest approved behavior; do not hide them fully under device status UI.
+- Feed images should come from `src/assets/images/news-feed-demo` through `assetManifest.ts`.
+- Verified badges in feed should use the approved asset badge, not improvised icon drawings.
+- Live stream feed cards and live stream detail should stay visually aligned with the overall News Feed system, not become a separate oversized UI language.
+- Smart contract cards should reflect their actual state, including available vs sold out, and detail routes must use route params.
 
-### Message and Media Preview
+## 16. Security And Sensitive Data
 
-- Text-only latest messages display the text with single-line truncation.
-- Media-only latest messages use an empty `message` and display the media label:
-  - `photo` displays `Photo`.
-  - `gif` displays `GIF`.
-  - `file` displays the file name when available, otherwise `File`.
-- When a media message also has text, show the media thumbnail and the text caption.
-- Photo previews must show thumbnails beside the text or media label.
-- Multiple photos display at most four thumbnails. If there are more than four, the last visible thumbnail shows an overflow count such as `+2`.
-- GIF and file previews follow the same structure: a compact leading preview icon or thumbnail plus the label or caption.
-- The message preview row must remain compact and must not force the conversation row to grow excessively.
+- Do not claim that the whole app sandbox is protected merely by an app PIN.
+- App PIN protects against casual unauthorized access after the device is unlocked; it is not sufficient against rooted/jailbroken devices, malware, memory scraping, or compromised OS environments.
+- Sensitive credentials, keys, tokens, and authentication secrets should use appropriate secure storage or platform security APIs when implemented.
+- Secure storage and biometric flows must have Android and iOS fallbacks.
+- Do not log secrets, credentials, security codes, private keys, seed phrases, or sensitive identifiers.
+- Sensitive values should be masked by default when the screen or user setting requires it.
 
-### Unread and Text Weight
+## 17. Code Quality And Comments
 
-- Unread conversations should make the conversation title and relevant preview text more visually prominent.
-- Unread count greater than `1` displays as a compact numeric badge.
-- Unread count equal to `1` may display as a dot or a compact badge depending on the platform design.
-- Unread state must not override media preview semantics.
+- Prefer existing components, hooks, helpers, and patterns before creating new abstractions.
+- Add an abstraction only when it removes real duplication or clarifies a shared contract.
+- Keep edits scoped to the requested feature.
+- Do not refactor unrelated files just because they are nearby.
+- Add comments only where they explain non-obvious logic, architecture boundaries, or important product constraints.
+- Do not add comments that merely restate the code.
+- Keep file and folder names explicit and feature-oriented.
+- Avoid generic catch-all files such as `SecondaryScreens.tsx`, `SearchScreen.tsx`, or `utils.ts` when a clearer domain name exists.
 
-### Quick Contacts and Thought Bubbles
+## 18. Linting, Type Checking, And Tests
 
-- Quick contacts can display short thought bubbles above avatars.
-- Thought content may accept up to `60` characters in data, but the UI preview must use a fixed-size bubble.
-- The thought bubble displays at most two lines and truncates overflow with an ellipsis.
-- Thought bubble color is user-customizable and must not be forced to use global design tokens.
-- Thought bubbles may slightly overlap the avatar, but must not push quick contacts too far apart or cover the search field.
-- Quick contact new-post state should be visually distinct, such as with a blue avatar ring.
+- ESLint is configured in `eslint.config.js` using Expo flat config and unused import/unused variable rules.
+- Keep imports clean. Do not leave unused imports, unused variables, or duplicate imports.
+- `npm run lint` should pass before handoff for code changes.
+- `npm run typecheck` should pass before handoff for TypeScript changes.
+- `npm test` should pass when touching logic covered by tests or when adding important logic.
+- Logic tests live in `tests/` and are run through `tsconfig.test.json` plus `node --test`.
+- Add tests for pure logic in navigation, store/domain services, search/filtering, payment utilities, i18n, date/status calculations, and any logic with meaningful branching.
+- UI-only pixel adjustments may not require tests, but should still be checked manually where practical.
 
-### Demo Data Coverage
+## 19. Git And Worktree Safety
 
-When building or refreshing demo data for the chat list, include enough examples to cover:
+- The worktree may contain user changes.
+- Never revert or overwrite user changes unless explicitly requested.
+- If a file contains unrelated changes, work with them and keep edits scoped.
+- Do not run destructive commands such as hard resets or broad deletes without explicit approval.
+- Do not stage, commit, or push unless the user asks.
 
-- Direct chat where the current user sent the latest message with `sent`.
-- Direct chat where the current user sent the latest message with `seen`.
-- Direct chat where the current user sent the latest message with `pending`.
-- Direct chat where another participant sent the latest message and no delivery status is shown.
-- Group chat where another participant sent the latest message and `groupSender` is shown.
-- Group chat where the current user sent the latest message and delivery status is shown.
-- Muted conversations.
-- Unread conversations with both dot-style and count-style presentation where applicable.
-- Photo-only, photo-with-caption, multiple-photo, GIF, and file previews.
-- Official Identra or system conversation using the official app logo.
+## 20. Pre-Completion Checklist
 
-Demo data must be replaceable by real API data without changing rendering logic.
+- [ ] `design.md` and the approved development rule file were considered before coding.
+- [ ] No fake device UI was implemented.
+- [ ] Android and iOS compatibility was preserved.
+- [ ] Routes remain thin and screen logic lives under `src/native/screens`.
+- [ ] Navigation config and route mappings are updated when routes change.
+- [ ] System UI text uses i18n.
+- [ ] Static image assets go through `assetManifest.ts`.
+- [ ] Demo data remains removable and empty states still work.
+- [ ] Long lists use virtualized lists where appropriate.
+- [ ] Async blocking tasks use `LoadingOverlay` where appropriate.
+- [ ] Every screen-like state has a stable `screen-*` ID.
+- [ ] Icon buttons have accessibility labels.
+- [ ] Edited UI follows the depth, border, spacing, and hierarchy guidance in `design.md`.
+- [ ] `npm run lint`, `npm run typecheck`, and relevant tests pass, or any skipped verification is clearly reported.
+- [ ] Text-heavy edited files were scanned for UTF-8/mojibake issues.
 
-## 6. Android and iOS Support
+## 21. Decision Rule
 
-- Every mobile interface and feature must work well on both Android and iOS devices.
-- Do not design or implement only according to behavior, dimensions, or conventions specific to one operating system.
-- Do not simulate the Android or iOS status bar, home indicator, navigation buttons, or navigation gestures.
-- Respect safe areas on iOS devices with camera cutouts and Android devices with display cutouts.
-- Use `react-native-safe-area-context` to read correct safe areas on each device.
-- Layout must flex with the React Native window size; do not use fixed device-height values.
-- Important content and actions must not be covered by:
-  - The virtual keyboard
-  - App bottom navigation
-  - Gesture areas or system navigation bars
-- Do not depend on hover. Every interaction must work with touch.
-- Do not depend on a single swipe gesture; always provide a clear button or alternative action.
-- Forms must work correctly with the virtual keyboard, autofill, and suitable `keyboardType`.
-- Verify compatibility with a bundle or Android/iOS simulation environment, not only with web preview.
-- Features that depend on camera, sharing, clipboard, biometrics, or system permissions must include a fallback when the API is not supported.
-
-## 7. Pre-Completion Checklist
-
-- [ ] Every screen has its own unique `screen-*` ID.
-- [ ] There is no fake time, battery, Wi-Fi, mobile network state, or Dynamic Island.
-- [ ] There is no fake home indicator or system navigation bar.
-- [ ] There is no phone frame unless the user requested a mockup.
-- [ ] The app bar and content start at the correct position.
-- [ ] Bottom navigation contains only app navigation.
-- [ ] Bottom navigation icons and active state match the latest design image.
-- [ ] Card shadow and elevation are not heavier than the design image.
-- [ ] Content is not covered and can scroll fully.
-- [ ] The interface matches the app-UI portion of the reference image.
-- [ ] Existing functionality and interactions still work.
-- [ ] The interface works well on both Android and iOS.
-- [ ] Safe area, system navigation area, and virtual keyboard do not cover content.
-- [ ] A corresponding Android or iOS bundle or simulation environment has been checked.
-- [ ] Device-dependent APIs include fallbacks.
-- [ ] Type-check and build pass.
-
-## 8. Decision Rule
-
-When it is unclear whether an element in an image belongs to the app or the device, do not implement that element until it has been verified from project context or by asking the user.
+When it is unclear whether a change belongs to UI, routing, data, domain logic, assets, i18n, or store, do not guess silently. Inspect the existing architecture first. If the answer is still ambiguous or the change would alter product behavior, ask before implementation.

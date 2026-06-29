@@ -1,442 +1,596 @@
 ---
-name: SSI Mobile Design System
-version: 0.2.0-alpha
+name: Identra Mobile Design System Draft
+version: 0.3.0-draft
+status: review-only
+source-of-truth:
+  token-reference: "src/native/theme.ts"
+  current-development-rules: "codex.md"
+  proposed-development-rules: "codex-new.md"
 tokens:
   color-light:
-    primary: "#5B6CFF"
-    primary-hover: "#4A5AF0"
-    secondary: "#8F9BFF"
     background: "#F7F8FC"
     surface: "#FFFFFF"
-    text-primary: "#1F2937"
-    text-secondary: "#6B7280"
-    border: "#E5E7EB"
-    success: "#22C55E"
+    surface-muted: "#F1F4FB"
+    surface-elevated: "#FFFFFF"
+    text: "#11172F"
+    text-secondary: "#596684"
+    border: "#EEF2F7"
+    primary: "#5B6CFF"
+    primary-dark: "#355CFF"
+    primary-hover: "#4A5AF0"
+    secondary: "#8F9BFF"
+    success: "#12B76A"
+    warning: "#F57900"
+    danger: "#FF3D47"
+    purple: "#9747FF"
     gradient-start: "#5B6CFF"
     gradient-end: "#60A5FA"
-
+    overlay: "rgba(11, 15, 26, 0.78)"
   color-dark:
     background: "#0B0F1A"
-    surface: "#111827"
-    surface-elevated: "#1F2937"
-    text-primary: "#E5E7EB"
-    text-secondary: "#9CA3AF"
-    border: "#374151"
+    surface: "#1F2937"
+    surface-muted: "#374151"
+    surface-elevated: "#11172F"
+    text: "#F4F6FB"
+    text-secondary: "#A5AFC4"
+    border: "rgba(165, 175, 196, 0.18)"
     primary: "#7C8CFF"
+    primary-dark: "#6B7BFF"
     primary-hover: "#6B7BFF"
+    secondary: "#8F9BFF"
+    success: "#22C55E"
+    warning: "#FB923C"
+    danger: "#FB7185"
+    purple: "#B986FF"
     gradient-start: "#5B6CFF"
     gradient-end: "#3B82F6"
-    success: "#22C55E"
-
+    overlay: "rgba(0, 0, 0, 0.82)"
   typography:
-    font-family-base: "'Inter', sans-serif"
-    font-size-xs: "12px"
-    font-size-sm: "14px"
-    font-size-md: "16px"
-    font-size-lg: "20px"
-    font-size-xl: "28px"
-    font-size-2xl: "36px"
-    font-weight-regular: 400
-    font-weight-medium: 500
-    font-weight-semibold: 600
-    font-weight-bold: 700
-
+    family-base: "Inter"
+    size-xs: 12
+    size-sm: 14
+    size-md: 16
+    size-lg: 20
+    size-xl: 28
+    size-xxl: 36
+    line-xs: 17
+    line-sm: 20
+    line-md: 23
+    line-lg: 28
+    line-xl: 36
+    line-xxl: 44
+    weight-regular: 400
+    weight-medium: 500
+    weight-semibold: 600
+    weight-bold: 700
+    weight-extra-bold: 800
+    weight-black: 900
   spacing:
-    xs: "4px"
-    sm: "8px"
-    md: "16px"
-    lg: "24px"
-    xl: "32px"
-    2xl: "48px"
-    3xl: "64px"
-
+    xxs: 2
+    xs: 4
+    sm: 8
+    md: 12
+    lg: 16
+    xl: 24
+    xxl: 32
+    xxxl: 48
+    huge: 64
   radius:
-    sm: "8px"
-    md: "12px"
-    lg: "20px"
-    pill: "999px"
-
-  shadow:
-    sm: "0 2px 8px rgba(0,0,0,0.05)"
-    md: "0 4px 16px rgba(0,0,0,0.08)"
-    lg: "0 10px 30px rgba(0,0,0,0.12)"
+    xs: 6
+    sm: 8
+    md: 12
+    lg: 16
+    xl: 20
+    xxl: 24
+    round: 999
+  layout:
+    min-width: 320
+    reference-width: 390
+    max-width: 430
+    screen-padding: 16
+    wide-screen-padding: 24
+    app-bar-height: 56
+    bottom-nav-height: 72
+  touch-target:
+    minimum: 44
+    comfortable: 48
+    large: 56
+  icon-size:
+    xs: 16
+    sm: 20
+    md: 24
+    lg: 28
+    xl: 32
 ---
 
-## Overview
+## 1. Purpose
 
-This is the design system for the SSI (Self-Sovereign Identity) mobile app, focused on identity management, credentials, and safe personal data sharing.
+This file is a proposed replacement for `design.md`. It is not official until reviewed and approved.
 
-The design keeps the original system's **modern, minimal, and high-tech** spirit. The interface uses airy light backgrounds, white cards, a blue primary color, and subtle gradients to create a sense of trust, security, and control.
+Identra is now a mobile super app, not only an SSI wallet. The design system must support identity, chat, news feed, payment, QR scanning, credentials, settings, live content, notifications, smart contracts, and future mini-app surfaces.
 
-The system aims to provide:
-- A clear mobile experience with convenient one-handed interactions
-- Priority for important content and actions on small screens
-- Consistent navigation across core features
-- A feeling of security, transparency, and trustworthiness
+The product feeling should stay:
 
----
+- Clear
+- Trustworthy
+- Modern
+- Lightweight
+- Mobile-native
+- Social enough for chat/feed, but still secure enough for identity/payment
 
-## Mobile Principles
+## 2. Design Priority
 
-### Mobile-First
+When visual rules conflict, follow this order:
 
-- Design by default for screens from `320px` to `430px` wide.
-- Main content should use a single-column layout.
-- Do not depend on hover; every interactive state must work well with touch.
-- On larger screens, keep the app frame at a maximum width of `430px` and center it to preserve the mobile experience.
+1. The latest approved user-provided design for the current screen.
+2. The product-specific rules in the approved development rule file.
+3. This design system after approval.
+4. `src/native/theme.ts`.
+5. Existing local screen patterns.
 
-### One-Handed Use
+Use this document for direction and consistency. Use `src/native/theme.ts` as the token reference.
 
-- Frequent actions should be placed in the lower half of the screen or inside bottom navigation.
-- The primary action of a screen should be easy to reach with the thumb.
-- Standalone icon buttons must have a minimum touch target of `44x44px`.
+## 3. Core Visual Direction
 
-### Content Hierarchy
+Identra should feel like a calm, high-trust mobile app with enough social energy for feed and chat.
 
-- Each screen should have only one main goal.
-- Important information appears first; secondary details expand only when needed.
-- Use cards, dividers, and whitespace for grouping instead of adding many colors or shadows.
+- Use airy light backgrounds and white surfaces.
+- Prefer refined borders and low shadows over heavy cards.
+- Use blue as the main trust/action color.
+- Use rounded geometry, but avoid cartoonish softness.
+- Keep information dense enough for real product use, but not visually cramped.
+- Preserve hierarchy with whitespace, typography, and subtle grouping before adding more color.
 
----
+Large gradients are allowed only when they clarify identity/security/social moments, such as hero credential cards, onboarding, verified states, QR/credential art, or special feed media. Do not use gradients as generic section backgrounds.
 
-## Colors
+## 4. Mobile Frame
 
-Keep the original system color palette for both light mode and dark mode.
+- Design first for `320px` to `430px` width.
+- Reference width is `390px`.
+- Desktop/web preview should keep a centered mobile frame with max width `430px`.
+- Content must scroll vertically and never require horizontal scrolling.
+- Do not design fake device chrome.
+- Do not include fake time, battery, Wi-Fi, Dynamic Island, notch, home indicator, Android navigation bar, or phone frame.
+- Respect real safe areas.
 
-### Primary (`#5B6CFF`)
+## 5. Color System
 
-Use for primary CTAs, active bottom navigation states, focus rings, links, and important accents.
+### Light Mode
 
-Do not use primary as the background for large content areas. A screen should generally have only one prominent primary action.
-
-### Background (`#F7F8FC`)
-
-Use as the overall app background in light mode. It helps white cards stand out while keeping the interface light and airy.
-
-### Surface (`#FFFFFF`)
-
-Use for cards, app bars, bottom navigation, forms, modals, and bottom sheets.
-
-### Text Primary (`#1F2937`)
-
-Use for headings, main content, and important information. Ensure WCAG AA contrast.
-
-### Text Secondary (`#6B7280`)
-
-Use for descriptions, metadata, secondary labels, and less important states.
-
-### Border (`#E5E7EB`)
-
-Use for dividers, inputs, and card borders. Borders should stay subtle so the interface does not feel heavy.
-
-### Success (`#22C55E`)
-
-Use for verified, completed, or secure connection states. Do not use it as a replacement for the primary CTA.
+- Background: `#F7F8FC`
+- Surface: `#FFFFFF`
+- Muted surface: `#F1F4FB`
+- Text: `#11172F`
+- Secondary text: `#596684`
+- Border: `#EEF2F7`
+- Primary: `#5B6CFF`
+- Primary dark/action: `#355CFF`
+- Success: `#12B76A`
+- Warning: `#F57900`
+- Danger: `#FF3D47`
+- Purple accent: `#9747FF`
 
 ### Dark Mode
 
 - Background: `#0B0F1A`
-- Surface: `#111827`
-- Surface elevated: `#1F2937`
-- Text primary: `#E5E7EB`
-- Text secondary: `#9CA3AF`
-- Border: `#374151`
+- Surface: `#1F2937`
+- Muted surface: `#374151`
+- Elevated surface: `#11172F`
+- Text: `#F4F6FB`
+- Secondary text: `#A5AFC4`
+- Border: `rgba(165, 175, 196, 0.18)`
 - Primary: `#7C8CFF`
 
-Dark mode keeps the same structure and hierarchy as light mode, changing only the corresponding color tokens.
+Dark mode should keep the same hierarchy as light mode. Do not redesign the layout for dark mode.
 
----
+### Semantic Colors
 
-## Typography
+- Success is for verified, complete, active-safe, or ready-to-trade states.
+- Warning is for pending, time-limited, or waiting states.
+- Danger is for expired, failed, rejection, abuse report, destructive, or unavailable states.
+- Purple is for secondary expressive moments, not primary CTAs.
 
-### Font Family
+Do not communicate state with color alone. Pair color with icon, text, or layout.
 
-`Inter, sans-serif`
+## 6. Typography
 
-A modern font that is readable on small screens and suitable for a technology product.
+Base family is `Inter`.
 
-### Mobile Heading
+Use these sizes:
 
-- Screen title: `28px / Bold`
-- Section title: `20px / Semibold`
-- Card title: `16px / Semibold`
-- Compact label: `14px / Semibold`
+- Metadata: `12px`
+- Compact body: `14px`
+- Body: `16px`
+- Section title: `20px`
+- Screen title: `28px`
+- Special/onboarding title: `36px`
 
-Do not use `36px` for normal app content; this token is reserved for onboarding or special introduction screens.
+Weight guidance:
 
-### Body
+- Body: `400-500`
+- Metadata: `500-600`
+- Section and card titles: `700-900`
+- Primary screen titles: `800-900`
 
-- Default: `16px / Regular`
-- Compact body: `14px / Regular`
-- Metadata: `12px / Medium`
+Avoid using `36px` in normal screens. Reserve it for onboarding, hero, or special presentation states.
 
-Body text should use a line height of about `1.45-1.6`. Do not use font sizes smaller than `12px`.
+Body copy should be readable with line height around `1.45`. Dense metadata can be tighter, but should not fall below `12px`.
 
----
+## 7. Spacing And Radius
 
-## App Frame
+Use the app spacing scale:
 
-### Mobile Viewport
+- `2`, `4`, `8`, `12`, `16`, `24`, `32`, `48`, `64`
 
-- Reference design width: `390px`
-- Supported width: `320px-430px`
-- Maximum width on desktop: `430px`
-- App background: `{color.background}`
-- Content scrolls vertically, never horizontally
+Default screen horizontal padding is `16px`; use `24px` for wider or presentation-style screens when needed.
 
-### Safe Area
+Common radius:
 
-- Respect `safe-area-inset-top` and `safe-area-inset-bottom`.
-- Do not place CTAs, inputs, or important content too close to camera cutouts, status bars, or home indicators.
-- Bottom navigation must include bottom safe area padding on supported devices.
+- Small controls: `8-12px`
+- Cards: `16-20px`
+- Large sheets and floating surfaces: `24px`
+- Pills and circular controls: `999px`
 
-### Content Container
+Avoid arbitrary spacing unless the screen needs a very specific alignment.
 
-- Default horizontal padding: `16px`
-- Horizontal padding on wider screens: up to `24px`
-- Space between sections: `24px`
-- Space between related items: `8px-16px`
+## 8. Shadows, Borders, And Depth
 
-### Grid
+Depth should be subtle. Identra should not feel like a stack of heavy boxes.
 
-- Use a `4-column` grid for quick actions and compact dashboards.
-- Default gap: `8px` or `12px`.
-- Main content and forms should always prioritize a single column.
-- Use two columns only when each item still preserves touch target size and readable content.
+Use these levels conceptually:
 
-### Vertical Structure
+- Subtle: tiny iOS shadow, no Android elevation; good for bottom nav and light grouping.
+- Card: light iOS shadow and Android elevation around `3`; good for major cards.
+- Floating: stronger but still refined; good for FAB, bottom sheets, side menu.
 
-A standard screen consists of:
-1. Status bar or top safe area
-2. App bar
-3. Scrollable content area
-4. Fixed CTA when required by the task
-5. Bottom navigation for top-level screens
+Rules:
 
----
+- Prefer hairline/thin borders for grouping.
+- Do not combine heavy border and heavy shadow.
+- Avoid nested cards more than two levels deep.
+- If a screen feels cramped, reduce borders/shadows before reducing content quality.
 
-## Navigation
+## 9. App Shell
 
-### App Bar
+The app shell should feel like a centered, mobile-native frame with max width `430px` in preview environments and full native behavior on devices.
 
-- Content height: `56px`
-- Background: `{color.surface}`, or transparent when it matches the screen background
-- Horizontal padding: `16px`
-- Title aligned left
-- Back or menu button on the left; at most two actions on the right
-- Icon visual size: `20-24px`; minimum touch target: `44x44px`
+Shared visual surfaces:
 
-The app bar may be sticky on long screens. Add a bottom border only when it is needed to separate it from content.
+- Safe-area-aware screen container
+- Bottom navigation
+- Side menu
+- Main content area
+- Screen headers or app chrome where applicable
+
+These surfaces should stay visually consistent across features.
+
+## 10. Navigation
 
 ### Bottom Navigation
 
-- Base height: `72px`, excluding safe area
-- Background: `{color.surface}` with subtle blur when appropriate
-- Border-top: `1px solid {color.border}`
-- Use `3-5` top-level navigation items
-- Active item uses `{color.primary}`; inactive items use `{color.text-secondary}`
-- Each item displays an icon and short text label below it, matching the approved design
-- The active item's icon and text label both use `{color.primary}`
-- Do not add a rounded background, pill, or color block behind the active item if the design image does not include one
-- Text labels do not replace accessibility labels
+The current approved bottom navigation is icon-only.
 
-Do not use bottom navigation for temporary actions or subflows.
+Items:
 
-### Side Drawer
+- Chat
+- News Feed
+- Scan QR
+- Payment
+- Identity
 
-Side drawers are only for secondary features, account information, or less frequently used items. They do not replace bottom navigation for core areas.
+Design rules:
 
-### Bottom Sheet
+- Height: base `72px`, excluding real safe-area handling.
+- Use icon-only presentation. No text labels unless a later approved design brings them back.
+- Active item uses primary/action blue.
+- Inactive item uses text color with softened opacity.
+- Do not add active pills or colored backgrounds unless approved.
+- Icons should feel clear and substantial enough, not overly thin.
+- Minimum item touch target is `44x44px`.
+- Bottom nav can float on News Feed and may use subtle translucent/blur-like treatment where stable on Android and iOS.
 
-Use bottom sheets for short selections, confirmations, or contextual actions.
+### Side Menu
 
-- Top corner radius: `{radius.lg}`
-- Padding: `{spacing.md}` or `{spacing.lg}`
-- Include a drag handle when the sheet is draggable
-- Do not cover context that is necessary for the user's decision
+Side menu is for secondary destinations:
 
----
+- News Feed
+- Identity
+- Credentials
+- Activity
+- Settings
+- Notifications
+- Profile
+- Security
 
-## Components
+Use it for less frequent navigation, not for temporary actions.
 
-### Primary Button
+### App Header
 
-- Height: minimum `48px`
-- Background: `{color.primary}`
-- Text: white
-- Horizontal padding: `20px`
-- Radius: `{radius.md}` or `{radius.pill}`
-- Font weight: `600`
-- Pressed state: `{color.primary-hover}`
-- The primary CTA in a form or flow should generally be `100%` wide
+Common header:
 
-### Secondary Button
+- Height around `56px`.
+- Left side: back or menu button.
+- Center/left title depending on screen family.
+- Right side: at most two important actions.
+- Icon buttons must have at least `44x44px` touch target.
 
-- Height: minimum `44px`
-- Border: `1px solid {color.border}`
-- Background: `{color.surface}`
-- Text: `{color.text-primary}`
+News Feed and Chat can use custom headers to support search/social layout.
 
-Use for secondary actions that should not visually compete with the primary button.
+## 11. News Feed Design
 
-### Icon Button
+News Feed is the most social surface and may use a lighter, more content-first style.
 
-- Minimum touch target: `44x44px`
-- Icon: `20-24px`
-- Must include an accessibility label
-- Pressed state can use a low-opacity primary background or elevated surface
+Key dimensions:
 
-### Card
+- Header overlay height: `74px`
+- Tabs height: `62px`
+- Overlay area: `136px`
 
-- Background: `{color.surface}`
-- Radius: `16-20px`
-- Padding: `{spacing.md}` or `{spacing.lg}`
-- Border: `1px solid {color.border}` when needed
-- Shadow: `{shadow.sm}`
+Rules:
 
-Cards group credentials, security states, recent activity, and quick tasks. Avoid nesting cards more than two levels deep.
+- Header and tabs can overlay content with subtle translucency/blur-like treatment.
+- Scroll-linked animation should feel continuous and synchronized.
+- Tabs must remain reachable and must not hide behind status bar/device UI.
+- FAB should feel floating and quick, but should not cover important content.
+- Feed rows use avatar column plus content body.
+- Content text and media belong to the right of the avatar in standard feed rows.
+- Verified badge uses the approved badge image asset.
+- Images should use approved feed media assets with controlled size and aspect ratio.
+- Smart contract cards should be compact and readable inside feed, not full detail pages squeezed into a card.
+- Live preview cards should preserve content visibility; overlay comments and reactions must stay compact.
 
-### List Item
+## 12. Chat And Social Messaging
 
-- Minimum height: `56px`
-- Vertical padding: `12-16px`
-- May include a leading icon/avatar, title, supporting text, and trailing action
-- Dividers align with content and do not need to span the full width
+Chat should feel fast, friendly, and compact.
 
-### Input and Form
+Rules:
 
-- Height: minimum `48px`
-- Border: `1px solid {color.border}`
-- Radius: `{radius.md}`
-- Horizontal padding: `16px`
-- Labels are always visible; do not use placeholders as labels
-- Focus: border or ring `{color.primary}`
-- Errors appear near the input and describe how to fix the issue
+- Conversation rows should remain compact and scannable.
+- Use avatars and status indicators carefully; presence dots appear only where meaningful.
+- Thought bubbles can be expressive and customizable, but must not dominate the list.
+- Media previews should stay compact and not cause conversation rows to grow excessively.
+- Delivery status should be visually secondary.
+- Official Identra conversations should use the official Identra logo mark.
 
-Long forms should be divided into clear sections. Submit CTAs should be placed at the end of the form or fixed at the bottom when needed.
+Temporary full-screen social surfaces such as reels/thought viewers may use more immersive treatment, darker overlays, larger media, and stronger controls when appropriate.
 
-### Toggle
+## 13. Identity And Credentials
 
-- Minimum touch target: `44px`
-- Enabled state uses `{color.primary}`
-- Always paired with a clear label
-- Sensitive changes require confirmation or an explanation of consequences
+Identity screens must feel secure, transparent, and controlled.
 
-### Credential Card
+Rules:
 
-- Display credential type, issuer, verification status, and expiration
-- Valid state uses `{color.success}`
-- The entire card can be tappable to open details
-- Sensitive information is masked by default when appropriate
+- Credential cards should show title, issuer, status, issue/expiry information, and key metadata.
+- Verified status uses success color plus icon/text.
+- Pending and expired states must be visually distinct.
+- Sensitive attributes can be masked when appropriate.
+- Detail pages use clear sections: status, credential hero, issuer, detailed attributes, actions.
+- Sharing flows must make user choice obvious and show what data will be shared.
+- Warnings should be explicit but not visually overwhelming.
 
-### QR Scanner
+## 14. Payment And Smart Contracts
 
-- Camera preview occupies most of the content area
-- Scanner frame has high contrast using `{color.primary}`
-- Include short instructions, processing status, and an option to upload an image
-- Always provide a clear way to exit or go back
+Payment and smart contract surfaces should feel precise and trustworthy.
 
-### Modal
+Rules:
 
-Use modals only for important confirmations or alerts that must block the flow. On mobile, prefer bottom sheets for ordinary choices.
+- Amounts should be highly legible.
+- Transaction states must be explicit: pending, ready, completed, failed, sold out, unavailable.
+- Smart contract cards must clearly separate trade item, counter item, deadline, condition, and actions.
+- Available and sold-out contract detail pages must visually reflect actual availability.
+- Destructive or irreversible actions require clear hierarchy and confirmation where needed.
 
----
+## 15. QR And Security Surfaces
 
-## States and Feedback
+QR and security screens should feel focused.
 
-### Loading
+Rules:
 
-- Use skeletons for lists and cards.
-- Use spinners for short actions with clear scope.
-- Do not lock the whole screen if only one component is loading.
+- QR scanner camera preview should occupy most of the screen.
+- Scanner frame should have strong contrast using primary/action blue.
+- Always provide a clear exit/back action.
+- QR sharing screens should explain expiration and trust boundaries.
+- Safety warnings should be visible but concise.
+- Avoid decorative complexity around QR codes that can reduce scan reliability.
 
-### Empty State
+## 16. Forms And Inputs
 
-- Briefly explain why no data is available.
-- Provide a clear next action.
-- Illustrations, if present, should be lightweight and should not overpower the CTA.
+- Minimum input height: `48px`.
+- Radius: around `12px`.
+- Use labels when the field needs clarity; do not rely only on placeholders for important forms.
+- Focus state should be visible with primary color.
+- Error text must appear near the field and explain how to recover.
+- Forms must work with mobile keyboard, autofill, and proper keyboard type.
+- Fixed bottom actions must not be covered by keyboard or safe area.
 
-### Error
+## 17. Buttons And Controls
 
-- Describe the issue in plain language.
-- Preserve the data the user has already entered.
-- Allow retrying or returning to a safe state.
+Primary button:
 
-### Touch Feedback
+- Minimum height: `48px`.
+- Primary/action blue background.
+- White text.
+- Semibold or stronger label.
+- Radius `12-16px`, or pill where the screen language calls for it.
 
-- Every interactive element needs a clear pressed state.
-- Use very subtle scale, background color change, or opacity change.
-- Feedback animations should complete within `150-250ms`.
+Secondary button:
 
----
+- Minimum height: `44px`.
+- Surface background.
+- Thin border.
+- Primary or text color label.
 
-## Motion
+Icon button:
 
-- Motion should explain state changes, not merely decorate.
-- Screen transitions: `200-300ms`.
-- Press feedback: `100-150ms`.
-- Bottom sheets appear from the bottom.
-- Respect `prefers-reduced-motion`.
-- Do not use many simultaneous animations on screens containing sensitive data.
+- Minimum `44x44px`.
+- Icon size usually `20-28px`.
+- Pressed state can use muted surface or opacity.
 
----
+FAB:
 
-## Do's and Don'ts
+- Circular.
+- Strong enough to be discoverable.
+- Uses floating shadow sparingly.
+- Must not cover core actions or bottom nav.
 
-### Do's
+## 18. Cards And Lists
 
-- Keep a clear single-column layout on small screens
-- Place frequent actions in easy-to-reach areas
-- Use primary color for CTAs and active states
-- Keep spacing on an `8px` system
-- Use subtle shadows and borders to create hierarchy
-- Show verification state and sharing permissions transparently
-- Check the interface in both light mode and dark mode
+Cards:
 
-### Don'ts
+- Use white/surface background.
+- Radius `16-20px`.
+- Padding `12-16px` for dense cards, `16-24px` for important cards.
+- Use subtle border and shadow.
 
-- Do not directly move multi-column desktop layouts to mobile
-- Do not depend on hover to communicate information
-- Do not place too many primary CTAs on one screen
-- Do not use touch targets smaller than `44x44px`
-- Do not place important content under bottom navigation or safe area
-- Do not mix many font families
-- Do not use gradients or primary color as the background for large content areas
-- Do not use heavy borders or shadows
-- Do not break the spacing system with arbitrary values
+Lists:
 
----
+- Prefer rows and dividers for dense information.
+- Minimum row height around `56px`.
+- Align dividers with row content, not always full width.
+- Long data lists should use scannable, reusable rows with clear rhythm and dividers.
 
-## Accessibility
+Do not make every group a heavy card. Whitespace, typography, and dividers are often enough.
 
-- Text contrast must be at least `4.5:1` according to WCAG AA
-- Minimum touch target is `44x44px`
-- Main content font size should be at least `14px`
-- Icon buttons must have accessible labels
-- Focus state must always be visible when using a keyboard or assistive device
-- Do not communicate state using color alone
-- Support larger text sizes without losing content or primary actions
-- Content should read in a logical order for screen readers
+## 19. Modals, Sheets, And Overlays
 
----
+Use bottom sheets for short selections, filters, confirmations, and contextual actions.
 
-## Responsive Preview
+Bottom sheet rules:
 
-The app is mobile-first but can be viewed on desktop for demos:
+- Top radius around `24px`.
+- Include drag handle when it behaves like a draggable sheet.
+- Keep primary and secondary actions near the bottom.
+- Background overlay uses dark translucent overlay.
+- Sheet content must fit smaller screens or scroll.
 
-- Keep the app frame at a maximum width of `430px` and center it on the screen.
-- A border and outer radius may be added to the frame to simulate a device.
-- Do not expand the content into a landing page or desktop dashboard.
-- Functionality, content order, and navigation must match the real mobile version.
+Use full modal screens for complex flows like compose post, search, live stream, QR, credential sharing, or smart contract detail.
 
----
+## 20. Loading, Empty, And Error States
 
-## Summary
+Loading:
 
-This mobile design system preserves three core values:
+- Use skeletons for list/card loading when practical.
+- Use spinners for short scoped actions.
+- Use blocking overlay only for important async actions where interaction must be locked.
 
-- **Clarity**
-- **Trust**
-- **Modern minimalism**
+Empty states:
 
-Every screen should feel easy to understand, easy to use with one hand, transparent about data, and trustworthy in every action.
+- Explain why there is no data.
+- Provide a clear next action when possible.
+- Keep illustrations light.
+- Empty layouts must remain valid when list data is absent.
+
+Errors:
+
+- Use plain language.
+- Preserve user input.
+- Provide retry or safe navigation.
+
+## 21. Motion
+
+Motion should explain state changes, not decorate.
+
+Timing:
+
+- Press feedback: around `120ms`.
+- Small feedback: around `180ms`.
+- Screen transitions: around `250ms`.
+- Bottom sheets: around `250ms`.
+
+News Feed chrome motion should be scroll-linked and continuous. Avoid delayed threshold animations for header, tabs, bottom nav, or FAB when the desired behavior is progressive scroll response.
+
+Respect reduced-motion expectations where possible.
+
+## 22. Accessibility
+
+- Minimum touch target is `44x44px`.
+- Text contrast should meet WCAG AA where practical.
+- Main body text should generally be at least `14px`.
+- Icon buttons require accessible labels.
+- Use selected/expanded/disabled accessibility states when appropriate.
+- Do not rely on color alone for meaning.
+- Content order should make sense to screen readers.
+- Support larger text without hiding primary actions.
+
+## 23. Android And iOS
+
+Every design must work on Android and iOS.
+
+- Respect display cutouts and safe areas.
+- Do not rely on hover.
+- Do not rely on one gesture without an alternative visible control.
+- Avoid fixed device-height assumptions.
+- Avoid iOS-only or Android-only interaction patterns unless a platform fallback exists.
+- System APIs should have fallback UI when unsupported.
+
+## 24. Feature Surface Guidance
+
+### Onboarding And Auth
+
+- More expressive visuals are allowed.
+- Keep CTAs clear and reachable.
+- Explain privacy/security benefits in plain language.
+
+### Chat List
+
+- Prioritize quick scanning and action.
+- Search should be prominent.
+- Quick contacts should not push important conversations too far down.
+
+### News Feed
+
+- Prioritize content rhythm.
+- Keep chrome lightweight and responsive.
+- Media should not become oversized unless it is an immersive detail surface.
+
+### Identity
+
+- Prioritize trust, verification, and user control.
+- Credentials and data sharing should be explicit.
+
+### Settings
+
+- Prioritize clarity and predictability.
+- Group account, privacy, and support areas cleanly.
+- Avoid heavy cards for every row.
+
+## 25. Do And Do Not
+
+Do:
+
+- Follow approved design tokens.
+- Keep screens mobile-first.
+- Use subtle depth.
+- Keep lists scannable.
+- Make states explicit.
+- Protect content from safe areas, keyboard, and bottom nav.
+- Keep visual language consistent across feature surfaces.
+
+Do not:
+
+- Recreate device chrome.
+- Use web-only layout assumptions.
+- Use heavy shadows and borders by default.
+- Put too many primary actions on one screen.
+- Let sample content dictate permanent UI constraints.
+- Expand mobile content into a desktop dashboard.
+- Hide critical actions under overlays or navigation.
+
+## 26. Design Review Checklist
+
+- [ ] App UI was separated from device UI in references.
+- [ ] Layout works at `320px`, `390px`, and `430px`.
+- [ ] Safe areas are respected.
+- [ ] Bottom nav matches current icon-only product rule.
+- [ ] Global navigation remains visually consistent across screens.
+- [ ] Text hierarchy is clear.
+- [ ] Borders and shadows are subtle.
+- [ ] Long content can scroll fully.
+- [ ] Empty and no-result states are designed.
+- [ ] Loading/error states are covered for async flows.
+- [ ] Android and iOS constraints were considered.
+- [ ] Accessibility labels, touch targets, and contrast were considered.
+
+## 27. Decision Rule
+
+If a reference design conflicts with the current product architecture or approved navigation model, do not copy it blindly. Preserve the product architecture, identify the app-UI intent, and ask for clarification when the intended behavior is ambiguous.
