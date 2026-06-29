@@ -1,0 +1,37 @@
+# Identra CODEOWNERS template
+#
+# This file is intentionally shipped as a safe template until real GitHub
+# users or teams are available. Replace the placeholder owners below and
+# uncomment the rules when the repository has multiple maintainers.
+#
+# Suggested ownership model:
+#
+# *                                      @identra/mobile-core
+# /app/                                  @identra/mobile-core
+# /src/native/app/                       @identra/mobile-core
+# /src/native/components/                @identra/mobile-design-system
+# /src/native/theme.ts                   @identra/mobile-design-system
+# /src/native/i18n/                      @identra/mobile-platform
+# /src/native/assets/                    @identra/mobile-design-system
+#
+# /src/native/screens/chat-list/         @identra/chat
+# /src/native/screens/chat/              @identra/chat
+# /src/native/domain/chat/               @identra/chat
+#
+# /src/native/screens/news-feed/         @identra/news-feed
+#
+# /src/native/screens/identity/          @identra/identity
+# /src/native/domain/credentials/        @identra/identity
+#
+# /src/native/screens/payment/           @identra/payment
+# /src/native/domain/payment/            @identra/payment
+#
+# /src/native/screens/scan/              @identra/identity @identra/payment
+# /src/native/screens/settings/          @identra/mobile-core
+# /src/native/store/                     @identra/mobile-core
+# /src/native/domain/app-store/          @identra/mobile-core
+#
+# /tests/                                @identra/mobile-core
+# /docs/                                 @identra/mobile-core
+# /codex.md                              @identra/mobile-core
+# /design.md                             @identra/mobile-design-system

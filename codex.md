@@ -1,6 +1,4 @@
-# Identra Development Rules Draft
-
-This file is a proposed replacement for `codex.md`. It is not the official rule file until it has been reviewed and approved.
+# Identra Development Rules
 
 The rules in this document apply when designing, coding, refactoring, reviewing, testing, or comparing the Identra mobile app against reference designs.
 
@@ -9,18 +7,25 @@ The rules in this document apply when designing, coding, refactoring, reviewing,
 When rules conflict, follow this order:
 
 1. The user's latest explicit request.
-2. This development rule file after approval.
+2. This development rule file.
 3. `design.md` for visual design principles, UI behavior, and design tokens.
 4. Existing code architecture and local patterns.
 5. General React Native, Expo, and TypeScript best practices.
 
-Before coding or changing UI, read `design.md` and the current approved development rule file. If a requirement is unclear or would require changing architecture, ask before implementing.
+Before coding or changing UI, read the required documents in this order:
+
+1. Read `codex.md`.
+2. Read `design.md`.
+3. If the target feature or domain has a nearby `README.md` or `FEATURE_RULES.md`, read it before editing that feature.
+
+For example, read `src/native/screens/news-feed/README.md` before changing News Feed UI, and read `src/native/domain/payment/README.md` before changing payment business logic. If a requirement is unclear or would require changing architecture, ask before implementing.
 
 Document boundary:
 
 - `codex.md` owns development behavior: stack decisions, project structure, routing, store/domain boundaries, i18n enforcement, asset import rules, test/lint expectations, security implementation constraints, and worktree safety.
 - `design.md` owns product design: visual direction, tokens, typography, spacing, radius, shadows, layout rhythm, component appearance, motion, and platform design constraints.
 - `codex.md` may reference design rules only as implementation obligations. It should not become a second design system.
+- `codex.md` should not contain detailed business rules for individual features. Put those rules in the relevant feature/domain `README.md` or `FEATURE_RULES.md`.
 - `design.md` may mention architecture only when needed to explain product-level UI surfaces. It should not define file placement, route ownership, store/domain implementation, lint commands, test commands, or git workflow.
 
 ## 2. Product And Stack
@@ -89,6 +94,16 @@ Document boundary:
   - `src/native/screens/settings/details`
 - Shared UI components used across multiple features belong in `src/native/components`.
 - Shared styles or helpers used only by a screen family can remain inside that feature folder.
+- Feature-specific `README.md` or `FEATURE_RULES.md` files live beside feature code and document scope, important files, business rules, state boundaries, i18n rules, and required tests.
+- Keep feature documentation files short and update them when changing feature boundaries or behavior that future contributors must know.
+
+### Feature And Domain Documentation
+
+- `src/native/screens/<feature>/README.md` or `FEATURE_RULES.md` owns screen-level responsibilities, UI flows, state boundaries, and local testing expectations.
+- `src/native/domain/<domain>/README.md` or `FEATURE_RULES.md` owns domain-level invariants, pure logic boundaries, and domain testing expectations.
+- `docs/adr` owns long-lived architecture decisions.
+- `docs/runbooks` owns operational procedures and troubleshooting checklists.
+- `CODEOWNERS` maps areas to maintainers once real repository owners or teams exist.
 
 ## 6. Current Navigation Product Rules
 
@@ -105,7 +120,6 @@ Document boundary:
 - Bottom navigation visibility is controlled by `navigationLogic.ts`; do not hardcode it in screens.
 - `credentials` remains under the Identity tab and keeps bottom navigation visible.
 - Settings, Activity, Profile, Security, Notifications, and related secondary screens are reached through side menu or route flows, not as bottom nav tabs.
-- The Activity history quick menu must open `screen-activity`; do not recreate `screen-wallet-history-log`.
 
 ## 7. State, Store, And Domain Services
 
@@ -177,53 +191,7 @@ Document boundary:
 - Do not communicate state using color alone.
 - Content should read in a logical order for screen readers.
 
-## 14. Chat List Rendering Rules
-
-Chat list rendering semantics must remain consistent across mobile, web preview, and future surfaces.
-
-Each conversation preview should be derived from normalized data fields:
-
-- `id`: stable conversation ID.
-- `name`: conversation title or participant display name.
-- `message`: latest message text or caption, empty for media-only messages.
-- `time`: formatted timestamp for display.
-- `avatar`: semantic avatar kind such as `photo`, `group`, `identra`, or `initial`.
-- `avatarSource`: optional image source for real avatars.
-- `initials`: fallback when no image is available.
-- `online`: whether direct-contact presence is meaningful.
-- `verified`: whether the conversation is official or verified.
-- `muted`: whether notifications are muted.
-- `unread`: unread count.
-- `lastMessageFromMe`: whether the latest message was sent by the current user.
-- `deliveryStatus`: `sent`, `seen`, or `pending`.
-- `groupSender`: sender display name for group conversations.
-- `media`: optional media or attachment preview metadata.
-
-Delivery status rules:
-
-- Show delivery status only when `lastMessageFromMe === true`.
-- Do not show sent, seen, or pending indicators for messages sent by others.
-- In group conversations, show `groupSender` for messages from other participants and delivery status for messages from the current user.
-
-Preview rules:
-
-- Media-only messages display a media label such as Photo, GIF, or file name.
-- Multiple photos show at most four thumbnails with an overflow count.
-- The message preview row must stay compact and must not force rows to grow excessively.
-- Official Identra conversations must use `AppLogo` or `AppBrandLogo`, not a demo avatar.
-
-## 15. News Feed Rules
-
-- News Feed uses a virtualized feed list for potentially long content.
-- Feed overlay chrome animation must be scroll-linked and smooth, not delayed threshold animation.
-- When the user scrolls down, bottom nav can slide down and header/FAB can respond according to the current approved product behavior.
-- Tabs in News Feed must remain available according to the latest approved behavior; do not hide them fully under device status UI.
-- Feed images should come from `src/assets/images/news-feed-demo` through `assetManifest.ts`.
-- Verified badges in feed should use the approved asset badge, not improvised icon drawings.
-- Live stream feed cards and live stream detail should stay visually aligned with the overall News Feed system, not become a separate oversized UI language.
-- Smart contract cards should reflect their actual state, including available vs sold out, and detail routes must use route params.
-
-## 16. Security And Sensitive Data
+## 14. Security And Sensitive Data
 
 - Do not claim that the whole app sandbox is protected merely by an app PIN.
 - App PIN protects against casual unauthorized access after the device is unlocked; it is not sufficient against rooted/jailbroken devices, malware, memory scraping, or compromised OS environments.
@@ -232,18 +200,19 @@ Preview rules:
 - Do not log secrets, credentials, security codes, private keys, seed phrases, or sensitive identifiers.
 - Sensitive values should be masked by default when the screen or user setting requires it.
 
-## 17. Code Quality And Comments
+## 15. Code Quality And Comments
 
 - Prefer existing components, hooks, helpers, and patterns before creating new abstractions.
 - Add an abstraction only when it removes real duplication or clarifies a shared contract.
 - Keep edits scoped to the requested feature.
 - Do not refactor unrelated files just because they are nearby.
-- Add comments only where they explain non-obvious logic, architecture boundaries, or important product constraints.
-- Do not add comments that merely restate the code.
+- Keep code comments short. Add comments only for hard-to-understand logic, important constraints, platform workarounds, security caveats, or non-obvious business reasons.
+- Do not add comments that merely restate the code or turn source files into long-form documentation.
+- When changing code logic, update the corresponding documentation in the relevant `README.md`, `FEATURE_RULES.md`, ADR, runbook, or root documentation file.
 - Keep file and folder names explicit and feature-oriented.
 - Avoid generic catch-all files such as `SecondaryScreens.tsx`, `SearchScreen.tsx`, or `utils.ts` when a clearer domain name exists.
 
-## 18. Linting, Type Checking, And Tests
+## 16. Linting, Type Checking, And Tests
 
 - ESLint is configured in `eslint.config.js` using Expo flat config and unused import/unused variable rules.
 - Keep imports clean. Do not leave unused imports, unused variables, or duplicate imports.
@@ -254,7 +223,7 @@ Preview rules:
 - Add tests for pure logic in navigation, store/domain services, search/filtering, payment utilities, i18n, date/status calculations, and any logic with meaningful branching.
 - UI-only pixel adjustments may not require tests, but should still be checked manually where practical.
 
-## 19. Git And Worktree Safety
+## 17. Git And Worktree Safety
 
 - The worktree may contain user changes.
 - Never revert or overwrite user changes unless explicitly requested.
@@ -262,9 +231,10 @@ Preview rules:
 - Do not run destructive commands such as hard resets or broad deletes without explicit approval.
 - Do not stage, commit, or push unless the user asks.
 
-## 20. Pre-Completion Checklist
+## 18. Pre-Completion Checklist
 
-- [ ] `design.md` and the approved development rule file were considered before coding.
+- [ ] `codex.md` was read before `design.md`.
+- [ ] Relevant feature/domain `README.md` or `FEATURE_RULES.md` files were read when touching documented areas.
 - [ ] No fake device UI was implemented.
 - [ ] Android and iOS compatibility was preserved.
 - [ ] Routes remain thin and screen logic lives under `src/native/screens`.
@@ -277,9 +247,10 @@ Preview rules:
 - [ ] Every screen-like state has a stable `screen-*` ID.
 - [ ] Icon buttons have accessibility labels.
 - [ ] Edited UI follows the depth, border, spacing, and hierarchy guidance in `design.md`.
+- [ ] Corresponding documentation was updated when code logic changed.
 - [ ] `npm run lint`, `npm run typecheck`, and relevant tests pass, or any skipped verification is clearly reported.
 - [ ] Text-heavy edited files were scanned for UTF-8/mojibake issues.
 
-## 21. Decision Rule
+## 19. Decision Rule
 
 When it is unclear whether a change belongs to UI, routing, data, domain logic, assets, i18n, or store, do not guess silently. Inspect the existing architecture first. If the answer is still ambiguous or the change would alter product behavior, ask before implementation.

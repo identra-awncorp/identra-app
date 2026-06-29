@@ -68,6 +68,22 @@ Quy ước: UI gọi store/provider; các phép biến đổi dữ liệu quan t
 
 Khi thêm màn hình mới, đặt tên file rõ theo feature, ví dụ `NewsFeedSearchScreen.tsx` thay vì `SearchScreen.tsx`.
 
+### Feature Và Domain Documentation
+
+- `src/native/screens/chat-list/README.md`: quy tắc màn hình Chat List và conversation preview.
+- `src/native/screens/chat/README.md`: quy tắc màn hình hội thoại và chat action sheets.
+- `src/native/screens/news-feed/README.md`: quy tắc News Feed, Search, Notifications, Live và Smart Contract.
+- `src/native/screens/identity/README.md`: quy tắc Identity, Credentials, Profile, Security và Sharing.
+- `src/native/screens/payment/README.md`: quy tắc Payment/IDPay.
+- `src/native/domain/chat/README.md`: invariants và boundary cho chat logic.
+- `src/native/domain/payment/README.md`: invariants và boundary cho payment logic.
+- `src/native/domain/credentials/README.md`: invariants và boundary cho credential logic.
+- `docs/adr`: Architecture Decision Records cho quyết định kiến trúc dài hạn.
+- `docs/runbooks`: checklist vận hành, release, incident và troubleshooting.
+- `CODEOWNERS`: template mapping owner khi repo có nhiều người cùng phát triển.
+
+Khi sửa một feature/domain đã có README, đọc file README đó cùng với `codex.md` và `design.md` trước khi code.
+
 ### Shared Components, Theme Và Assets
 
 - `src/native/components`: component dùng chung giữa nhiều màn hình.
@@ -105,8 +121,9 @@ Quy ước i18n: toàn bộ system UI như tab, button, modal, empty state, acce
 
 1. Tạo route mỏng trong `app/` nếu feature cần URL/screen riêng.
 2. Đặt screen thật vào `src/native/screens/<feature>` hoặc thư mục con rõ nghĩa.
-3. Đưa data demo vào `src/native/data/demo` nếu chưa có API thật.
-4. Đưa asset tĩnh vào `assetManifest.ts`.
-5. Đưa system UI copy vào `src/native/i18n/locales/vi.ts` và `src/native/i18n/locales/en.ts`.
-6. Đưa logic thuần vào domain service hoặc file logic riêng khi có thể test.
-7. Bổ sung test cho logic quan trọng rồi chạy `npm run lint`, `npm run typecheck`, `npm test`.
+3. Tạo hoặc cập nhật README cho feature nếu có rule/flow quan trọng cần người sau nắm được.
+4. Đưa data demo vào `src/native/data/demo` nếu chưa có API thật.
+5. Đưa asset tĩnh vào `assetManifest.ts`.
+6. Đưa system UI copy vào `src/native/i18n/locales/vi.ts` và `src/native/i18n/locales/en.ts`.
+7. Đưa logic thuần vào domain service hoặc file logic riêng khi có thể test.
+8. Bổ sung test cho logic quan trọng rồi chạy `npm run lint`, `npm run typecheck`, `npm test`.
