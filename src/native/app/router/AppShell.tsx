@@ -1,9 +1,9 @@
 import { Stack, usePathname, useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import * as SystemUI from 'expo-system-ui';
 import { X } from 'lucide-react-native';
 import { useEffect, useRef } from 'react';
-import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, Animated, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   bottomNavItems,
@@ -47,6 +47,7 @@ export function AppShell() {
   const screen = getScreenForPathname(pathname);
   const authRoute = authPathnames.has(pathname);
   const unreadActivityCount = store.logs.filter((log) => log.unread).length;
+  const systemBarBackground = colors.background;
 
   useEffect(() => {
     if (!store.hydrated) return;
@@ -72,6 +73,10 @@ export function AppShell() {
     if (screen !== 'news-feed') newsFeedScrollY.setValue(0);
   }, [newsFeedScrollY, screen]);
 
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(systemBarBackground).catch(() => undefined);
+  }, [systemBarBackground]);
+
   if (!store.hydrated) {
     return (
       <View style={[styles.loading, { backgroundColor: colors.background }]}>
@@ -86,11 +91,15 @@ export function AppShell() {
   const currentScreen = screen ?? initialScreen;
 
   return (
-    <View style={[styles.root, { backgroundColor: isDark ? '#05070D' : '#EEF1F7' }]}>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
-      <SafeAreaView
-        edges={authRoute ? ['top', 'bottom', 'left', 'right'] : ['top', 'left', 'right']}
-        style={[styles.appFrame, { backgroundColor: colors.background }]}
+    <View style={[styles.root, { backgroundColor: systemBarBackground }]}>
+      <StatusBar backgroundColor="transparent" barStyle={isDark ? 'light-content' : 'dark-content'} translucent />
+      <View
+        style={[
+          styles.appFrame,
+          {
+            backgroundColor: colors.background,
+          },
+        ]}
       >
         <View style={styles.content}>
           <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
@@ -117,7 +126,7 @@ export function AppShell() {
             router.push(getPathForScreen(target));
           }}
         />
-      </SafeAreaView>
+      </View>
     </View>
   );
 }
@@ -261,8 +270,8 @@ function SideMenu({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, alignItems: 'center' },
-  appFrame: { flex: 1, width: '100%', maxWidth: layout.maxWidth },
+  root: { flex: 1 },
+  appFrame: { flex: 1, width: '100%' },
   content: { flex: 1 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md + spacing.xxs },
   loadingText: { fontSize: typography.size.xs + 1, fontWeight: typography.weight.semibold },
