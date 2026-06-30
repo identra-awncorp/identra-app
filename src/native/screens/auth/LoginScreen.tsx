@@ -7,9 +7,10 @@ interface Props {
   onBack: () => void;
   onContinue: (phoneNumber: string, password: string) => void;
   onRegister: () => void;
+  submitting?: boolean;
 }
 
-export function LoginScreen({ colors, onBack, onContinue, onRegister }: Props) {
+export function LoginScreen({ colors, onBack, onContinue, onRegister, submitting }: Props) {
   const { t } = useI18n();
 
   return (
@@ -20,6 +21,7 @@ export function LoginScreen({ colors, onBack, onContinue, onRegister }: Props) {
       onBack={onBack}
       onContinue={onContinue}
       onSwitch={onRegister}
+      submitting={submitting}
       switchAction={t('auth.login.switchAction')}
       switchPrompt={t('auth.login.switchPrompt')}
       title={t('auth.login.title')}

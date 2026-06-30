@@ -27,6 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AppColors } from '../../theme';
 import { border, palette, radius, shadows, spacing, typography } from '../../theme';
 import { useI18n } from '../../i18n';
+import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { AuthNoticeModal, type AuthNotice } from './AuthNoticeModal';
 
 interface Props {
@@ -37,6 +38,7 @@ interface Props {
   onBack: () => void;
   onContinue: (phoneNumber: string, password: string) => void;
   onSwitch: () => void;
+  submitting?: boolean;
   switchAction: string;
   switchPrompt: string;
   title: string;
@@ -50,6 +52,7 @@ export function PhoneAuthScreen({
   onBack,
   onContinue,
   onSwitch,
+  submitting = false,
   switchAction,
   switchPrompt,
   title,
@@ -73,6 +76,7 @@ export function PhoneAuthScreen({
   const contentBottomPadding = insets.bottom + (mode === 'register' ? 34 : spacing.xl + spacing.xxs);
 
   const submit = () => {
+    if (submitting) return;
     if (!validPhone) {
       setNotice({
         title: t('auth.phone.invalidTitle'),
@@ -194,8 +198,10 @@ export function PhoneAuthScreen({
           <Pressable
             accessibilityLabel={t('common.continue')}
             accessibilityRole="button"
+            accessibilityState={{ disabled: submitting }}
+            disabled={submitting}
             onPress={submit}
-            style={({ pressed }) => [styles.continueButton, { opacity: pressed ? 0.78 : 1 }]}
+            style={({ pressed }) => [styles.continueButton, { opacity: submitting ? 0.55 : pressed ? 0.78 : 1 }]}
           >
             <LinearGradient
               colors={[colors.primaryDark, '#4B86FF', colors.primaryDark]}
@@ -217,6 +223,11 @@ export function PhoneAuthScreen({
           {mode === 'login' ? <LoginFooter colors={colors} /> : null}
         </ScrollView>
       </KeyboardAvoidingView>
+      <LoadingOverlay
+        colors={colors}
+        description={mode === 'login' ? t('auth.login.loadingDescription') : t('auth.register.loadingDescription')}
+        visible={submitting}
+      />
       <AuthNoticeModal actionLabel={t('common.close')} colors={colors} notice={notice} onClose={() => setNotice(null)} />
     </>
   );

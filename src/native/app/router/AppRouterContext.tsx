@@ -1,9 +1,11 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useMemo,
   useRef,
   useState,
+  useEffect,
   type Dispatch,
   type PropsWithChildren,
   type SetStateAction,
@@ -15,6 +17,14 @@ import { darkColors, lightColors, type AppColors } from '../../theme';
 import type { Credential, ScreenKey } from '../../types';
 import { useAppStore } from '../../store';
 import { initialScreen } from '../navigation/navigationConfig';
+import {
+  clearStoredAuthSession,
+  loadStoredAuthSession,
+  logoutAuthSession,
+  persistAuthSuccess,
+  refreshAuthSession,
+  type StoredAuthSession,
+} from '../../domain/auth';
 
 interface SharePayload {
   credential: Credential;
@@ -28,12 +38,15 @@ interface ConnectionInvitation {
 
 interface AppRouterContextValue {
   authCompleted: boolean;
+  authHydrated: boolean;
+  authSession: StoredAuthSession | null;
   chatReturnScreen: ScreenKey;
   colors: AppColors;
-  completeAuth: () => void;
+  completeAuth: (session?: StoredAuthSession) => void;
   connectionInvitation: ConnectionInvitation | null;
   closeSideMenu: () => void;
   isDark: boolean;
+  logout: () => Promise<void>;
   newsFeedChromeProgress: Animated.AnimatedInterpolation<number>;
   newsFeedScrollY: Animated.Value;
   openSideMenu: () => void;
@@ -54,6 +67,8 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
   const store = useAppStore();
   const systemScheme = useColorScheme();
   const [authCompleted, setAuthCompleted] = useState(false);
+  const [authHydrated, setAuthHydrated] = useState(false);
+  const [authSession, setAuthSession] = useState<StoredAuthSession | null>(null);
   const [sharePayload, setSharePayload] = useState<SharePayload | null>(null);
   const [connectionInvitation, setConnectionInvitation] = useState<ConnectionInvitation | null>(null);
   const [returnScreen, setReturnScreen] = useState<ScreenKey>(initialScreen);
@@ -74,15 +89,60 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
     [newsFeedScrollY],
   );
 
+  useEffect(() => {
+    let mounted = true;
+
+    loadStoredAuthSession()
+      .then(async (saved) => {
+        if (!saved) return null;
+
+        try {
+          const refreshed = await refreshAuthSession(saved);
+          return persistAuthSuccess(refreshed);
+        } catch {
+          await clearStoredAuthSession();
+          return null;
+        }
+      })
+      .then((session) => {
+        if (!mounted) return;
+        setAuthSession(session);
+        setAuthCompleted(Boolean(session));
+      })
+      .finally(() => {
+        if (mounted) setAuthHydrated(true);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const completeAuth = useCallback((session?: StoredAuthSession) => {
+    if (session) setAuthSession(session);
+    setAuthCompleted(true);
+  }, []);
+
+  const logout = useCallback(async () => {
+    const session = authSession ?? (await loadStoredAuthSession());
+
+    await logoutAuthSession(session);
+    setAuthSession(null);
+    setAuthCompleted(false);
+  }, [authSession]);
+
   const value = useMemo<AppRouterContextValue>(
     () => ({
       authCompleted,
+      authHydrated,
+      authSession,
       chatReturnScreen,
       closeSideMenu: () => setSideMenuOpen(false),
       colors,
-      completeAuth: () => setAuthCompleted(true),
+      completeAuth,
       connectionInvitation,
       isDark,
+      logout,
       newsFeedChromeProgress,
       newsFeedScrollY,
       openSideMenu: () => setSideMenuOpen(true),
@@ -98,10 +158,14 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
     }),
     [
       authCompleted,
+      authHydrated,
+      authSession,
       chatReturnScreen,
       colors,
+      completeAuth,
       connectionInvitation,
       isDark,
+      logout,
       newsFeedChromeProgress,
       newsFeedScrollY,
       returnScreen,

@@ -12,8 +12,11 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LoadingOverlay } from '../../components/LoadingOverlay';
+import { getAuthErrorMessage } from '../../domain/auth';
 import { useI18n } from '../../i18n';
 import { border, palette, radius, shadows, spacing, typography, type AppColors } from '../../theme';
+import { AuthNoticeModal, type AuthNotice } from './AuthNoticeModal';
 import {
   AUTH_PASSWORD_REQUIREMENTS,
   getPasswordRequirements,
@@ -24,7 +27,7 @@ import {
 interface Props {
   colors: AppColors;
   onBack: () => void;
-  onComplete: () => void;
+  onComplete: (password: string) => Promise<void> | void;
 }
 
 export function CreatePasswordScreen({ colors, onBack, onComplete }: Props) {
@@ -36,117 +39,142 @@ export function CreatePasswordScreen({ colors, onBack, onComplete }: Props) {
   const [confirmationFocused, setConfirmationFocused] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmationVisible, setConfirmationVisible] = useState(false);
+  const [notice, setNotice] = useState<AuthNotice | null>(null);
+  const [processing, setProcessing] = useState(false);
   const requirements = getPasswordRequirements(password);
   const validation = getPasswordValidationResult(password, confirmation);
   const canSubmit = validation === 'valid';
   const confirmationMismatch = confirmation.length > 0 && validation === 'mismatch';
 
-  const submit = () => {
-    if (!canSubmit) return;
-    onComplete();
+  const submit = async () => {
+    if (!canSubmit || processing) return;
+
+    setProcessing(true);
+    try {
+      await onComplete(password);
+    } catch (error) {
+      setNotice({
+        title: t('auth.password.errorTitle'),
+        description: getAuthErrorMessage(error),
+        tone: 'danger',
+      });
+    } finally {
+      setProcessing(false);
+    }
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      nativeID="screen-create-password"
-      testID="screen-create-password"
-      style={[styles.screen, { backgroundColor: colors.background }]}
-    >
-      <View style={[styles.glow, styles.glowTop, { backgroundColor: colors.primary }]} />
-      <View style={[styles.glow, styles.glowBottom, { backgroundColor: colors.primaryDark }]} />
-      <ScrollView
-        contentContainerStyle={[
-          styles.content,
-          { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom + spacing.xxl },
-        ]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+    <>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        nativeID="screen-create-password"
+        testID="screen-create-password"
+        style={[styles.screen, { backgroundColor: colors.background }]}
       >
-        <View style={styles.header}>
-          <Pressable
-            accessibilityLabel={t('common.back')}
-            accessibilityRole="button"
-            hitSlop={8}
-            onPress={onBack}
-            style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.55 : 1 }]}
-          >
-            <ArrowLeft color={colors.text} size={27} strokeWidth={1.9} />
-          </Pressable>
-          <Text accessibilityRole="header" style={[styles.headerTitle, { color: colors.text }]}>
-            {t('auth.password.title')}
-          </Text>
-          <View style={styles.headerSpacer} />
-        </View>
-
-        <View style={styles.intro}>
-          <Text style={[styles.description, { color: colors.textSecondary }]}>{t('auth.password.description')}</Text>
-        </View>
-
-        <View style={[styles.form, shadows.subtle, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <PasswordField
-            colors={colors}
-            focused={passwordFocused}
-            label={t('auth.password.passwordLabel')}
-            placeholder={t('auth.password.passwordPlaceholder')}
-            secure={!passwordVisible}
-            toggleLabel={passwordVisible ? t('auth.password.hidePassword') : t('auth.password.showPassword')}
-            value={password}
-            onBlur={() => setPasswordFocused(false)}
-            onChangeText={setPassword}
-            onFocus={() => setPasswordFocused(true)}
-            onSubmitEditing={() => undefined}
-            onToggleSecure={() => setPasswordVisible((value) => !value)}
-          />
-          <PasswordField
-            colors={colors}
-            focused={confirmationFocused}
-            label={t('auth.password.confirmPasswordLabel')}
-            placeholder={t('auth.password.confirmPasswordPlaceholder')}
-            secure={!confirmationVisible}
-            toggleLabel={confirmationVisible ? t('auth.password.hidePassword') : t('auth.password.showPassword')}
-            value={confirmation}
-            onBlur={() => setConfirmationFocused(false)}
-            onChangeText={setConfirmation}
-            onFocus={() => setConfirmationFocused(true)}
-            onSubmitEditing={submit}
-            onToggleSecure={() => setConfirmationVisible((value) => !value)}
-          />
-          {confirmationMismatch ? (
-            <Text style={[styles.fieldError, { color: colors.danger }]}>{t('auth.password.mismatch')}</Text>
-          ) : null}
-
-          <View style={styles.requirements}>
-            <Text style={[styles.requirementsTitle, { color: colors.text }]}>{t('auth.password.requirementsTitle')}</Text>
-            {AUTH_PASSWORD_REQUIREMENTS.map((key) => (
-              <RequirementRow
-                key={key}
-                colors={colors}
-                met={requirements[key]}
-                text={t(getRequirementKey(key))}
-              />
-            ))}
-          </View>
-        </View>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !canSubmit }}
-          disabled={!canSubmit}
-          onPress={submit}
-          style={({ pressed }) => [styles.submitButton, { opacity: !canSubmit ? 0.45 : pressed ? 0.78 : 1 }]}
+        <View style={[styles.glow, styles.glowTop, { backgroundColor: colors.primary }]} />
+        <View style={[styles.glow, styles.glowBottom, { backgroundColor: colors.primaryDark }]} />
+        <ScrollView
+          contentContainerStyle={[
+            styles.content,
+            { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom + spacing.xxl },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <LinearGradient
-            colors={[colors.primaryDark, '#4B86FF', colors.primaryDark]}
-            end={{ x: 1, y: 0 }}
-            start={{ x: 0, y: 0 }}
-            style={styles.submitGradient}
+          <View style={styles.header}>
+            <Pressable
+              accessibilityLabel={t('common.back')}
+              accessibilityRole="button"
+              hitSlop={8}
+              onPress={onBack}
+              style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.55 : 1 }]}
+            >
+              <ArrowLeft color={colors.text} size={27} strokeWidth={1.9} />
+            </Pressable>
+            <Text accessibilityRole="header" style={[styles.headerTitle, { color: colors.text }]}>
+              {t('auth.password.title')}
+            </Text>
+            <View style={styles.headerSpacer} />
+          </View>
+
+          <View style={styles.intro}>
+            <Text style={[styles.description, { color: colors.textSecondary }]}>{t('auth.password.description')}</Text>
+          </View>
+
+          <View style={[styles.form, shadows.subtle, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <PasswordField
+              colors={colors}
+              focused={passwordFocused}
+              label={t('auth.password.passwordLabel')}
+              placeholder={t('auth.password.passwordPlaceholder')}
+              secure={!passwordVisible}
+              toggleLabel={passwordVisible ? t('auth.password.hidePassword') : t('auth.password.showPassword')}
+              value={password}
+              onBlur={() => setPasswordFocused(false)}
+              onChangeText={setPassword}
+              onFocus={() => setPasswordFocused(true)}
+              onSubmitEditing={() => undefined}
+              onToggleSecure={() => setPasswordVisible((value) => !value)}
+            />
+            <PasswordField
+              colors={colors}
+              focused={confirmationFocused}
+              label={t('auth.password.confirmPasswordLabel')}
+              placeholder={t('auth.password.confirmPasswordPlaceholder')}
+              secure={!confirmationVisible}
+              toggleLabel={confirmationVisible ? t('auth.password.hidePassword') : t('auth.password.showPassword')}
+              value={confirmation}
+              onBlur={() => setConfirmationFocused(false)}
+              onChangeText={setConfirmation}
+              onFocus={() => setConfirmationFocused(true)}
+              onSubmitEditing={() => {
+                void submit();
+              }}
+              onToggleSecure={() => setConfirmationVisible((value) => !value)}
+            />
+            {confirmationMismatch ? (
+              <Text style={[styles.fieldError, { color: colors.danger }]}>{t('auth.password.mismatch')}</Text>
+            ) : null}
+
+            <View style={styles.requirements}>
+              <Text style={[styles.requirementsTitle, { color: colors.text }]}>{t('auth.password.requirementsTitle')}</Text>
+              {AUTH_PASSWORD_REQUIREMENTS.map((key) => (
+                <RequirementRow
+                  key={key}
+                  colors={colors}
+                  met={requirements[key]}
+                  text={t(getRequirementKey(key))}
+                />
+              ))}
+            </View>
+          </View>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !canSubmit || processing }}
+            disabled={!canSubmit || processing}
+            onPress={() => {
+              void submit();
+            }}
+            style={({ pressed }) => [
+              styles.submitButton,
+              { opacity: !canSubmit || processing ? 0.45 : pressed ? 0.78 : 1 },
+            ]}
           >
-            <Text style={styles.submitText}>{t('auth.password.submit')}</Text>
-          </LinearGradient>
-        </Pressable>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            <LinearGradient
+              colors={[colors.primaryDark, '#4B86FF', colors.primaryDark]}
+              end={{ x: 1, y: 0 }}
+              start={{ x: 0, y: 0 }}
+              style={styles.submitGradient}
+            >
+              <Text style={styles.submitText}>{t('auth.password.submit')}</Text>
+            </LinearGradient>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
+      <LoadingOverlay colors={colors} description={t('auth.password.loadingDescription')} visible={processing} />
+      <AuthNoticeModal actionLabel={t('common.close')} colors={colors} notice={notice} onClose={() => setNotice(null)} />
+    </>
   );
 }
 

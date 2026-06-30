@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
+import { getAuthErrorMessage } from '../../domain/auth';
 import { useI18n } from '../../i18n';
 import type { AppColors } from '../../theme';
 import { border, palette, radius, shadows, spacing, typography } from '../../theme';
@@ -26,15 +27,30 @@ import {
   sanitizeOtpInput,
 } from './authLogic';
 
+export interface OtpChallengeInfo {
+  expiresAt: string;
+  resendAvailableAt: string;
+}
+
 interface Props {
+  challenge?: OtpChallengeInfo | null;
   colors: AppColors;
   phoneNumber: string;
   onBack: () => void;
   onChangePhone: () => void;
-  onVerified: () => void;
+  onResend?: () => Promise<OtpChallengeInfo | void> | OtpChallengeInfo | void;
+  onVerified: (otpCode: string) => Promise<void> | void;
 }
 
-export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePhone, onVerified }: Props) {
+export function OtpVerificationScreen({
+  challenge,
+  colors,
+  phoneNumber,
+  onBack,
+  onChangePhone,
+  onResend,
+  onVerified,
+}: Props) {
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const inputRef = useRef<TextInput>(null);
@@ -42,10 +58,18 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
   const [focused, setFocused] = useState(false);
   const [notice, setNotice] = useState<(AuthNotice & { refocusInput?: boolean }) | null>(null);
   const [processing, setProcessing] = useState(false);
-  const [remainingSeconds, setRemainingSeconds] = useState(AUTH_OTP_LIFETIME_SECONDS);
-  const [resendRemainingSeconds, setResendRemainingSeconds] = useState(AUTH_OTP_RESEND_COOLDOWN_SECONDS);
-  const verificationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [remainingSeconds, setRemainingSeconds] = useState(() =>
+    getSecondsUntil(challenge?.expiresAt, AUTH_OTP_LIFETIME_SECONDS),
+  );
+  const [resendRemainingSeconds, setResendRemainingSeconds] = useState(() =>
+    getSecondsUntil(challenge?.resendAvailableAt, AUTH_OTP_RESEND_COOLDOWN_SECONDS),
+  );
   const resendDisabled = resendRemainingSeconds > 0;
+
+  useEffect(() => {
+    setRemainingSeconds(getSecondsUntil(challenge?.expiresAt, AUTH_OTP_LIFETIME_SECONDS));
+    setResendRemainingSeconds(getSecondsUntil(challenge?.resendAvailableAt, AUTH_OTP_RESEND_COOLDOWN_SECONDS));
+  }, [challenge?.expiresAt, challenge?.resendAvailableAt]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -61,21 +85,35 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => () => {
-    if (verificationTimer.current) clearTimeout(verificationTimer.current);
-  }, []);
+  const resendCode = async () => {
+    if (resendDisabled || processing) return;
 
-  const resendCode = () => {
-    if (resendDisabled) return;
-    setOtp('');
-    setRemainingSeconds(AUTH_OTP_LIFETIME_SECONDS);
-    setResendRemainingSeconds(AUTH_OTP_RESEND_COOLDOWN_SECONDS);
-    inputRef.current?.focus();
+    setProcessing(true);
+    try {
+      const nextChallenge = await onResend?.();
+      const challengeInfo = isOtpChallengeInfo(nextChallenge) ? nextChallenge : undefined;
+      setOtp('');
+      setRemainingSeconds(getSecondsUntil(challengeInfo?.expiresAt, AUTH_OTP_LIFETIME_SECONDS));
+      setResendRemainingSeconds(
+        getSecondsUntil(challengeInfo?.resendAvailableAt, AUTH_OTP_RESEND_COOLDOWN_SECONDS),
+      );
+      inputRef.current?.focus();
+    } catch (error) {
+      setNotice({
+        title: t('auth.otp.invalidTitle'),
+        description: getAuthErrorMessage(error),
+        tone: 'danger',
+        refocusInput: true,
+      });
+    } finally {
+      setProcessing(false);
+    }
   };
 
-  const verify = () => {
+  const verify = async () => {
     if (processing) return;
-    const result = getOtpVerificationResult(otp, remainingSeconds);
+    const normalizedOtp = sanitizeOtpInput(otp);
+    const result = getOtpVerificationResult(normalizedOtp, remainingSeconds, null);
 
     if (result === 'incomplete') {
       setNotice({
@@ -97,19 +135,18 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
     }
     Keyboard.dismiss();
     setProcessing(true);
-    verificationTimer.current = setTimeout(() => {
+    try {
+      await onVerified(normalizedOtp);
+    } catch (error) {
+      setNotice({
+        title: t('auth.otp.invalidTitle'),
+        description: getAuthErrorMessage(error),
+        tone: 'danger',
+        refocusInput: true,
+      });
+    } finally {
       setProcessing(false);
-      if (result === 'invalid') {
-        setNotice({
-          title: t('auth.otp.invalidTitle'),
-          description: t('auth.otp.invalidDescription'),
-          tone: 'danger',
-          refocusInput: true,
-        });
-        return;
-      }
-      onVerified();
-    }, 1200);
+    }
   };
 
   const closeNotice = () => {
@@ -191,7 +228,9 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
               onBlur={() => setFocused(false)}
               onChangeText={(value) => setOtp(sanitizeOtpInput(value))}
               onFocus={() => setFocused(true)}
-              onSubmitEditing={verify}
+              onSubmitEditing={() => {
+                void verify();
+              }}
               showSoftInputOnFocus
               style={styles.hiddenInput}
               textContentType="oneTimeCode"
@@ -215,7 +254,9 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
               accessibilityState={{ disabled: resendDisabled }}
               disabled={resendDisabled}
               hitSlop={8}
-              onPress={resendCode}
+              onPress={() => {
+                void resendCode();
+              }}
             >
               <Text style={[styles.actionLink, { color: resendDisabled ? colors.textSecondary : colors.primaryDark }]}>
                 {resendDisabled
@@ -231,7 +272,9 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
 
         <Pressable
           accessibilityRole="button"
-          onPress={verify}
+          onPress={() => {
+            void verify();
+          }}
           style={({ pressed }) => [styles.verifyButton, { opacity: pressed ? 0.78 : 1 }]}
         >
           <LinearGradient
@@ -263,6 +306,22 @@ function formatCountdown(seconds: number) {
   const minutes = Math.floor(seconds / 60);
   const remainder = seconds % 60;
   return `${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
+}
+
+function getSecondsUntil(value: string | undefined, fallbackSeconds: number) {
+  if (!value) return fallbackSeconds;
+
+  const timestamp = new Date(value).getTime();
+
+  if (!Number.isFinite(timestamp)) {
+    return fallbackSeconds;
+  }
+
+  return Math.max(0, Math.ceil((timestamp - Date.now()) / 1000));
+}
+
+function isOtpChallengeInfo(value: OtpChallengeInfo | void): value is OtpChallengeInfo {
+  return Boolean(value && typeof value.expiresAt === 'string' && typeof value.resendAvailableAt === 'string');
 }
 
 function formatPhoneNumber(phoneNumber: string) {

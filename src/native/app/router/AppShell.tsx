@@ -36,6 +36,7 @@ export function AppShell() {
   const { t } = useI18n();
   const {
     authCompleted,
+    authHydrated,
     closeSideMenu,
     colors,
     isDark,
@@ -50,7 +51,7 @@ export function AppShell() {
   const systemBarBackground = colors.background;
 
   useEffect(() => {
-    if (!store.hydrated) return;
+    if (!store.hydrated || !authHydrated) return;
     if (!authCompleted && !authRoute) {
       router.replace('/onboarding');
       return;
@@ -58,7 +59,7 @@ export function AppShell() {
     if (authCompleted && authRoute) {
       router.replace(getPathForScreen(initialScreen));
     }
-  }, [authCompleted, authRoute, router, store.hydrated]);
+  }, [authCompleted, authHydrated, authRoute, router, store.hydrated]);
 
   useEffect(() => {
     if (screen === 'activity' && unreadActivityCount) store.markAllActivityLogsRead();
@@ -77,7 +78,7 @@ export function AppShell() {
     SystemUI.setBackgroundColorAsync(systemBarBackground).catch(() => undefined);
   }, [systemBarBackground]);
 
-  if (!store.hydrated) {
+  if (!store.hydrated || !authHydrated) {
     return (
       <View style={[styles.loading, { backgroundColor: colors.background }]}>
         <ActivityIndicator color={colors.primaryDark} size="large" />

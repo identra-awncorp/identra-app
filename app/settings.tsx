@@ -5,7 +5,7 @@ import { useAppRouterState } from '@/app/router/AppRouterContext';
 
 export default function SettingsRoute() {
   const router = useRouter();
-  const { colors, setChatReturnScreen, setReturnScreen } = useAppRouterState();
+  const { colors, logout, setChatReturnScreen, setReturnScreen } = useAppRouterState();
 
   return (
     <SettingsScreen
@@ -30,6 +30,10 @@ export default function SettingsRoute() {
         router.push('/security');
       }}
       onOpenSharing={() => router.push('/settings-sharing')}
+      onLogout={async () => {
+        await logout();
+        router.replace('/login');
+      }}
     />
   );
 }

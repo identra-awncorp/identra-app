@@ -2,24 +2,49 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MessageSquareText, Phone } from 'lucide-react-native';
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { getAuthErrorMessage } from '../../domain/auth';
 import { useI18n } from '../../i18n';
 import type { AppColors } from '../../theme';
 import { border, palette, radius, shadows, spacing, typography } from '../../theme';
 import { CreatePasswordScreen } from './CreatePasswordScreen';
-import { OtpVerificationScreen } from './OtpVerificationScreen';
+import { OtpVerificationScreen, type OtpChallengeInfo } from './OtpVerificationScreen';
 import { PhoneAuthScreen } from './PhoneAuthScreen';
+import { AuthNoticeModal, type AuthNotice } from './AuthNoticeModal';
+
+interface RegistrationChallenge extends OtpChallengeInfo {
+  challengeId: string;
+}
 
 interface Props {
   colors: AppColors;
   onBack: () => void;
+  onSetRegistrationPassword: (input: { password: string; registrationToken: string }) => Promise<void> | void;
+  onStartRegistration: (phoneNumber: string) => Promise<RegistrationChallenge> | RegistrationChallenge;
+  onVerifyRegistration: (input: {
+    challengeId: string;
+    otpCode: string;
+    phoneNumber: string;
+  }) => Promise<string> | string;
   onRegistered: (phoneNumber: string) => void;
   onLogin: () => void;
 }
 
-export function RegisterScreen({ colors, onBack, onRegistered, onLogin }: Props) {
+export function RegisterScreen({
+  colors,
+  onBack,
+  onLogin,
+  onRegistered,
+  onSetRegistrationPassword,
+  onStartRegistration,
+  onVerifyRegistration,
+}: Props) {
   const { t } = useI18n();
+  const [authChallenge, setAuthChallenge] = useState<RegistrationChallenge | null>(null);
+  const [registrationToken, setRegistrationToken] = useState<string | null>(null);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [confirmationVisible, setConfirmationVisible] = useState(false);
+  const [notice, setNotice] = useState<AuthNotice | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState<'password' | 'phone' | 'otp'>('phone');
 
   const requestVerification = (value: string) => {
@@ -27,14 +52,63 @@ export function RegisterScreen({ colors, onBack, onRegistered, onLogin }: Props)
     setConfirmationVisible(true);
   };
 
+  const startRegistration = async () => {
+    setConfirmationVisible(false);
+    setSubmitting(true);
+
+    try {
+      const challenge = await onStartRegistration(phoneNumber);
+      setAuthChallenge(challenge);
+      setStep('otp');
+    } catch (error) {
+      setNotice({
+        title: t('auth.register.errorTitle'),
+        description: getAuthErrorMessage(error),
+        tone: 'danger',
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const resendRegistrationCode = async () => {
+    const challenge = await onStartRegistration(phoneNumber);
+    setAuthChallenge(challenge);
+    return challenge;
+  };
+
+  const verifyRegistrationCode = async (otpCode: string) => {
+    if (!authChallenge) return;
+
+    const token = await onVerifyRegistration({
+      challengeId: authChallenge.challengeId,
+      otpCode,
+      phoneNumber,
+    });
+
+    setRegistrationToken(token);
+    setStep('password');
+  };
+
+  const completeRegistration = async (password: string) => {
+    if (!registrationToken) {
+      throw new Error('Registration token is missing. Please verify your phone number again.');
+    }
+
+    await onSetRegistrationPassword({ password, registrationToken });
+    onRegistered(phoneNumber);
+  };
+
   if (step === 'otp') {
     return (
       <OtpVerificationScreen
+        challenge={authChallenge}
         colors={colors}
         phoneNumber={phoneNumber}
         onBack={() => setStep('phone')}
         onChangePhone={() => setStep('phone')}
-        onVerified={() => setStep('password')}
+        onResend={resendRegistrationCode}
+        onVerified={verifyRegistrationCode}
       />
     );
   }
@@ -44,7 +118,7 @@ export function RegisterScreen({ colors, onBack, onRegistered, onLogin }: Props)
       <CreatePasswordScreen
         colors={colors}
         onBack={() => setStep('otp')}
-        onComplete={() => onRegistered(phoneNumber)}
+        onComplete={completeRegistration}
       />
     );
   }
@@ -59,6 +133,7 @@ export function RegisterScreen({ colors, onBack, onRegistered, onLogin }: Props)
         onBack={onBack}
         onContinue={requestVerification}
         onSwitch={onLogin}
+        submitting={submitting}
         switchAction={t('auth.register.switchAction')}
         switchPrompt={t('auth.register.switchPrompt')}
         title={t('auth.register.title')}
@@ -69,10 +144,10 @@ export function RegisterScreen({ colors, onBack, onRegistered, onLogin }: Props)
         visible={confirmationVisible}
         onChangeNumber={() => setConfirmationVisible(false)}
         onContinue={() => {
-          setConfirmationVisible(false);
-          setStep('otp');
+          void startRegistration();
         }}
       />
+      <AuthNoticeModal actionLabel={t('common.close')} colors={colors} notice={notice} onClose={() => setNotice(null)} />
     </>
   );
 }

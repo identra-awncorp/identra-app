@@ -22,21 +22,25 @@ Authenticated app routing and redirects live in `src/native/app/router`.
 - `OtpVerificationScreen.tsx`: 6-digit OTP input, countdown, resend, and verify behavior.
 - `CreatePasswordScreen.tsx`: post-OTP password creation and password requirement checklist.
 - `AuthNoticeModal.tsx`: in-app notice modal for auth validation and informational messages.
-- `authLogic.ts`: pure OTP sanitation and demo verification result logic.
+- `authLogic.ts`: pure OTP sanitation and password validation helpers.
+- `src/native/domain/auth`: Identra Server auth API client and SecureStore-backed session/device storage.
 - `src/native/app/router/AppShell.tsx`: auth route guarding and post-auth redirects.
-- `src/native/app/router/AppRouterContext.tsx`: `authCompleted` state and router UI context.
+- `src/native/app/router/AppRouterContext.tsx`: auth session hydration, refresh, logout, and router UI context.
 
 ## Business Rules
 
 - Unauthenticated users should stay on onboarding, login, register, or OTP-related flow surfaces.
-- Successful login completes auth through the app router context before showing authenticated tabs.
-- Successful registration OTP verification moves to password creation; only a valid password can return the user to login.
+- Successful login stores server tokens through the auth client and completes auth through the app router context.
+- Unknown-device login moves to OTP verification before storing tokens.
+- Successful registration OTP verification moves to password creation; setting the password stores tokens and enters the app.
+- Development builds may infer a LAN API URL from Expo Go/Metro for phone testing.
+- Production builds must set `EXPO_PUBLIC_IDENTRA_API_URL` to a real API endpoint and will reject localhost, `127.0.0.1`, `::1`, and `10.0.2.2`.
 - Phone numbers are normalized to Vietnam `+84` format before leaving the auth form.
 - Registration requires both usage and social terms before requesting verification.
 - OTP codes must be numeric, 6 digits long, and time-bound.
 - OTP resend must be disabled for 60 seconds and show the remaining countdown before becoming available.
-- Until a backend OTP service exists, prototype verification accepts only the fixed demo code `123456`.
-- Password creation requires at least 8 characters, uppercase, lowercase, number, special character, and matching confirmation.
+- The local server demo OTP provider currently uses `000000`; the OTP screen defers final validity to the server.
+- Password creation follows the server policy: 8 to 128 printable ASCII characters, no leading or trailing whitespace, and matching confirmation.
 - Login requires phone number and password; it should not show SMS/OTP delivery copy.
 - OTP entry must remain easy to focus on Android and iOS; custom OTP boxes should not block the native `TextInput` from opening the keyboard.
 - Blocking auth actions should use `LoadingOverlay` or a disabled/locked interaction pattern.
@@ -44,10 +48,10 @@ Authenticated app routing and redirects live in `src/native/app/router`.
 
 ## State Boundaries
 
-- Auth navigation state such as phone step vs OTP step can stay inside `RegisterScreen`.
+- Auth navigation state such as phone step vs OTP step can stay inside `RegisterScreen` or the auth route that owns a login step-up.
 - Shared auth completion state belongs in `AppRouterContext`.
 - Persisted app data hydration and authenticated route redirects belong in `AppShell`.
-- Reusable validation or auth service behavior should move into a future `src/native/domain/auth` module when it becomes testable outside UI.
+- Reusable validation and auth service behavior belongs in `src/native/domain/auth`.
 
 ## i18n And Content
 

@@ -45,7 +45,8 @@
         {
           "faceIDPermission": "Cho phép Identra sử dụng Face ID để bảo vệ ví."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

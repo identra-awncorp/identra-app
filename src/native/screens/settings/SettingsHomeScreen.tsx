@@ -34,6 +34,7 @@ export function SettingsScreen({
   onOpenHelp,
   onOpenAbout,
   onOpenChat,
+  onLogout,
 }: {
   colors: AppColors;
   onOpenBackup: () => void;
@@ -47,12 +48,19 @@ export function SettingsScreen({
   onOpenHelp: () => void;
   onOpenAbout: () => void;
   onOpenChat: () => void;
+  onLogout: () => Promise<void> | void;
 }) {
   const { t } = useI18n();
   const confirmLogout = () =>
     Alert.alert(t('settings.main.logoutTitle'), t('settings.main.logoutDescription'), [
       { text: t('common.cancel'), style: 'cancel' },
-      { text: t('settings.main.logoutAction'), style: 'destructive' },
+      {
+        text: t('settings.main.logoutAction'),
+        style: 'destructive',
+        onPress: () => {
+          void onLogout();
+        },
+      },
     ]);
 
   return (

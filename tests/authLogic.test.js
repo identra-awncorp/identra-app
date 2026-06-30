@@ -29,6 +29,10 @@ describe('authLogic', () => {
     assert.equal(getOtpVerificationResult('654321', AUTH_OTP_LIFETIME_SECONDS), 'invalid');
   });
 
+  it('can defer complete OTP validity to the server', () => {
+    assert.equal(getOtpVerificationResult('654321', AUTH_OTP_LIFETIME_SECONDS, null), 'valid');
+  });
+
   it('accepts only the demo verification code before expiry', () => {
     assert.equal(getOtpVerificationResult(DEMO_VALID_OTP_CODE, AUTH_OTP_LIFETIME_SECONDS), 'valid');
   });
@@ -39,19 +43,17 @@ describe('authLogic', () => {
 
   it('reports password requirement status independently', () => {
     assert.deepEqual(getPasswordRequirements('Abcdef1!'), {
+      ascii: true,
       length: true,
-      lowercase: true,
-      number: true,
-      special: true,
-      uppercase: true,
+      noEdgeWhitespace: true,
     });
-    assert.equal(isPasswordStrong('abcdef12'), false);
+    assert.equal(isPasswordStrong(' abcdef12'), false);
   });
 
-  it('allows registration to continue only with a strong matching password', () => {
+  it('allows registration to continue only with a valid matching server password', () => {
     assert.equal(getPasswordValidationResult('', ''), 'missing');
-    assert.equal(getPasswordValidationResult('abcdef12', 'abcdef12'), 'weak');
-    assert.equal(getPasswordValidationResult('Abcdef1!', 'Abcdef1?'), 'mismatch');
-    assert.equal(getPasswordValidationResult('Abcdef1!', 'Abcdef1!'), 'valid');
+    assert.equal(getPasswordValidationResult('abcdef1', 'abcdef1'), 'weak');
+    assert.equal(getPasswordValidationResult('abcdef12', 'abcdef13'), 'mismatch');
+    assert.equal(getPasswordValidationResult('abcdef12', 'abcdef12'), 'valid');
   });
 });
