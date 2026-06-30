@@ -112,44 +112,44 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
         </View>
 
         <View style={[styles.otpCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Pressable
-            accessibilityLabel={t('auth.otp.inputLabel')}
-            accessibilityRole="button"
-            onPress={() => inputRef.current?.focus()}
-            style={styles.otpBoxes}
-          >
-            {Array.from({ length: OTP_LENGTH }).map((_, index) => {
-              const active = focused && index === Math.min(otp.length, OTP_LENGTH - 1);
-              return (
-                <View
-                  key={index}
-                  style={[
-                    styles.otpBox,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: active ? colors.primaryDark : colors.border,
-                    },
-                  ]}
-                >
-                  <Text style={[styles.otpDigit, { color: colors.text }]}>{otp[index] ?? ''}</Text>
-                </View>
-              );
-            })}
-          </Pressable>
-          <TextInput
-            ref={inputRef}
-            accessibilityLabel={t('auth.otp.codeLabel')}
-            autoFocus
-            caretHidden
-            keyboardType="number-pad"
-            maxLength={OTP_LENGTH}
-            onBlur={() => setFocused(false)}
-            onChangeText={(value) => setOtp(value.replace(/\D/g, '').slice(0, OTP_LENGTH))}
-            onFocus={() => setFocused(true)}
-            onSubmitEditing={verify}
-            style={styles.hiddenInput}
-            value={otp}
-          />
+          <View style={styles.otpInputArea}>
+            <View pointerEvents="none" style={styles.otpBoxes}>
+              {Array.from({ length: OTP_LENGTH }).map((_, index) => {
+                const active = focused && index === Math.min(otp.length, OTP_LENGTH - 1);
+                return (
+                  <View
+                    key={index}
+                    style={[
+                      styles.otpBox,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: active ? colors.primaryDark : colors.border,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.otpDigit, { color: colors.text }]}>{otp[index] ?? ''}</Text>
+                  </View>
+                );
+              })}
+            </View>
+            <TextInput
+              ref={inputRef}
+              accessibilityLabel={t('auth.otp.codeLabel')}
+              autoComplete="sms-otp"
+              autoFocus
+              caretHidden
+              keyboardType="number-pad"
+              maxLength={OTP_LENGTH}
+              onBlur={() => setFocused(false)}
+              onChangeText={(value) => setOtp(value.replace(/\D/g, '').slice(0, OTP_LENGTH))}
+              onFocus={() => setFocused(true)}
+              onSubmitEditing={verify}
+              showSoftInputOnFocus
+              style={styles.hiddenInput}
+              textContentType="oneTimeCode"
+              value={otp}
+            />
+          </View>
 
           <View style={[styles.expiryRow, { backgroundColor: colors.surfaceMuted }]}>
             <MessageSquareText color={colors.primaryDark} size={21} strokeWidth={1.9} />
@@ -239,10 +239,24 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
     elevation: 3,
   },
+  otpInputArea: { position: 'relative' },
   otpBoxes: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm - 1 },
   otpBox: { flex: 1, maxWidth: 48, aspectRatio: 0.82, borderWidth: border.medium, borderRadius: radius.md + 1, alignItems: 'center', justifyContent: 'center' },
   otpDigit: { fontSize: spacing.xl, lineHeight: 30, fontWeight: typography.weight.extraBold },
-  hiddenInput: { position: 'absolute', width: 1, height: 1, opacity: 0 },
+  hiddenInput: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    bottom: 0,
+    color: 'transparent',
+    fontSize: 1,
+    left: 0,
+    lineHeight: 1,
+    padding: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 1,
+  },
   expiryRow: { minHeight: 54, marginTop: 24, borderRadius: 15, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   expiryText: { fontSize: typography.size.sm, lineHeight: typography.lineHeight.sm, fontWeight: typography.weight.regular },
   actions: { alignItems: 'center', gap: 20, marginTop: 28 },

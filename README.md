@@ -70,6 +70,7 @@ Khi thêm màn hình mới, đặt tên file rõ theo feature, ví dụ `NewsFee
 
 ### Feature Và Domain Documentation
 
+- `src/native/screens/auth/README.md`: quy tắc Onboarding, Login, Register và OTP.
 - `src/native/screens/chat-list/README.md`: quy tắc màn hình Chat List và conversation preview.
 - `src/native/screens/chat/README.md`: quy tắc màn hình hội thoại và chat action sheets.
 - `src/native/screens/news-feed/README.md`: quy tắc News Feed, Search, Notifications, Live và Smart Contract.
