@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useI18n } from '../../i18n';
 import type { AppColors } from '../../theme';
-import { border, palette, radius, spacing, typography } from '../../theme';
+import { border, palette, radius, shadows, spacing, typography } from '../../theme';
+import { CreatePasswordScreen } from './CreatePasswordScreen';
 import { OtpVerificationScreen } from './OtpVerificationScreen';
 import { PhoneAuthScreen } from './PhoneAuthScreen';
 
@@ -19,7 +20,7 @@ export function RegisterScreen({ colors, onBack, onRegistered, onLogin }: Props)
   const { t } = useI18n();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [confirmationVisible, setConfirmationVisible] = useState(false);
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [step, setStep] = useState<'password' | 'phone' | 'otp'>('phone');
 
   const requestVerification = (value: string) => {
     setPhoneNumber(value);
@@ -33,7 +34,17 @@ export function RegisterScreen({ colors, onBack, onRegistered, onLogin }: Props)
         phoneNumber={phoneNumber}
         onBack={() => setStep('phone')}
         onChangePhone={() => setStep('phone')}
-        onVerified={() => onRegistered(phoneNumber)}
+        onVerified={() => setStep('password')}
+      />
+    );
+  }
+
+  if (step === 'password') {
+    return (
+      <CreatePasswordScreen
+        colors={colors}
+        onBack={() => setStep('otp')}
+        onComplete={() => onRegistered(phoneNumber)}
       />
     );
   }
@@ -91,7 +102,7 @@ function PhoneConfirmationModal({
     >
       <View style={styles.modalRoot}>
         <Pressable accessibilityLabel={t('auth.register.closeConfirmation')} onPress={onChangeNumber} style={styles.backdrop} />
-        <View style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.modalCard, shadows.subtle, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={[styles.modalIcon, { backgroundColor: colors.surfaceMuted }]}>
             <MessageSquareText color={colors.primaryDark} size={28} strokeWidth={1.9} />
           </View>
@@ -155,11 +166,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingVertical: 26,
     alignItems: 'center',
-    shadowColor: '#07102A',
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.22,
-    shadowRadius: 30,
-    elevation: 12,
   },
   modalIcon: { width: 58, height: 58, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
   modalTitle: { fontSize: 22, lineHeight: 28, fontWeight: typography.weight.extraBold, textAlign: 'center' },

@@ -3,11 +3,14 @@ import {
   ArrowLeft,
   Check,
   ChevronDown,
+  Eye,
+  EyeOff,
   LockKeyhole,
   MessageSquareText,
   Phone,
   X,
 } from 'lucide-react-native';
+import type { ReactNode } from 'react';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -21,7 +24,7 @@ import {
   View,
 } from 'react-native';
 import type { AppColors } from '../../theme';
-import { border, palette, radius, spacing, typography } from '../../theme';
+import { border, palette, radius, shadows, spacing, typography } from '../../theme';
 import { useI18n } from '../../i18n';
 import { AuthNoticeModal, type AuthNotice } from './AuthNoticeModal';
 
@@ -31,7 +34,7 @@ interface Props {
   initialPhoneNumber?: string;
   mode: 'login' | 'register';
   onBack: () => void;
-  onContinue: (phoneNumber: string) => void;
+  onContinue: (phoneNumber: string, password: string) => void;
   onSwitch: () => void;
   switchAction: string;
   switchPrompt: string;
@@ -60,6 +63,9 @@ export function PhoneAuthScreen({
   const [acceptedUsageTerms, setAcceptedUsageTerms] = useState(false);
   const [acceptedSocialTerms, setAcceptedSocialTerms] = useState(false);
   const [notice, setNotice] = useState<AuthNotice | null>(null);
+  const [password, setPassword] = useState('');
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const normalizedPhone = phoneNumber.replace(/\D/g, '').slice(0, 10);
   const validPhone = normalizedPhone.length >= 9;
 
@@ -72,6 +78,14 @@ export function PhoneAuthScreen({
       });
       return;
     }
+    if (mode === 'login' && !password.trim()) {
+      setNotice({
+        title: t('auth.login.passwordMissingTitle'),
+        description: t('auth.login.passwordMissingDescription'),
+        tone: 'warning',
+      });
+      return;
+    }
     if (mode === 'register' && (!acceptedUsageTerms || !acceptedSocialTerms)) {
       setNotice({
         title: t('auth.phone.termsMissingTitle'),
@@ -80,7 +94,7 @@ export function PhoneAuthScreen({
       });
       return;
     }
-    onContinue(`+84${normalizedPhone.replace(/^0/, '')}`);
+    onContinue(`+84${normalizedPhone.replace(/^0/, '')}`, password);
   };
 
   return (
@@ -136,8 +150,22 @@ export function PhoneAuthScreen({
             })}
             onFocusChange={setFocused}
             onPhoneNumberChange={setPhoneNumber}
+            showSmsHint={mode === 'register'}
             onSubmit={submit}
-          />
+          >
+            {mode === 'login' ? (
+              <LoginPasswordCard
+                colors={colors}
+                focused={passwordFocused}
+                password={password}
+                passwordVisible={passwordVisible}
+                onFocusChange={setPasswordFocused}
+                onPasswordChange={setPassword}
+                onSubmit={submit}
+                onTogglePasswordVisible={() => setPasswordVisible((value) => !value)}
+              />
+            ) : null}
+          </PhoneNumberCard>
 
           {mode === 'register' ? (
             <View style={styles.consentList}>
@@ -190,6 +218,7 @@ export function PhoneAuthScreen({
 }
 
 function PhoneNumberCard({
+  children,
   colors,
   compactWidth,
   focused,
@@ -197,8 +226,10 @@ function PhoneNumberCard({
   onCountryPress,
   onFocusChange,
   onPhoneNumberChange,
+  showSmsHint,
   onSubmit,
 }: {
+  children?: ReactNode;
   colors: AppColors;
   compactWidth: boolean;
   focused: boolean;
@@ -206,6 +237,7 @@ function PhoneNumberCard({
   onCountryPress: () => void;
   onFocusChange: (focused: boolean) => void;
   onPhoneNumberChange: (value: string) => void;
+  showSmsHint: boolean;
   onSubmit: () => void;
 }) {
   const { t } = useI18n();
@@ -214,6 +246,7 @@ function PhoneNumberCard({
     <View
       style={[
         styles.formCard,
+        shadows.subtle,
         {
           backgroundColor: colors.surface,
           borderColor: colors.background === '#F7F8FC' ? '#EBEEF6' : colors.border,
@@ -277,11 +310,80 @@ function PhoneNumberCard({
           ) : null}
         </View>
       </View>
-      <View style={styles.smsHint}>
-        <View style={[styles.hintIcon, { backgroundColor: colors.surfaceMuted }]}>
-          <MessageSquareText color={colors.primaryDark} size={21} strokeWidth={1.9} />
+      {showSmsHint ? (
+        <View style={styles.smsHint}>
+          <View style={[styles.hintIcon, { backgroundColor: colors.surfaceMuted }]}>
+            <MessageSquareText color={colors.primaryDark} size={21} strokeWidth={1.9} />
+          </View>
+          <Text style={[styles.hintText, { color: colors.textSecondary }]}>{t('auth.phone.smsHint')}</Text>
         </View>
-        <Text style={[styles.hintText, { color: colors.textSecondary }]}>{t('auth.phone.smsHint')}</Text>
+      ) : null}
+      {children}
+    </View>
+  );
+}
+
+function LoginPasswordCard({
+  colors,
+  focused,
+  onFocusChange,
+  onPasswordChange,
+  onSubmit,
+  onTogglePasswordVisible,
+  password,
+  passwordVisible,
+}: {
+  colors: AppColors;
+  focused: boolean;
+  onFocusChange: (focused: boolean) => void;
+  onPasswordChange: (value: string) => void;
+  onSubmit: () => void;
+  onTogglePasswordVisible: () => void;
+  password: string;
+  passwordVisible: boolean;
+}) {
+  const { t } = useI18n();
+  const VisibilityIcon = passwordVisible ? EyeOff : Eye;
+
+  return (
+    <View style={styles.passwordSection}>
+      <Text style={[styles.label, { color: colors.text }]}>{t('auth.login.passwordLabel')}</Text>
+      <View
+        style={[
+          styles.passwordField,
+          {
+            backgroundColor: colors.surface,
+            borderColor: focused ? colors.primaryDark : colors.border,
+          },
+        ]}
+      >
+        <LockKeyhole color={focused ? colors.primaryDark : colors.textSecondary} size={21} strokeWidth={1.8} />
+        <TextInput
+          accessibilityLabel={t('auth.login.passwordLabel')}
+          autoCapitalize="none"
+          autoComplete="password"
+          autoCorrect={false}
+          onBlur={() => onFocusChange(false)}
+          onChangeText={onPasswordChange}
+          onFocus={() => onFocusChange(true)}
+          onSubmitEditing={onSubmit}
+          placeholder={t('auth.login.passwordPlaceholder')}
+          placeholderTextColor={colors.textSecondary}
+          returnKeyType="done"
+          secureTextEntry={!passwordVisible}
+          style={[styles.passwordInput, { color: colors.text }]}
+          textContentType="password"
+          value={password}
+        />
+        <Pressable
+          accessibilityLabel={passwordVisible ? t('auth.password.hidePassword') : t('auth.password.showPassword')}
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={onTogglePasswordVisible}
+          style={styles.passwordEyeButton}
+        >
+          <VisibilityIcon color={colors.textSecondary} size={20} strokeWidth={1.9} />
+        </Pressable>
       </View>
     </View>
   );
@@ -309,6 +411,7 @@ function ConsentRow({
       onPress={onPress}
       style={({ pressed }) => [
         styles.consentRow,
+        shadows.subtle,
         { backgroundColor: colors.surface, borderColor: colors.border, opacity: pressed ? 0.72 : 1 },
       ]}
     >
@@ -381,11 +484,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 22,
     gap: spacing.xl - spacing.xs,
-    shadowColor: '#415A91',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    elevation: 3,
   },
   label: { fontSize: 18, lineHeight: spacing.xl, fontWeight: typography.weight.bold },
   phoneField: { minHeight: 64, borderWidth: border.medium, borderRadius: radius.lg - 1, flexDirection: 'row', alignItems: 'stretch' },
@@ -413,6 +511,20 @@ const styles = StyleSheet.create({
   smsHint: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: spacing.md + 1 },
   hintIcon: { width: 38, height: 38, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   hintText: { flex: 1, fontSize: typography.size.sm, lineHeight: 21, fontWeight: typography.weight.regular },
+  passwordSection: { gap: spacing.md },
+  passwordField: { minHeight: 58, borderWidth: border.medium, borderRadius: radius.lg - 1, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  passwordInput: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 54,
+    paddingVertical: 0,
+    fontSize: 15,
+    lineHeight: 21,
+    fontWeight: typography.weight.regular,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+  },
+  passwordEyeButton: { width: 36, height: 44, alignItems: 'center', justifyContent: 'center' },
   consentList: { gap: 12, marginTop: 24 },
   consentRow: {
     minHeight: 68,
@@ -423,11 +535,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
-    shadowColor: '#415A91',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.05,
-    shadowRadius: 18,
-    elevation: 1,
   },
   checkbox: { width: 28, height: 28, borderWidth: border.medium, borderRadius: radius.sm - 1, alignItems: 'center', justifyContent: 'center' },
   consentText: { flex: 1, fontSize: typography.size.sm, lineHeight: 21, fontWeight: typography.weight.regular },

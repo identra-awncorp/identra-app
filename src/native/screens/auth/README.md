@@ -1,14 +1,15 @@
 # Auth Screens
 
-This folder owns onboarding, login, registration, and phone OTP verification surfaces.
+This folder owns onboarding, password login, registration, phone OTP verification, and password creation surfaces.
 
 ## Scope
 
 - Onboarding entry screen.
-- Login by phone number.
+- Login by phone number and password.
 - Registration by phone number.
 - Registration confirmation modal.
 - OTP entry, resend, expiry, and verification loading states.
+- Password creation after successful registration OTP verification.
 
 Authenticated app routing and redirects live in `src/native/app/router`.
 
@@ -19,6 +20,7 @@ Authenticated app routing and redirects live in `src/native/app/router`.
 - `RegisterScreen.tsx`: registration flow, phone confirmation modal, and OTP step switch.
 - `PhoneAuthScreen.tsx`: shared phone number form for login and registration.
 - `OtpVerificationScreen.tsx`: 6-digit OTP input, countdown, resend, and verify behavior.
+- `CreatePasswordScreen.tsx`: post-OTP password creation and password requirement checklist.
 - `AuthNoticeModal.tsx`: in-app notice modal for auth validation and informational messages.
 - `authLogic.ts`: pure OTP sanitation and demo verification result logic.
 - `src/native/app/router/AppShell.tsx`: auth route guarding and post-auth redirects.
@@ -28,11 +30,14 @@ Authenticated app routing and redirects live in `src/native/app/router`.
 
 - Unauthenticated users should stay on onboarding, login, register, or OTP-related flow surfaces.
 - Successful login completes auth through the app router context before showing authenticated tabs.
-- Successful registration OTP verification returns the user to login; it must not complete auth or open the main app directly.
+- Successful registration OTP verification moves to password creation; only a valid password can return the user to login.
 - Phone numbers are normalized to Vietnam `+84` format before leaving the auth form.
 - Registration requires both usage and social terms before requesting verification.
 - OTP codes must be numeric, 6 digits long, and time-bound.
+- OTP resend must be disabled for 60 seconds and show the remaining countdown before becoming available.
 - Until a backend OTP service exists, prototype verification accepts only the fixed demo code `123456`.
+- Password creation requires at least 8 characters, uppercase, lowercase, number, special character, and matching confirmation.
+- Login requires phone number and password; it should not show SMS/OTP delivery copy.
 - OTP entry must remain easy to focus on Android and iOS; custom OTP boxes should not block the native `TextInput` from opening the keyboard.
 - Blocking auth actions should use `LoadingOverlay` or a disabled/locked interaction pattern.
 - Auth validation and informational notices should use `AuthNoticeModal` instead of native system alerts.
@@ -56,7 +61,7 @@ When changing auth redirects or route visibility, update and run:
 
 - `tests/navigationLogic.test.js`
 
-When changing OTP validation behavior, update and run:
+When changing OTP or password validation behavior, update and run:
 
 - `tests/authLogic.test.js`
 

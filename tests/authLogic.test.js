@@ -3,8 +3,12 @@ const { describe, it } = require('node:test');
 
 const {
   AUTH_OTP_LIFETIME_SECONDS,
+  AUTH_OTP_RESEND_COOLDOWN_SECONDS,
   DEMO_VALID_OTP_CODE,
+  getPasswordRequirements,
+  getPasswordValidationResult,
   getOtpVerificationResult,
+  isPasswordStrong,
   sanitizeOtpInput,
 } = require('../.tmp-test/src/native/screens/auth/authLogic');
 
@@ -27,5 +31,27 @@ describe('authLogic', () => {
 
   it('accepts only the demo verification code before expiry', () => {
     assert.equal(getOtpVerificationResult(DEMO_VALID_OTP_CODE, AUTH_OTP_LIFETIME_SECONDS), 'valid');
+  });
+
+  it('keeps OTP resend unavailable for the approved cooldown window', () => {
+    assert.equal(AUTH_OTP_RESEND_COOLDOWN_SECONDS, 60);
+  });
+
+  it('reports password requirement status independently', () => {
+    assert.deepEqual(getPasswordRequirements('Abcdef1!'), {
+      length: true,
+      lowercase: true,
+      number: true,
+      special: true,
+      uppercase: true,
+    });
+    assert.equal(isPasswordStrong('abcdef12'), false);
+  });
+
+  it('allows registration to continue only with a strong matching password', () => {
+    assert.equal(getPasswordValidationResult('', ''), 'missing');
+    assert.equal(getPasswordValidationResult('abcdef12', 'abcdef12'), 'weak');
+    assert.equal(getPasswordValidationResult('Abcdef1!', 'Abcdef1?'), 'mismatch');
+    assert.equal(getPasswordValidationResult('Abcdef1!', 'Abcdef1!'), 'valid');
   });
 });

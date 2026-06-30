@@ -15,11 +15,12 @@ import {
 import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { useI18n } from '../../i18n';
 import type { AppColors } from '../../theme';
-import { border, palette, radius, spacing, typography } from '../../theme';
+import { border, palette, radius, shadows, spacing, typography } from '../../theme';
 import { AuthNoticeModal, type AuthNotice } from './AuthNoticeModal';
 import {
   AUTH_OTP_LENGTH,
   AUTH_OTP_LIFETIME_SECONDS,
+  AUTH_OTP_RESEND_COOLDOWN_SECONDS,
   getOtpVerificationResult,
   sanitizeOtpInput,
 } from './authLogic';
@@ -40,11 +41,20 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
   const [notice, setNotice] = useState<(AuthNotice & { refocusInput?: boolean }) | null>(null);
   const [processing, setProcessing] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(AUTH_OTP_LIFETIME_SECONDS);
+  const [resendRemainingSeconds, setResendRemainingSeconds] = useState(AUTH_OTP_RESEND_COOLDOWN_SECONDS);
   const verificationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resendDisabled = resendRemainingSeconds > 0;
 
   useEffect(() => {
     const timer = setInterval(() => {
       setRemainingSeconds((value) => Math.max(0, value - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setResendRemainingSeconds((value) => Math.max(0, value - 1));
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -54,8 +64,10 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
   }, []);
 
   const resendCode = () => {
+    if (resendDisabled) return;
     setOtp('');
     setRemainingSeconds(AUTH_OTP_LIFETIME_SECONDS);
+    setResendRemainingSeconds(AUTH_OTP_RESEND_COOLDOWN_SECONDS);
     inputRef.current?.focus();
   };
 
@@ -142,7 +154,7 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
           <Text style={[styles.phoneNumber, { color: colors.text }]}>{formatPhoneNumber(phoneNumber)}</Text>
         </View>
 
-        <View style={[styles.otpCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.otpCard, shadows.subtle, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.otpInputArea}>
             <View pointerEvents="none" style={styles.otpBoxes}>
               {Array.from({ length: AUTH_OTP_LENGTH }).map((_, index) => {
@@ -193,8 +205,18 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
         <View style={styles.actions}>
           <View style={styles.resendRow}>
             <Text style={[styles.actionPrompt, { color: colors.textSecondary }]}>{t('auth.otp.resendPrompt')} </Text>
-            <Pressable accessibilityRole="button" hitSlop={8} onPress={resendCode}>
-              <Text style={[styles.actionLink, { color: colors.primaryDark }]}>{t('auth.otp.resend')}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: resendDisabled }}
+              disabled={resendDisabled}
+              hitSlop={8}
+              onPress={resendCode}
+            >
+              <Text style={[styles.actionLink, { color: resendDisabled ? colors.textSecondary : colors.primaryDark }]}>
+                {resendDisabled
+                  ? t('auth.otp.resendCountdown', { seconds: resendRemainingSeconds })
+                  : t('auth.otp.resend')}
+              </Text>
             </Pressable>
           </View>
           <Pressable accessibilityRole="button" hitSlop={8} onPress={onChangePhone}>
@@ -265,11 +287,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.xxl - spacing.xxs,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xl,
-    shadowColor: '#415A91',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    elevation: 3,
   },
   otpInputArea: { position: 'relative' },
   otpBoxes: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm - 1 },

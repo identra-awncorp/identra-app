@@ -5,7 +5,7 @@ import { PhoneAuthScreen } from './PhoneAuthScreen';
 interface Props {
   colors: AppColors;
   onBack: () => void;
-  onContinue: (phoneNumber: string) => void;
+  onContinue: (phoneNumber: string, password: string) => void;
   onRegister: () => void;
 }
 

@@ -1,6 +1,6 @@
 import { CircleAlert, Info, TriangleAlert } from 'lucide-react-native';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { border, palette, radius, spacing, typography, type AppColors } from '../../theme';
+import { border, palette, radius, shadows, spacing, typography, type AppColors } from '../../theme';
 
 export type AuthNoticeTone = 'danger' | 'info' | 'warning';
 
@@ -40,7 +40,7 @@ export function AuthNoticeModal({ actionLabel, colors, notice, onClose }: Props)
         style={[styles.root, { backgroundColor: colors.overlay }]}
       >
         <Pressable accessibilityLabel={actionLabel} onPress={onClose} style={styles.backdrop} />
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.card, shadows.subtle, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={[styles.iconWrap, { backgroundColor: tone.background, borderColor: tone.border }]}>
             <Icon color={tone.color} size={29} strokeWidth={2} />
           </View>
@@ -85,11 +85,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xl,
     paddingBottom: spacing.lg,
     alignItems: 'center',
-    shadowColor: '#07102A',
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.2,
-    shadowRadius: 26,
-    elevation: 12,
   },
   iconWrap: {
     width: 58,
