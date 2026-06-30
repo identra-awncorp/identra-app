@@ -25,6 +25,7 @@ import {
   UserRound,
   type LucideIcon,
 } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useI18n } from '../i18n';
 import type { AppColors } from '../theme';
 import { border, componentSize, iconSize, layout, palette, radius, shadows, spacing, touchTarget, typography } from '../theme';
@@ -38,17 +39,30 @@ interface ScreenScrollProps extends PropsWithChildren {
 }
 
 export function ScreenScroll({ id, colors, children, contentStyle }: ScreenScrollProps) {
+  const insets = useSafeAreaInsets();
+  const content = StyleSheet.flatten([styles.screenContent, contentStyle]) ?? {};
+
   return (
     <View nativeID={id} testID={id} style={[styles.screen, { backgroundColor: colors.background }]}>
       <ScrollView
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.screenContent, contentStyle]}
+        contentContainerStyle={[
+          content,
+          {
+            paddingTop: getNumericStyleValue(content.paddingTop) + insets.top,
+            paddingBottom: getNumericStyleValue(content.paddingBottom) + insets.bottom,
+          },
+        ]}
       >
         {children}
       </ScrollView>
     </View>
   );
+}
+
+function getNumericStyleValue(value: unknown) {
+  return typeof value === 'number' ? value : 0;
 }
 
 export function AppHeader({

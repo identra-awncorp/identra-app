@@ -29,7 +29,13 @@ export function LiveStreamScreen({ colors, onBack }: { colors: AppColors; onBack
       <ImageBackground source={liveStreamImage} style={styles.background} resizeMode="cover">
         <LinearGradient
           colors={['rgba(0, 39, 78, 0.48)', 'rgba(0, 0, 0, 0.06)', 'rgba(0, 0, 0, 0.74)']}
-          style={[styles.overlay, { paddingBottom: Math.max(insets.bottom + spacing.lg, spacing.xl) }]}
+          style={[
+            styles.overlay,
+            {
+              paddingTop: insets.top + spacing.md,
+              paddingBottom: Math.max(insets.bottom + spacing.lg, spacing.xl),
+            },
+          ]}
         >
           <View style={styles.topArea}>
             <View style={styles.header}>

@@ -8,6 +8,7 @@ import {
   Settings,
 } from 'lucide-react-native';
 import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useI18n, type I18nKey } from '../../../i18n';
 import type { AppColors } from '../../../theme';
 import { border, layout, palette, spacing } from '../../../theme';
@@ -40,6 +41,7 @@ export function NotificationsScreen({
   onSettings: () => void;
 }) {
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<NotificationFilter>('all');
   const [readAll, setReadAll] = useState(false);
   const tabCounts = useMemo(
@@ -61,7 +63,10 @@ export function NotificationsScreen({
   return (
     <View nativeID="screen-notifications" testID="screen-notifications" style={[localStyles.screen, { backgroundColor: colors.background }]}>
       <FlatList
-        contentContainerStyle={localStyles.notificationContent}
+        contentContainerStyle={[
+          localStyles.notificationContent,
+          { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + 36 },
+        ]}
         data={visible}
         keyExtractor={(notification) => notification.id}
         keyboardShouldPersistTaps="handled"

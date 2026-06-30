@@ -135,7 +135,16 @@ export function ContractSetupSheet({
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+      <View
+        style={[
+          styles.footer,
+          {
+            backgroundColor: colors.surface,
+            borderTopColor: colors.border,
+            paddingBottom: Math.max(12, insets.bottom + 8),
+          },
+        ]}
+      >
         <Pressable accessibilityRole="button" onPress={onCancel} style={[styles.cancelButton, { borderColor: colors.primaryDark }]}>
           <Text style={[styles.footerText, { color: colors.primaryDark }]}>{t('chat.common.cancelButton')}</Text>
         </Pressable>
@@ -250,7 +259,7 @@ const styles = StyleSheet.create({
   advancedValueText: { flexShrink: 1, fontSize: typography.size.xs - 2.5, fontWeight: typography.weight.bold },
   infoBanner: { borderWidth: border.thin, borderRadius: radius.md + 1, marginTop: spacing.sm + spacing.xs, padding: spacing.sm + spacing.xs, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm + spacing.xxs },
   infoBannerText: { flex: 1, fontSize: typography.size.xs - 1.5, lineHeight: 16, fontWeight: typography.weight.semibold },
-  footer: { borderTopWidth: border.thin, paddingHorizontal: spacing.sm + spacing.xs, paddingTop: spacing.sm + spacing.xxs, paddingBottom: Platform.OS === 'ios' ? 22 : spacing.sm + spacing.xs, flexDirection: 'row', gap: spacing.sm + spacing.xxs },
+  footer: { borderTopWidth: border.thin, paddingHorizontal: spacing.sm + spacing.xs, paddingTop: spacing.sm + spacing.xxs, flexDirection: 'row', gap: spacing.sm + spacing.xxs },
   cancelButton: { flex: 1, minHeight: 50, borderWidth: border.thin, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   createButton: { flex: 1, minHeight: 50, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   footerText: { fontSize: typography.size.sm, fontWeight: typography.weight.black },

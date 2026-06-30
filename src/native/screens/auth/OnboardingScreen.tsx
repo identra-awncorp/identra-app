@@ -23,6 +23,7 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AppColors } from '../../theme';
 import { border, palette, radius, shadows, spacing, typography } from '../../theme';
 import { AppBrandLogo } from '../../components/AppLogo';
@@ -44,6 +45,7 @@ interface SlideData {
 
 export function OnboardingScreen({ colors, onRegister, onLogin }: Props) {
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const viewportWidth = Math.min(width, 430);
   const actionWidth = Math.max(viewportWidth - 48, 0);
@@ -101,7 +103,7 @@ export function OnboardingScreen({ colors, onRegister, onLogin }: Props) {
       style={[styles.screen, { backgroundColor: colors.background }]}
     >
       <BackgroundGlow colors={colors} />
-      <Brand colors={colors} compact={compact} />
+      <Brand colors={colors} compact={compact} topInset={insets.top} />
       <Animated.ScrollView
         style={styles.carousel}
         horizontal
@@ -138,7 +140,16 @@ export function OnboardingScreen({ colors, onRegister, onLogin }: Props) {
           </View>
         ))}
       </Animated.ScrollView>
-      <View style={[styles.footer, compact && styles.footerCompact]}>
+      <View
+        style={[
+          styles.footer,
+          compact && styles.footerCompact,
+          {
+            minHeight: (compact ? 126 : 148) + insets.bottom,
+            paddingBottom: insets.bottom + (compact ? 6 : spacing.md),
+          },
+        ]}
+      >
         <View accessibilityLabel={t('onboarding.pageIndicator', { current: activeIndex + 1, total: slides.length })} style={styles.indicators}>
           {slides.map((item, indicatorIndex) => {
             const inputRange = [
@@ -206,9 +217,15 @@ function BackgroundGlow({ colors }: { colors: AppColors }) {
   );
 }
 
-function Brand({ colors, compact }: { colors: AppColors; compact: boolean }) {
+function Brand({ colors, compact, topInset }: { colors: AppColors; compact: boolean; topInset: number }) {
   return (
-    <View style={[styles.brand, compact && styles.brandCompact]}>
+    <View
+      style={[
+        styles.brand,
+        compact && styles.brandCompact,
+        { height: (compact ? 66 : 86) + topInset, paddingTop: topInset },
+      ]}
+    >
       <AppBrandLogo colors={colors} logoSize={48} wordmarkSize={29} />
     </View>
   );

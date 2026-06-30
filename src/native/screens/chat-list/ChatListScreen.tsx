@@ -258,6 +258,7 @@ export function ChatListScreen({
           onClose={closeShareThought}
           onSubmit={submitThought}
           thought={thoughtDraft}
+          topInset={insets.top}
         />
       </View>
     );
@@ -275,6 +276,7 @@ export function ChatListScreen({
           bottomInset={insets.bottom}
           onClose={closeCreateMode}
           onOpenConversation={onOpenConversation}
+          topInset={insets.top}
         />
       </View>
     );
@@ -287,7 +289,7 @@ export function ChatListScreen({
       style={[styles.screen, { backgroundColor: colors.background }]}
     >
       <View pointerEvents="auto" style={styles.defaultLayer}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top }]}>
           <IconButton colors={colors} label={t('chatList.openMenu')} onPress={onOpenMenu} style={styles.headerAction}>
             <Menu color={colors.text} size={27} strokeWidth={1.9} />
           </IconButton>

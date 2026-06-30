@@ -23,6 +23,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AppColors } from '../../theme';
 import { border, palette, radius, shadows, spacing, typography } from '../../theme';
 import { useI18n } from '../../i18n';
@@ -54,6 +55,7 @@ export function PhoneAuthScreen({
   title,
 }: Props) {
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const compactWidth = width <= 360;
   const [phoneNumber, setPhoneNumber] = useState(() =>
@@ -68,6 +70,7 @@ export function PhoneAuthScreen({
   const [passwordVisible, setPasswordVisible] = useState(false);
   const normalizedPhone = phoneNumber.replace(/\D/g, '').slice(0, 10);
   const validPhone = normalizedPhone.length >= 9;
+  const contentBottomPadding = insets.bottom + (mode === 'register' ? 34 : spacing.xl + spacing.xxs);
 
   const submit = () => {
     if (!validPhone) {
@@ -114,6 +117,7 @@ export function PhoneAuthScreen({
             styles.content,
             compactWidth && styles.contentCompact,
             mode === 'register' && styles.registerContent,
+            { paddingTop: insets.top + spacing.xl, paddingBottom: contentBottomPadding },
           ]}
         >
           <View style={styles.header}>

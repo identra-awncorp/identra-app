@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AppColors } from '../../theme';
 import { radius, spacing } from '../../theme';
 import { useI18n } from '../../i18n';
@@ -44,6 +45,7 @@ export function ChatActionSheet({
   visible: boolean;
 }) {
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const [actionSheetMode, setActionSheetMode] = useState<ActionSheetMode>('actions');
   const [pendingTransfer, setPendingTransfer] = useState<TransferDraft | null>(null);
@@ -172,6 +174,7 @@ export function ChatActionSheet({
                 borderTopLeftRadius: actionSheetRadius,
                 borderTopRightRadius: actionSheetRadius,
                 height: actionSheetMode === 'actions' ? COLLAPSED_SHEET_HEIGHT : expandedSheetHeight,
+                paddingBottom: Math.max(insets.bottom, Platform.OS === 'ios' ? 30 : spacing.lg),
                 transform: actionSheetMode === 'actions' ? [{ translateY: 0 }] : [{ translateY: actionSheetExpandTranslateY }],
               },
             ]}
@@ -261,6 +264,6 @@ export function ChatActionSheet({
 const styles = StyleSheet.create({
   actionSheetOverlay: { backgroundColor: 'rgba(12, 20, 45, 0.32)', flex: 1, justifyContent: 'flex-end' },
   actionSheetMotion: { width: '100%' },
-  actionSheet: { minHeight: COLLAPSED_SHEET_HEIGHT, overflow: 'hidden', paddingBottom: Platform.OS === 'ios' ? 30 : spacing.lg, paddingHorizontal: spacing.sm + spacing.xs, paddingTop: spacing.md - spacing.xxs },
+  actionSheet: { minHeight: COLLAPSED_SHEET_HEIGHT, overflow: 'hidden', paddingHorizontal: spacing.sm + spacing.xs, paddingTop: spacing.md - spacing.xxs },
   actionSheetHandle: { alignSelf: 'center', borderRadius: radius.round, height: 5, marginBottom: spacing.lg - spacing.sm + spacing.xxs, opacity: 0.85, width: 52 },
 });

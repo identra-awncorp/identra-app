@@ -65,7 +65,7 @@ export function ComposePostScreen({ authorName, colors, onClose, onSubmit }: Com
       testID="screen-compose-post"
       style={[styles.screen, { backgroundColor: colors.background }]}
     >
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+      <View style={[styles.header, { borderBottomColor: colors.border, paddingTop: insets.top }]}>
         <Pressable
           accessibilityLabel={t('newsFeed.compose.close')}
           accessibilityRole="button"

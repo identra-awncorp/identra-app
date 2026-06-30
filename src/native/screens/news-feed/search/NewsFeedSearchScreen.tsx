@@ -77,7 +77,11 @@ export function NewsFeedSearchScreen({ colors, onBack }: { colors: AppColors; on
   };
 
   return (
-    <View nativeID="screen-news-feed-search" testID="screen-news-feed-search" style={[styles.screen, { backgroundColor: colors.background }]}>
+    <View
+      nativeID="screen-news-feed-search"
+      testID="screen-news-feed-search"
+      style={[styles.screen, { backgroundColor: colors.background, paddingTop: insets.top }]}
+    >
       <NewsFeedSearchHeader
         activeTabLabel={activeTabLabel}
         canShowFilter={canShowFilter}

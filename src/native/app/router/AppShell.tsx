@@ -117,6 +117,8 @@ export function AppShell() {
         <SideMenu
           colors={colors}
           currentScreen={currentScreen}
+          bottomInset={insets.bottom}
+          topInset={insets.top}
           unreadActivityCount={unreadActivityCount}
           visible={sideMenuOpen}
           onClose={closeSideMenu}
@@ -166,7 +168,7 @@ function BottomNavigation({
         {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
-          paddingBottom: Math.max(bottomInset - 16, 8),
+          paddingBottom: Math.max(bottomInset, 8),
           transform: [{ translateY }],
         },
       ]}
@@ -198,17 +200,21 @@ function BottomNavigation({
 }
 
 function SideMenu({
+  bottomInset,
   colors,
   currentScreen,
   onClose,
   onNavigate,
+  topInset,
   unreadActivityCount,
   visible,
 }: {
+  bottomInset: number;
   colors: typeof lightColors;
   currentScreen: ScreenKey;
   onClose: () => void;
   onNavigate: (screen: ScreenKey) => void;
+  topInset: number;
   unreadActivityCount: number;
   visible: boolean;
 }) {
@@ -218,7 +224,18 @@ function SideMenu({
   return (
     <View nativeID="identra-side-menu" testID="identra-side-menu" style={styles.sideMenuLayer}>
       <Pressable accessibilityRole="button" accessibilityLabel={t('app.sideMenu.close')} onPress={onClose} style={[styles.sideMenuBackdrop, { backgroundColor: colors.overlay }]} />
-      <View style={[styles.sideMenuPanel, shadows.floating, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View
+        style={[
+          styles.sideMenuPanel,
+          shadows.floating,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            paddingTop: Math.max(spacing.lg, topInset + spacing.sm),
+            paddingBottom: Math.max(spacing.lg, bottomInset + spacing.md),
+          },
+        ]}
+      >
         <View style={styles.sideMenuHeader}>
           <AppBrandLogo colors={colors} logoSize={30} wordmarkSize={21} style={styles.sideMenuBrand} />
           <Pressable accessibilityRole="button" accessibilityLabel={t('app.sideMenu.close')} onPress={onClose} style={styles.sideMenuClose}>
@@ -298,7 +315,6 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRightWidth: border.thin,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
   },
   sideMenuHeader: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   sideMenuBrand: { flex: 1 },

@@ -13,6 +13,7 @@ export function ShareThoughtScreen({
   onClose,
   onSubmit,
   thought,
+  topInset,
 }: {
   bottomInset: number;
   colors: AppColors;
@@ -20,6 +21,7 @@ export function ShareThoughtScreen({
   onClose: () => void;
   onSubmit: () => void;
   thought: string;
+  topInset: number;
 }) {
   const { t } = useI18n();
   const { width } = useWindowDimensions();
@@ -27,7 +29,10 @@ export function ShareThoughtScreen({
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.shareThoughtContent, { paddingBottom: Math.max(bottomInset, 18) + 18 }]}
+      contentContainerStyle={[
+        styles.shareThoughtContent,
+        { paddingTop: topInset + 24, paddingBottom: Math.max(bottomInset, 18) + 18 },
+      ]}
       keyboardDismissMode="interactive"
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}

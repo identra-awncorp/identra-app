@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useI18n } from '../../i18n';
 import { border, palette, radius, shadows, spacing, typography, type AppColors } from '../../theme';
 import {
@@ -28,6 +29,7 @@ interface Props {
 
 export function CreatePasswordScreen({ colors, onBack, onComplete }: Props) {
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [passwordFocused, setPasswordFocused] = useState(false);
@@ -53,7 +55,14 @@ export function CreatePasswordScreen({ colors, onBack, onComplete }: Props) {
     >
       <View style={[styles.glow, styles.glowTop, { backgroundColor: colors.primary }]} />
       <View style={[styles.glow, styles.glowBottom, { backgroundColor: colors.primaryDark }]} />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom + spacing.xxl },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <Pressable
             accessibilityLabel={t('common.back')}

@@ -12,6 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { useI18n } from '../../i18n';
 import type { AppColors } from '../../theme';
@@ -35,6 +36,7 @@ interface Props {
 
 export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePhone, onVerified }: Props) {
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
   const inputRef = useRef<TextInput>(null);
   const [otp, setOtp] = useState('');
   const [focused, setFocused] = useState(false);
@@ -127,7 +129,10 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
         <View style={[styles.glow, styles.glowTop, { backgroundColor: colors.primary }]} />
         <View style={[styles.glow, styles.glowBottom, { backgroundColor: colors.primaryDark }]} />
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[
+            styles.content,
+            { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom + spacing.xl + spacing.xs + spacing.xxs },
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >

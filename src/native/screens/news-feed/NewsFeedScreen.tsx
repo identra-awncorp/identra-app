@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react-native';
 import { useMemo, useRef } from 'react';
 import { Animated, Pressable, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   demoSmartContractPosts,
   identraFeedImage,
@@ -52,6 +53,7 @@ export function NewsFeedScreen({
   scrollY?: Animated.Value;
 }) {
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
   const internalScrollY = useRef(new Animated.Value(0)).current;
   const drivenScrollY = scrollY ?? internalScrollY;
   const internalOverlayProgress = useMemo(
@@ -164,6 +166,7 @@ export function NewsFeedScreen({
           styles.headerOverlay,
           {
             backgroundColor: colors.background,
+            paddingTop: insets.top,
             transform: [{ translateY: headerTranslateY }],
           },
         ]}
@@ -181,6 +184,7 @@ export function NewsFeedScreen({
           styles.tabsOverlay,
           {
             backgroundColor: colors.background,
+            top: insets.top + NEWS_FEED_HEADER_HEIGHT,
             transform: [{ translateY: tabsTranslateY }],
           },
         ]}
@@ -189,7 +193,13 @@ export function NewsFeedScreen({
       </Animated.View>
 
       <Animated.FlatList
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: insets.top + NEWS_FEED_OVERLAY_HEIGHT,
+            paddingBottom: 108 + insets.bottom,
+          },
+        ]}
         data={feedItems}
         keyExtractor={(item) => item.id}
         keyboardShouldPersistTaps="handled"
@@ -199,7 +209,7 @@ export function NewsFeedScreen({
         showsVerticalScrollIndicator={false}
       />
 
-      <Animated.View style={[styles.fab, { transform: [{ scale: fabScale }] }]}>
+      <Animated.View style={[styles.fab, { bottom: 92 + insets.bottom, transform: [{ scale: fabScale }] }]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('newsFeed.createPost')}

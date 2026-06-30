@@ -82,7 +82,7 @@ export function ChatConversation({
 
   return (
     <>
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border, paddingTop: insets.top }]}>
         <IconButton label={t('chat.conversation.back')} colors={colors} onPress={onBack}>
           <ArrowLeft color={colors.text} size={25} />
         </IconButton>

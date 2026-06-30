@@ -15,11 +15,13 @@ export function CreateChatEntryScreen({
   colors,
   onClose,
   onOpenConversation,
+  topInset,
 }: {
   bottomInset: number;
   colors: AppColors;
   onClose: () => void;
   onOpenConversation: (conversationId: string) => void;
+  topInset: number;
 }) {
   const { t } = useI18n();
   const openSuggestedContact = (contact: CreateSuggestedContact) => {
@@ -32,7 +34,10 @@ export function CreateChatEntryScreen({
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
       style={styles.createScreen}
-      contentContainerStyle={[styles.createContent, { paddingBottom: Math.max(bottomInset, 18) + 18 }]}
+      contentContainerStyle={[
+        styles.createContent,
+        { paddingTop: topInset + 22, paddingBottom: Math.max(bottomInset, 18) + 18 },
+      ]}
     >
       <View style={styles.createHeader}>
         <Pressable
