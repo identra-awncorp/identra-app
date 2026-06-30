@@ -12,10 +12,11 @@ import {
   UserRound,
   WalletCards,
 } from 'lucide-react-native';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -31,6 +32,7 @@ import { useI18n } from '../../i18n';
 
 interface Props {
   colors: AppColors;
+  initialSlide?: 'first' | 'last';
   onRegister: () => void;
   onLogin: () => void;
 }
@@ -43,14 +45,16 @@ interface SlideData {
   illustration: 'control' | 'finance' | 'connection' | 'identity';
 }
 
-export function OnboardingScreen({ colors, onRegister, onLogin }: Props) {
+export function OnboardingScreen({ colors, initialSlide = 'first', onRegister, onLogin }: Props) {
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const viewportWidth = Math.min(width, 430);
   const actionWidth = Math.max(viewportWidth - 48, 0);
   const compact = height < 720;
-  const [activeIndex, setActiveIndex] = useState(0);
+  const initialIndex = initialSlide === 'last' ? 3 : 0;
+  const [activeIndex, setActiveIndex] = useState(initialIndex);
+  const carouselRef = useRef<ScrollView>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
   const slides: SlideData[] = [
     {
@@ -96,6 +100,13 @@ export function OnboardingScreen({ colors, onRegister, onLogin }: Props) {
     extrapolate: 'clamp',
   });
 
+  useEffect(() => {
+    scrollX.setValue(initialIndex * viewportWidth);
+    requestAnimationFrame(() => {
+      carouselRef.current?.scrollTo({ x: initialIndex * viewportWidth, animated: false });
+    });
+  }, [initialIndex, scrollX, viewportWidth]);
+
   return (
     <View
       nativeID="screen-onboarding"
@@ -105,7 +116,9 @@ export function OnboardingScreen({ colors, onRegister, onLogin }: Props) {
       <BackgroundGlow colors={colors} />
       <Brand colors={colors} compact={compact} topInset={insets.top} />
       <Animated.ScrollView
+        ref={carouselRef}
         style={styles.carousel}
+        contentOffset={{ x: initialIndex * viewportWidth, y: 0 }}
         horizontal
         pagingEnabled
         bounces={false}
@@ -198,8 +211,8 @@ export function OnboardingScreen({ colors, onRegister, onLogin }: Props) {
               <Text style={[styles.swipeHint, { color: colors.textSecondary }]}>{t('onboarding.swipeHint')}</Text>
             </View>
             <View style={[styles.actionPanel, styles.ctaPanel, { width: actionWidth }]}>
-              <OnboardingButton title={t('onboarding.register')} colors={colors} onPress={onRegister} />
-              <OnboardingButton title={t('onboarding.login')} colors={colors} onPress={onLogin} secondary />
+              <OnboardingButton title={t('onboarding.login')} colors={colors} onPress={onLogin} />
+              <OnboardingButton title={t('onboarding.register')} colors={colors} onPress={onRegister} secondary />
             </View>
           </Animated.View>
         </View>

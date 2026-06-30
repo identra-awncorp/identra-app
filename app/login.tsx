@@ -9,9 +9,9 @@ export default function LoginRoute() {
   const { colors, completeAuth } = useAppRouterState();
 
   return (
-    <LoginScreen
+      <LoginScreen
       colors={colors}
-      onBack={() => router.replace('/onboarding')}
+      onBack={() => router.replace({ pathname: '/onboarding', params: { slide: 'last' } })}
       onContinue={() => {
         completeAuth();
         router.replace(getPathForScreen(initialScreen));

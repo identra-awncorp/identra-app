@@ -155,6 +155,7 @@ export function PhoneAuthScreen({
             onFocusChange={setFocused}
             onPhoneNumberChange={setPhoneNumber}
             showSmsHint={mode === 'register'}
+            showCountrySelector={mode === 'register'}
             onSubmit={submit}
           >
             {mode === 'login' ? (
@@ -230,6 +231,7 @@ function PhoneNumberCard({
   onCountryPress,
   onFocusChange,
   onPhoneNumberChange,
+  showCountrySelector,
   showSmsHint,
   onSubmit,
 }: {
@@ -241,6 +243,7 @@ function PhoneNumberCard({
   onCountryPress: () => void;
   onFocusChange: (focused: boolean) => void;
   onPhoneNumberChange: (value: string) => void;
+  showCountrySelector: boolean;
   showSmsHint: boolean;
   onSubmit: () => void;
 }) {
@@ -267,7 +270,8 @@ function PhoneNumberCard({
           },
         ]}
       >
-        <Pressable
+        {showCountrySelector ? (
+          <Pressable
           accessibilityLabel={t('auth.phone.countryPicker')}
           accessibilityRole="button"
           onPress={onCountryPress}
@@ -282,8 +286,9 @@ function PhoneNumberCard({
           </View>
           <Text style={[styles.countryCode, { color: colors.text }]}>+84</Text>
           <ChevronDown color={colors.textSecondary} size={compactWidth ? 16 : 18} strokeWidth={2} />
-        </Pressable>
-        <View style={[styles.fieldDivider, { backgroundColor: colors.border }]} />
+          </Pressable>
+        ) : null}
+        {showCountrySelector ? <View style={[styles.fieldDivider, { backgroundColor: colors.border }]} /> : null}
         <View style={[styles.inputWrap, compactWidth && styles.inputWrapCompact]}>
           <Phone color={focused ? colors.primaryDark : colors.textSecondary} size={compactWidth ? 19 : 21} strokeWidth={1.8} />
           <TextInput

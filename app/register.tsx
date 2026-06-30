@@ -8,9 +8,9 @@ export default function RegisterRoute() {
   const { colors } = useAppRouterState();
 
   return (
-    <RegisterScreen
+      <RegisterScreen
       colors={colors}
-      onBack={() => router.replace('/onboarding')}
+      onBack={() => router.replace({ pathname: '/onboarding', params: { slide: 'last' } })}
       onRegistered={() => router.replace('/login')}
       onLogin={() => router.replace('/login')}
     />
