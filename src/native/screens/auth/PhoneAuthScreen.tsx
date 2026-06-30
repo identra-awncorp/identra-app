@@ -10,7 +10,6 @@ import {
 } from 'lucide-react-native';
 import { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -24,6 +23,7 @@ import {
 import type { AppColors } from '../../theme';
 import { border, palette, radius, spacing, typography } from '../../theme';
 import { useI18n } from '../../i18n';
+import { AuthNoticeModal, type AuthNotice } from './AuthNoticeModal';
 
 interface Props {
   colors: AppColors;
@@ -59,116 +59,133 @@ export function PhoneAuthScreen({
   const [focused, setFocused] = useState(false);
   const [acceptedUsageTerms, setAcceptedUsageTerms] = useState(false);
   const [acceptedSocialTerms, setAcceptedSocialTerms] = useState(false);
+  const [notice, setNotice] = useState<AuthNotice | null>(null);
   const normalizedPhone = phoneNumber.replace(/\D/g, '').slice(0, 10);
   const validPhone = normalizedPhone.length >= 9;
 
   const submit = () => {
     if (!validPhone) {
-      Alert.alert(t('auth.phone.invalidTitle'), t('auth.phone.invalidDescription'));
+      setNotice({
+        title: t('auth.phone.invalidTitle'),
+        description: t('auth.phone.invalidDescription'),
+        tone: 'warning',
+      });
       return;
     }
     if (mode === 'register' && (!acceptedUsageTerms || !acceptedSocialTerms)) {
-      Alert.alert(t('auth.phone.termsMissingTitle'), t('auth.phone.termsMissingDescription'));
+      setNotice({
+        title: t('auth.phone.termsMissingTitle'),
+        description: t('auth.phone.termsMissingDescription'),
+        tone: 'warning',
+      });
       return;
     }
     onContinue(`+84${normalizedPhone.replace(/^0/, '')}`);
   };
 
   return (
-    <KeyboardAvoidingView
-      nativeID={`screen-${mode}`}
-      testID={`screen-${mode}`}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.screen, { backgroundColor: colors.background }]}
-    >
-      <View style={[styles.glow, styles.glowTop, { backgroundColor: colors.primary }]} />
-      <View style={[styles.glow, styles.glowBottom, { backgroundColor: colors.primaryDark }]} />
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.content,
-          compactWidth && styles.contentCompact,
-          mode === 'register' && styles.registerContent,
-        ]}
+    <>
+      <KeyboardAvoidingView
+        nativeID={`screen-${mode}`}
+        testID={`screen-${mode}`}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={[styles.screen, { backgroundColor: colors.background }]}
       >
-        <View style={styles.header}>
-          <Pressable
-            accessibilityLabel={t('common.back')}
-            accessibilityRole="button"
-            hitSlop={8}
-            onPress={onBack}
-            style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.55 : 1 }]}
-          >
-            <ArrowLeft color={colors.text} size={27} strokeWidth={1.9} />
-          </Pressable>
-          <View style={{ flex: 1, justifyContent: 'center' }} pointerEvents="none">
-            <Text accessibilityRole="header" style={[styles.title, { color: colors.text }]}>
-              {title}
-            </Text>
-          </View>
-          <View style={styles.headerSpacer} />
-        </View>
-
-        <View style={styles.intro}>
-          <Text style={[styles.description, { color: colors.textSecondary }]}>{description}</Text>
-        </View>
-
-        <PhoneNumberCard
-          colors={colors}
-          compactWidth={compactWidth}
-          focused={focused}
-          phoneNumber={phoneNumber}
-          onFocusChange={setFocused}
-          onPhoneNumberChange={setPhoneNumber}
-          onSubmit={submit}
-        />
-
-        {mode === 'register' ? (
-          <View style={styles.consentList}>
-            <ConsentRow
-              checked={acceptedUsageTerms}
-              colors={colors}
-              linkText={t('auth.phone.usageTerms')}
-              onPress={() => setAcceptedUsageTerms((value) => !value)}
-              suffix={t('auth.phone.identraSuffix')}
-            />
-            <ConsentRow
-              checked={acceptedSocialTerms}
-              colors={colors}
-              linkText={t('auth.phone.socialTerms')}
-              onPress={() => setAcceptedSocialTerms((value) => !value)}
-              suffix={t('auth.phone.identraSuffix')}
-            />
-          </View>
-        ) : null}
-
-        <Pressable
-          accessibilityLabel={t('common.continue')}
-          accessibilityRole="button"
-          onPress={submit}
-          style={({ pressed }) => [styles.continueButton, { opacity: pressed ? 0.78 : 1 }]}
+        <View style={[styles.glow, styles.glowTop, { backgroundColor: colors.primary }]} />
+        <View style={[styles.glow, styles.glowBottom, { backgroundColor: colors.primaryDark }]} />
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.content,
+            compactWidth && styles.contentCompact,
+            mode === 'register' && styles.registerContent,
+          ]}
         >
-          <LinearGradient
-            colors={[colors.primaryDark, '#4B86FF', colors.primaryDark]}
-            end={{ x: 1, y: 0 }}
-            start={{ x: 0, y: 0 }}
-            style={styles.continueGradient}
+          <View style={styles.header}>
+            <Pressable
+              accessibilityLabel={t('common.back')}
+              accessibilityRole="button"
+              hitSlop={8}
+              onPress={onBack}
+              style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.55 : 1 }]}
+            >
+              <ArrowLeft color={colors.text} size={27} strokeWidth={1.9} />
+            </Pressable>
+            <View style={{ flex: 1, justifyContent: 'center' }} pointerEvents="none">
+              <Text accessibilityRole="header" style={[styles.title, { color: colors.text }]}>
+                {title}
+              </Text>
+            </View>
+            <View style={styles.headerSpacer} />
+          </View>
+
+          <View style={styles.intro}>
+            <Text style={[styles.description, { color: colors.textSecondary }]}>{description}</Text>
+          </View>
+
+          <PhoneNumberCard
+            colors={colors}
+            compactWidth={compactWidth}
+            focused={focused}
+            phoneNumber={phoneNumber}
+            onCountryPress={() => setNotice({
+              title: t('auth.phone.countryTitle'),
+              description: t('auth.phone.countryVietnam'),
+              tone: 'info',
+            })}
+            onFocusChange={setFocused}
+            onPhoneNumberChange={setPhoneNumber}
+            onSubmit={submit}
+          />
+
+          {mode === 'register' ? (
+            <View style={styles.consentList}>
+              <ConsentRow
+                checked={acceptedUsageTerms}
+                colors={colors}
+                linkText={t('auth.phone.usageTerms')}
+                onPress={() => setAcceptedUsageTerms((value) => !value)}
+                suffix={t('auth.phone.identraSuffix')}
+              />
+              <ConsentRow
+                checked={acceptedSocialTerms}
+                colors={colors}
+                linkText={t('auth.phone.socialTerms')}
+                onPress={() => setAcceptedSocialTerms((value) => !value)}
+                suffix={t('auth.phone.identraSuffix')}
+              />
+            </View>
+          ) : null}
+
+          <Pressable
+            accessibilityLabel={t('common.continue')}
+            accessibilityRole="button"
+            onPress={submit}
+            style={({ pressed }) => [styles.continueButton, { opacity: pressed ? 0.78 : 1 }]}
           >
-            <Text style={styles.continueText}>{t('common.continue')}</Text>
-          </LinearGradient>
-        </Pressable>
-
-        <View style={styles.switchRow}>
-          <Text style={[styles.switchText, { color: colors.textSecondary }]}>{switchPrompt} </Text>
-          <Pressable accessibilityLabel={switchAction} accessibilityRole="button" hitSlop={8} onPress={onSwitch}>
-            <Text style={[styles.switchLink, { color: colors.primaryDark }]}>{switchAction}</Text>
+            <LinearGradient
+              colors={[colors.primaryDark, '#4B86FF', colors.primaryDark]}
+              end={{ x: 1, y: 0 }}
+              start={{ x: 0, y: 0 }}
+              style={styles.continueGradient}
+            >
+              <Text style={styles.continueText}>{t('common.continue')}</Text>
+            </LinearGradient>
           </Pressable>
-        </View>
 
-        {mode === 'login' ? <LoginFooter colors={colors} /> : null}
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <View style={styles.switchRow}>
+            <Text style={[styles.switchText, { color: colors.textSecondary }]}>{switchPrompt} </Text>
+            <Pressable accessibilityLabel={switchAction} accessibilityRole="button" hitSlop={8} onPress={onSwitch}>
+              <Text style={[styles.switchLink, { color: colors.primaryDark }]}>{switchAction}</Text>
+            </Pressable>
+          </View>
+
+          {mode === 'login' ? <LoginFooter colors={colors} /> : null}
+        </ScrollView>
+      </KeyboardAvoidingView>
+      <AuthNoticeModal actionLabel={t('common.close')} colors={colors} notice={notice} onClose={() => setNotice(null)} />
+    </>
   );
 }
 
@@ -177,6 +194,7 @@ function PhoneNumberCard({
   compactWidth,
   focused,
   phoneNumber,
+  onCountryPress,
   onFocusChange,
   onPhoneNumberChange,
   onSubmit,
@@ -185,6 +203,7 @@ function PhoneNumberCard({
   compactWidth: boolean;
   focused: boolean;
   phoneNumber: string;
+  onCountryPress: () => void;
   onFocusChange: (focused: boolean) => void;
   onPhoneNumberChange: (value: string) => void;
   onSubmit: () => void;
@@ -214,7 +233,7 @@ function PhoneNumberCard({
         <Pressable
           accessibilityLabel={t('auth.phone.countryPicker')}
           accessibilityRole="button"
-          onPress={() => Alert.alert(t('auth.phone.countryTitle'), t('auth.phone.countryVietnam'))}
+          onPress={onCountryPress}
           style={({ pressed }) => [
             styles.country,
             compactWidth && styles.countryCompact,

@@ -2,7 +2,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, MessageSquareText } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -17,9 +16,13 @@ import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { useI18n } from '../../i18n';
 import type { AppColors } from '../../theme';
 import { border, palette, radius, spacing, typography } from '../../theme';
-
-const OTP_LENGTH = 6;
-const OTP_LIFETIME_SECONDS = 5 * 60;
+import { AuthNoticeModal, type AuthNotice } from './AuthNoticeModal';
+import {
+  AUTH_OTP_LENGTH,
+  AUTH_OTP_LIFETIME_SECONDS,
+  getOtpVerificationResult,
+  sanitizeOtpInput,
+} from './authLogic';
 
 interface Props {
   colors: AppColors;
@@ -34,8 +37,9 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
   const inputRef = useRef<TextInput>(null);
   const [otp, setOtp] = useState('');
   const [focused, setFocused] = useState(false);
+  const [notice, setNotice] = useState<(AuthNotice & { refocusInput?: boolean }) | null>(null);
   const [processing, setProcessing] = useState(false);
-  const [remainingSeconds, setRemainingSeconds] = useState(OTP_LIFETIME_SECONDS);
+  const [remainingSeconds, setRemainingSeconds] = useState(AUTH_OTP_LIFETIME_SECONDS);
   const verificationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -51,26 +55,53 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
 
   const resendCode = () => {
     setOtp('');
-    setRemainingSeconds(OTP_LIFETIME_SECONDS);
+    setRemainingSeconds(AUTH_OTP_LIFETIME_SECONDS);
     inputRef.current?.focus();
   };
 
   const verify = () => {
     if (processing) return;
-    if (otp.length !== OTP_LENGTH) {
-      Alert.alert(t('auth.otp.incompleteTitle'), t('auth.otp.incompleteDescription'));
+    const result = getOtpVerificationResult(otp, remainingSeconds);
+
+    if (result === 'incomplete') {
+      setNotice({
+        title: t('auth.otp.incompleteTitle'),
+        description: t('auth.otp.incompleteDescription'),
+        tone: 'warning',
+        refocusInput: true,
+      });
       return;
     }
-    if (remainingSeconds === 0) {
-      Alert.alert(t('auth.otp.expiredTitle'), t('auth.otp.expiredDescription'));
+    if (result === 'expired') {
+      setNotice({
+        title: t('auth.otp.expiredTitle'),
+        description: t('auth.otp.expiredDescription'),
+        tone: 'warning',
+        refocusInput: true,
+      });
       return;
     }
     Keyboard.dismiss();
     setProcessing(true);
     verificationTimer.current = setTimeout(() => {
       setProcessing(false);
+      if (result === 'invalid') {
+        setNotice({
+          title: t('auth.otp.invalidTitle'),
+          description: t('auth.otp.invalidDescription'),
+          tone: 'danger',
+          refocusInput: true,
+        });
+        return;
+      }
       onVerified();
     }, 1200);
+  };
+
+  const closeNotice = () => {
+    const shouldRefocus = notice?.refocusInput;
+    setNotice(null);
+    if (shouldRefocus) requestAnimationFrame(() => inputRef.current?.focus());
   };
 
   return (
@@ -114,8 +145,8 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
         <View style={[styles.otpCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.otpInputArea}>
             <View pointerEvents="none" style={styles.otpBoxes}>
-              {Array.from({ length: OTP_LENGTH }).map((_, index) => {
-                const active = focused && index === Math.min(otp.length, OTP_LENGTH - 1);
+              {Array.from({ length: AUTH_OTP_LENGTH }).map((_, index) => {
+                const active = focused && index === Math.min(otp.length, AUTH_OTP_LENGTH - 1);
                 return (
                   <View
                     key={index}
@@ -139,9 +170,9 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
               autoFocus
               caretHidden
               keyboardType="number-pad"
-              maxLength={OTP_LENGTH}
+              maxLength={AUTH_OTP_LENGTH}
               onBlur={() => setFocused(false)}
-              onChangeText={(value) => setOtp(value.replace(/\D/g, '').slice(0, OTP_LENGTH))}
+              onChangeText={(value) => setOtp(sanitizeOtpInput(value))}
               onFocus={() => setFocused(true)}
               onSubmitEditing={verify}
               showSoftInputOnFocus
@@ -196,6 +227,7 @@ export function OtpVerificationScreen({ colors, phoneNumber, onBack, onChangePho
         description={t('auth.otp.loadingDescription')}
         visible={processing}
       />
+      <AuthNoticeModal actionLabel={t('common.close')} colors={colors} notice={notice} onClose={closeNotice} />
     </>
   );
 }

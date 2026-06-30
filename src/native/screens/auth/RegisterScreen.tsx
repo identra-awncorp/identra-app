@@ -11,11 +11,11 @@ import { PhoneAuthScreen } from './PhoneAuthScreen';
 interface Props {
   colors: AppColors;
   onBack: () => void;
-  onContinue: (phoneNumber: string) => void;
+  onRegistered: (phoneNumber: string) => void;
   onLogin: () => void;
 }
 
-export function RegisterScreen({ colors, onBack, onContinue, onLogin }: Props) {
+export function RegisterScreen({ colors, onBack, onRegistered, onLogin }: Props) {
   const { t } = useI18n();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [confirmationVisible, setConfirmationVisible] = useState(false);
@@ -33,7 +33,7 @@ export function RegisterScreen({ colors, onBack, onContinue, onLogin }: Props) {
         phoneNumber={phoneNumber}
         onBack={() => setStep('phone')}
         onChangePhone={() => setStep('phone')}
-        onVerified={() => onContinue(phoneNumber)}
+        onVerified={() => onRegistered(phoneNumber)}
       />
     );
   }

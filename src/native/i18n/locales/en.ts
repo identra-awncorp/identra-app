@@ -510,6 +510,8 @@ export const en = {
       incompleteDescription: 'Please enter all 6 digits to continue.',
       expiredTitle: 'Verification code expired',
       expiredDescription: 'Please send a new verification code.',
+      invalidTitle: 'Invalid OTP code',
+      invalidDescription: 'Please check the code or request a new one.',
       title: 'Enter verification code',
       description: 'Enter the 6-digit code Identra sent to',
       inputLabel: 'Enter 6-digit verification code',

@@ -19,18 +19,23 @@ Authenticated app routing and redirects live in `src/native/app/router`.
 - `RegisterScreen.tsx`: registration flow, phone confirmation modal, and OTP step switch.
 - `PhoneAuthScreen.tsx`: shared phone number form for login and registration.
 - `OtpVerificationScreen.tsx`: 6-digit OTP input, countdown, resend, and verify behavior.
+- `AuthNoticeModal.tsx`: in-app notice modal for auth validation and informational messages.
+- `authLogic.ts`: pure OTP sanitation and demo verification result logic.
 - `src/native/app/router/AppShell.tsx`: auth route guarding and post-auth redirects.
 - `src/native/app/router/AppRouterContext.tsx`: `authCompleted` state and router UI context.
 
 ## Business Rules
 
 - Unauthenticated users should stay on onboarding, login, register, or OTP-related flow surfaces.
-- Successful login or registration must complete auth through the app router context before showing authenticated tabs.
+- Successful login completes auth through the app router context before showing authenticated tabs.
+- Successful registration OTP verification returns the user to login; it must not complete auth or open the main app directly.
 - Phone numbers are normalized to Vietnam `+84` format before leaving the auth form.
 - Registration requires both usage and social terms before requesting verification.
 - OTP codes must be numeric, 6 digits long, and time-bound.
+- Until a backend OTP service exists, prototype verification accepts only the fixed demo code `123456`.
 - OTP entry must remain easy to focus on Android and iOS; custom OTP boxes should not block the native `TextInput` from opening the keyboard.
 - Blocking auth actions should use `LoadingOverlay` or a disabled/locked interaction pattern.
+- Auth validation and informational notices should use `AuthNoticeModal` instead of native system alerts.
 
 ## State Boundaries
 
@@ -50,6 +55,10 @@ Authenticated app routing and redirects live in `src/native/app/router`.
 When changing auth redirects or route visibility, update and run:
 
 - `tests/navigationLogic.test.js`
+
+When changing OTP validation behavior, update and run:
+
+- `tests/authLogic.test.js`
 
 When changing translation keys or auth copy, also run:
 

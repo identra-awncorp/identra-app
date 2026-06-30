@@ -502,6 +502,8 @@ export const vi = {
       incompleteDescription: 'Vui lòng nhập đủ 6 chữ số để tiếp tục.',
       expiredTitle: 'Mã xác thực đã hết hạn',
       expiredDescription: 'Vui lòng gửi lại mã xác thực mới.',
+      invalidTitle: 'Mã OTP không hợp lệ',
+      invalidDescription: 'Vui lòng kiểm tra lại mã hoặc gửi lại mã mới.',
       title: 'Nhập mã xác thực',
       description: 'Nhập mã gồm 6 chữ số Identra đã gửi qua số',
       inputLabel: 'Nhập mã xác thực gồm 6 chữ số',
