@@ -245,9 +245,14 @@ Use these levels conceptually:
 
 Rules:
 
-- Prefer hairline/thin borders for grouping.
+- Default to hairline borders and the theme `subtle` shadow for ordinary content blocks, list containers, quick-action tiles, promo cards, and form sections.
+- Use the theme `card` shadow only for one or two primary surfaces on a screen, such as a true hero card or a high-priority summary. Do not apply it to repeated blocks in a flow.
+- Reserve `floating` shadow for overlays that must visually detach from the screen, such as FABs, menus, or bottom sheets. Even there, keep the border hairline and avoid extra custom shadow values.
+- Prefer dividers, spacing, typography, and muted surfaces before adding border or shadow.
 - Do not combine heavy border and heavy shadow.
+- Do not create custom shadow values for feature screens when the theme already has an appropriate level.
 - Avoid nested cards more than two levels deep.
+- When a new feature starts to feel boxed, raised, or cramped, compare against News Feed surfaces and reduce depth before shipping.
 - If a screen feels cramped, reduce borders/shadows before reducing content quality.
 
 ## 9. App Shell
@@ -440,7 +445,9 @@ Cards:
 - Use white/surface background.
 - Radius `16-20px`.
 - Padding `12-16px` for dense cards, `16-24px` for important cards.
-- Use subtle border and shadow.
+- Use hairline border and `subtle` shadow by default.
+- Avoid applying card/floating shadow to every block in multi-step flows such as Auth, Payment, settings, or history screens.
+- Repeated cards in grids or lists should look grouped, not lifted. One elevated hero plus lighter supporting blocks is usually enough.
 
 Lists:
 
