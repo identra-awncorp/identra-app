@@ -157,6 +157,7 @@ Document boundary:
 - Do not hardcode Vietnamese or English system UI text in components, navigation config, tabs, buttons, modal copy, empty states, accessibility labels, or reusable UI states.
 - Locale files are `src/native/i18n/locales/vi.ts` and `src/native/i18n/locales/en.ts`.
 - Keep `en.ts` structurally aligned with `vi.ts`.
+- Whenever building or changing a feature, normalize i18n as part of the same change: add or update locale keys for user-facing system UI copy before handoff instead of leaving hardcoded text for later.
 - Use typed `I18nKey` whenever a config object stores a translation key.
 - User-generated content and demo content that simulates real users does not need translation.
 - Save multilingual files as clean UTF-8.

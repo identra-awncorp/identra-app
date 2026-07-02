@@ -61,7 +61,7 @@ Quy ước: UI gọi store/provider; các phép biến đổi dữ liệu quan t
 - `src/native/screens/chat`: luồng hội thoại và các action sheet liên quan thanh toán/hợp đồng.
 - `src/native/screens/news-feed`: feed, compose post, search, notifications, live stream và smart contract detail.
 - `src/native/screens/identity`: ví danh tính, thực chứng, chi tiết thực chứng, hồ sơ, bảo mật, chia sẻ QR.
-- `src/native/screens/payment`: màn hình Payment/IDPay.
+- `src/native/screens/payment`: màn hình Payment/IDPay, gồm Payment Home, card/account, chuyển tiền, nhận tiền, nạp điện thoại, thanh toán hóa đơn, lịch sử giao dịch, đề xuất và ưu đãi.
 - `src/native/screens/scan`: QR scanner.
 - `src/native/screens/settings`: cài đặt, hoạt động, backup, hiển thị, dữ liệu, hỗ trợ và thông tin ứng dụng.
 - `src/native/screens/shared`: style hoặc helper dùng chung giữa các màn hình phụ.

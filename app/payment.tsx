@@ -1,8 +1,62 @@
+import { useRouter, type Href } from 'expo-router';
+
 import { PaymentScreen } from '@/screens/payment';
 import { useAppRouterState } from '@/app/router/AppRouterContext';
 
 export default function PaymentRoute() {
-  const { colors } = useAppRouterState();
+  const router = useRouter();
+  const { colors, openSideMenu } = useAppRouterState();
 
-  return <PaymentScreen colors={colors} />;
+  const openPaymentFlow = (flow: string) => {
+    if (flow === 'transfer') {
+      router.push('/payment-transfer-recipient' as Href);
+      return;
+    }
+
+    if (flow === 'receive') {
+      router.push('/payment-receive' as Href);
+      return;
+    }
+
+    if (flow === 'phone') {
+      router.push('/payment-phone' as Href);
+      return;
+    }
+
+    if (flow === 'bill') {
+      router.push('/payment-bill' as Href);
+      return;
+    }
+
+    if (flow === 'history') {
+      router.push('/payment-history' as Href);
+      return;
+    }
+
+    if (flow === 'utilities') {
+      router.push({ pathname: '/payment-bill', params: { category: 'electric' } } as unknown as Href);
+      return;
+    }
+
+    router.push({ pathname: '/payment-flow', params: { flow } } as unknown as Href);
+  };
+
+  const openPaymentExplore = (section: 'suggestion' | 'promo' | 'offer', itemId: string) => {
+    router.push({ pathname: '/payment-explore-detail', params: { section, itemId } } as unknown as Href);
+  };
+
+  return (
+    <PaymentScreen
+      colors={colors}
+      onOpenMenu={openSideMenu}
+      onOpenSearch={() => router.push('/payment-search' as Href)}
+      onOpenNotifications={() => router.push('/payment-notifications' as Href)}
+      onOpenCardDetail={(card) => router.push({ pathname: '/payment-account-detail', params: { cardId: card.id } } as unknown as Href)}
+      onManageCard={(card) => router.push({ pathname: '/payment-card-manage', params: { cardId: card.id } } as unknown as Href)}
+      onOpenQuickAction={(action) => openPaymentFlow(action.id)}
+      onOpenSuggestion={(action) => openPaymentExplore('suggestion', action.id)}
+      onOpenPromo={(banner) => openPaymentExplore('promo', banner.id)}
+      onOpenOffer={(offer) => openPaymentExplore('offer', offer.id)}
+    />
+  );
 }

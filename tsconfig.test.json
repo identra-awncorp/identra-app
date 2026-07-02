@@ -15,6 +15,7 @@
     "src/native/app/navigation/navigationLogic.ts",
     "src/native/screens/auth/authLogic.ts",
     "src/native/screens/chat/paymentUtils.ts",
+    "src/native/domain/payment/**/*.ts",
     "src/native/screens/chat-list/chatListLogic.ts",
     "src/native/screens/chat-list/chatSearchLogic.ts",
     "src/native/domain/app-store/appStoreStateService.ts",
