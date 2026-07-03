@@ -9,6 +9,7 @@ Use this runbook for severe app regressions, broken navigation, crashes, authent
 1. Identify the affected surface:
    - Chat
    - News Feed
+   - Mini App
    - Identity
    - Payment
    - QR/Scan

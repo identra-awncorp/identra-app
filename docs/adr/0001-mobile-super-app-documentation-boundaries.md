@@ -5,7 +5,7 @@ Date: 2026-06-29
 
 ## Context
 
-Identra is growing from a focused identity wallet into a mobile super app with Chat, News Feed, Identity, Payment, QR, Settings, credentials, notifications, live content, and smart contracts.
+Identra is growing from a focused identity wallet into a mobile super app with Chat, News Feed, Payment, QR, Mini App discovery, Identity, Settings, credentials, notifications, live content, and smart contracts.
 
 A single global rule file is not enough for long-term maintainability. New contributors need to understand both the global architecture and the feature-specific business rules before changing code.
 
@@ -13,6 +13,7 @@ A single global rule file is not enough for long-term maintainability. New contr
 
 Use layered documentation:
 
+- `README.md` owns human project onboarding, high-level architecture, and links to deeper docs.
 - `codex.md` owns global development rules.
 - `design.md` owns global design system rules.
 - `src/native/screens/<feature>/README.md` owns screen-level responsibilities, UI flows, state boundaries, and tests.

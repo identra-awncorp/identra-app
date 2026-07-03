@@ -107,7 +107,7 @@ tokens:
 
 This file is a proposed replacement for `design.md`. It is not official until reviewed and approved.
 
-Identra is now a mobile super app, not only an SSI wallet. The design system must support identity, chat, news feed, payment, QR scanning, credentials, settings, live content, notifications, smart contracts, and future mini-app surfaces.
+Identra is now a mobile super app, not only an SSI wallet. The design system must support chat, news feed, payment, QR scanning, Mini App discovery, identity, credentials, settings, live content, notifications, and smart contracts.
 
 The product feeling should stay:
 
@@ -281,7 +281,7 @@ Items:
 - News Feed
 - Scan QR
 - Payment
-- Identity
+- Mini App
 
 Design rules:
 
@@ -296,9 +296,11 @@ Design rules:
 
 ### Side Menu
 
-Side menu is for secondary destinations:
+Side menu is for global controls, flow settings, and secondary destinations:
 
+- Chat settings
 - News Feed
+- Mini App settings
 - Identity
 - Credentials
 - Activity
@@ -549,6 +551,14 @@ Every design must work on Android and iOS.
 - Prioritize content rhythm.
 - Keep chrome lightweight and responsive.
 - Media should not become oversized unless it is an immersive detail surface.
+
+### Mini App
+
+- Prioritize fast discovery and repeat use.
+- Match Payment Home spacing, button scale, and tile rhythm.
+- Keep catalog shortcuts compact and visually even.
+- Render banner artwork from its source aspect ratio.
+- Do not imply a real open/install action until the mini app runtime or API is connected.
 
 ### Identity
 

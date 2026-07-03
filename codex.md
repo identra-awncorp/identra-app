@@ -22,6 +22,7 @@ For example, read `src/native/screens/news-feed/README.md` before changing News 
 
 Document boundary:
 
+- `README.md` owns human project onboarding: what the app is, how to run it, the high-level architecture, and where to find deeper docs. It should not duplicate low-level agent guardrails from this file.
 - `codex.md` owns development behavior: stack decisions, project structure, routing, store/domain boundaries, i18n enforcement, asset import rules, test/lint expectations, security implementation constraints, and worktree safety.
 - `design.md` owns product design: visual direction, tokens, typography, spacing, radius, shadows, layout rhythm, component appearance, motion, and platform design constraints.
 - `codex.md` may reference design rules only as implementation obligations. It should not become a second design system.
@@ -30,7 +31,7 @@ Document boundary:
 
 ## 2. Product And Stack
 
-- Identra is an Expo React Native mobile super app for digital identity, chat, news feed, payment, QR scanning, credentials, and settings.
+- Identra is an Expo React Native mobile super app for chat, news feed, payment, QR scanning, Mini App discovery, digital identity, credentials, and settings.
 - The project uses Expo SDK 56, React Native, TypeScript, and Expo Router.
 - Do not implement app screens with HTML, DOM APIs, CSS files, or web-only UI assumptions.
 - Every feature must work well on both Android and iOS.
@@ -113,13 +114,13 @@ Document boundary:
   - News Feed
   - Scan QR
   - Payment
-  - Identity
+  - Mini App
 - Do not render text labels inside bottom navigation unless a later approved design explicitly reintroduces labels.
 - Active bottom nav item uses the primary color for the icon only; do not add a rounded active background unless approved.
 - Bottom nav icons are React Native SVG components under `src/native/components/icons/bottom-nav`.
 - Bottom navigation visibility is controlled by `navigationLogic.ts`; do not hardcode it in screens.
-- `credentials` remains under the Identity tab and keeps bottom navigation visible.
-- Settings, Activity, Profile, Security, Notifications, and related secondary screens are reached through side menu or route flows, not as bottom nav tabs.
+- Identity wallet, Credentials, Profile, Security, Notifications, Settings, Activity, and related secondary screens are reached through side menu or route flows, not as bottom nav tabs.
+- The Mini App main tab uses `/mini-app`, `ScreenKey` `mini-app`, and `TabKey` `miniApp`; keep navigation docs and tests in sync when this mapping changes.
 
 ## 7. State, Store, And Domain Services
 

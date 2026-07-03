@@ -1,14 +1,16 @@
 # Identra Mobile
 
-Identra Mobile là ứng dụng siêu ứng dụng danh tính số được xây dựng bằng Expo, React Native và Expo Router. Ứng dụng hiện ưu tiên trải nghiệm mobile thật, hỗ trợ Android và iOS, không dựng giả status bar, notch, home indicator hay navigation bar của hệ điều hành.
+Identra Mobile is an Expo React Native super-app prototype for digital identity, chat, news feed, payments, QR scanning, and Mini App discovery.
 
-## Yêu cầu
+The app is built around real mobile surfaces for Android and iOS. It uses Expo Router for routes, React Native for UI, shared app shell/navigation infrastructure, replaceable demo data, and feature documentation close to each major screen group.
 
-- Node.js tương thích với Expo SDK 56.
-- Expo Go tương thích SDK 56, hoặc Android Studio/Xcode để chạy emulator/simulator.
-- Chạy `npm install` trước khi khởi động dự án lần đầu.
+## Requirements
 
-## Chạy dự án
+- Node.js compatible with Expo SDK 56.
+- Expo Go compatible with SDK 56, or Android Studio/Xcode for emulator or simulator testing.
+- Run `npm install` before starting the project for the first time.
+
+## Run The App
 
 ```bash
 npm start
@@ -17,7 +19,7 @@ npm run ios
 npm run web
 ```
 
-Các lệnh kiểm tra chất lượng:
+Quality checks:
 
 ```bash
 npm run lint
@@ -25,106 +27,101 @@ npm run typecheck
 npm test
 ```
 
-## Kiến trúc hiện tại
+## Current Product Navigation
+
+The authenticated app starts on Chat List.
+
+The bottom navigation has five main tabs:
+
+- Chat
+- News Feed
+- Scan QR
+- Payment
+- Mini App
+
+Identity is no longer a main tab. Identity wallet, Credentials, Profile, Security, Settings, Activity, and related secondary surfaces are opened from the side menu or direct routes.
+
+## Project Structure
 
 ### Route Layer
 
-- `app/`: route entries của Expo Router. Các file trong thư mục này nên mỏng, chỉ nối URL route tới màn hình thật trong `src/native/screens`.
-- `app/_layout.tsx`: gắn provider cấp app và shell chung.
-- `app/credentials/[credentialId].tsx`: route chi tiết thực chứng theo route params.
-- `app/smart-contracts/[postId].tsx`: route chi tiết hợp đồng thông minh theo route params.
+- `app/`: Expo Router route entries. These files should stay thin and connect URL routes to real screens in `src/native/screens`.
+- `app/_layout.tsx`: app-level providers and shared shell.
+- `app/credentials/[credentialId].tsx`: credential detail route by route params.
+- `app/smart-contracts/[postId].tsx`: smart-contract detail route by route params.
+- `app/mini-app.tsx`: Mini App route entry; the main tab content is rendered through the keep-alive tab host.
 
-### App Shell Và Navigation
+### App Shell And Navigation
 
-- `src/native/app/router/AppShell.tsx`: shell chung của ứng dụng, chịu trách nhiệm auth redirect, app frame, side menu, bottom navigation và chrome dùng chung.
-- `src/native/app/router/AppRouterContext.tsx`: trạng thái router/UI chrome dùng chung, ví dụ side menu và animation chrome của News Feed.
-- `src/native/app/navigation/navigationTypes.ts`: định nghĩa `ScreenKey` và `TabKey`.
-- `src/native/app/navigation/navigationLogic.ts`: logic thuần cho map route, tab, screen, bottom nav visibility và return screen.
-- `src/native/app/navigation/navigationConfig.ts`: config hiển thị cho bottom navigation và side menu. Text trong config dùng translation key, không hardcode UI copy.
+- `src/native/app/router/AppShell.tsx`: shared app frame, auth redirect, side menu, bottom navigation, and global chrome.
+- `src/native/app/router/AppRouterContext.tsx`: shared router UI state such as side menu state, return screens, selected chat, share payloads, connection invitations, and News Feed chrome state.
+- `src/native/app/router/MainTabKeepAliveScreens.tsx`: keep-alive host for main tab screens.
+- `src/native/app/navigation/navigationTypes.ts`: `ScreenKey` and `TabKey` definitions.
+- `src/native/app/navigation/navigationLogic.ts`: pure route, tab, active-tab, bottom-nav visibility, and return-screen logic.
+- `src/native/app/navigation/navigationConfig.ts`: render config for bottom navigation and side menu.
 
-Bottom navigation hiện là 5 tab icon-only: Chat, News Feed, Scan QR, Payment và Identity. Các màn hình phụ như Settings, Activity, Credentials, Profile đi qua side menu hoặc route riêng.
+### Store And Domain
 
-### Store Và Domain
+- `src/native/store`: app store provider, initial state, persistence, and public exports.
+- `src/native/domain/app-store/appStoreStateService.ts`: pure app-state transformations for credentials, activity logs, profile, settings, and demo-data removal.
+- `src/native/domain/chat`: shared chat-domain logic.
+- `src/native/domain/payment`: shared payment-domain logic.
+- `src/native/domain/credentials`: shared credential-domain logic.
 
-- `src/native/store/AppStoreProvider.tsx`: React provider và hook `useAppStore`.
-- `src/native/store/appStoreInitialState.ts`: trạng thái khởi tạo của app.
-- `src/native/store/appStoreStorage.ts`: persistence qua AsyncStorage.
-- `src/native/store/index.ts`: public exports của store.
-- `src/native/domain/app-store/appStoreStateService.ts`: logic thuần để cập nhật app state như credential, activity log, profile, settings và loại bỏ demo data.
+### Feature Screens
 
-Quy ước: UI gọi store/provider; các phép biến đổi dữ liệu quan trọng nên được đưa về domain service để dễ test và tránh nhồi logic vào component.
-
-### Screens
-
-- `src/native/screens/auth`: onboarding, đăng nhập, đăng ký, OTP.
-- `src/native/screens/chat-list`: màn hình chính Chat List, quick contacts, reels/thought viewer và logic tìm kiếm chat.
-- `src/native/screens/chat`: luồng hội thoại và các action sheet liên quan thanh toán/hợp đồng.
-- `src/native/screens/news-feed`: feed, compose post, search, notifications, live stream và smart contract detail.
-- `src/native/screens/identity`: ví danh tính, thực chứng, chi tiết thực chứng, hồ sơ, bảo mật, chia sẻ QR.
-- `src/native/screens/payment`: màn hình Payment/IDPay, gồm Payment Home, card/account, chuyển tiền, nhận tiền, nạp điện thoại, thanh toán hóa đơn, lịch sử giao dịch, đề xuất và ưu đãi.
+- `src/native/screens/auth`: onboarding, login, register, and OTP.
+- `src/native/screens/chat-list`: Chat List, quick contacts, thought/reels previews, and chat search.
+- `src/native/screens/chat`: conversation flow and chat action sheets for payments, QR, and smart contracts.
+- `src/native/screens/news-feed`: feed, compose, search, notifications, live stream, and smart-contract detail.
+- `src/native/screens/mini-app`: Mini App discovery, frequently used shortcuts, popular categories, recommendations, and collections.
+- `src/native/screens/payment`: Payment/IDPay home, cards/accounts, transfers, receive money, mobile top-up, bill payment, transaction history, suggestions, and offers.
+- `src/native/screens/identity`: identity wallet, credentials, credential detail, profile, security, and sharing flows.
 - `src/native/screens/scan`: QR scanner.
-- `src/native/screens/settings`: cài đặt, hoạt động, backup, hiển thị, dữ liệu, hỗ trợ và thông tin ứng dụng.
-- `src/native/screens/shared`: style hoặc helper dùng chung giữa các màn hình phụ.
+- `src/native/screens/settings`: settings, activity, backup, display, data, help, and about surfaces.
+- `src/native/screens/shared`: shared styles and helpers for secondary screens.
 
-Khi thêm màn hình mới, đặt tên file rõ theo feature, ví dụ `NewsFeedSearchScreen.tsx` thay vì `SearchScreen.tsx`.
+### Shared UI, Theme, Assets, And Data
 
-### Feature Và Domain Documentation
+- `src/native/components`: reusable cross-feature components.
+- `src/native/components/icons/bottom-nav`: bottom navigation icons as React Native components.
+- `src/native/components/LoadingOverlay.tsx`: shared loading overlay for blocking async work.
+- `src/native/theme.ts`: shared colors, typography, spacing, radius, borders, shadows, layout, and component size tokens.
+- `src/native/assets/assetManifest.ts`: static asset manifest used by screens and demo data.
+- `src/native/data/demo`: replaceable demo data for features that do not yet use real APIs.
+- `src/native/i18n`: i18n provider, `useI18n`, and Vietnamese/English locale files.
 
-- `src/native/screens/auth/README.md`: quy tắc Onboarding, Login, Register và OTP.
-- `src/native/screens/chat-list/README.md`: quy tắc màn hình Chat List và conversation preview.
-- `src/native/screens/chat/README.md`: quy tắc màn hình hội thoại và chat action sheets.
-- `src/native/screens/news-feed/README.md`: quy tắc News Feed, Search, Notifications, Live và Smart Contract.
-- `src/native/screens/identity/README.md`: quy tắc Identity, Credentials, Profile, Security và Sharing.
-- `src/native/screens/payment/README.md`: quy tắc Payment/IDPay.
-- `src/native/domain/chat/README.md`: invariants và boundary cho chat logic.
-- `src/native/domain/payment/README.md`: invariants và boundary cho payment logic.
-- `src/native/domain/credentials/README.md`: invariants và boundary cho credential logic.
-- `docs/adr`: Architecture Decision Records cho quyết định kiến trúc dài hạn.
-- `docs/runbooks`: checklist vận hành, release, incident và troubleshooting.
-- `CODEOWNERS`: template mapping owner khi repo có nhiều người cùng phát triển.
+## Documentation Map
 
-Khi sửa một feature/domain đã có README, đọc file README đó cùng với `codex.md` và `design.md` trước khi code.
+Start with these top-level docs:
 
-### Shared Components, Theme Và Assets
+- `codex.md`: implementation rules for Codex/agents and contributors who need exact guardrails.
+- `design.md`: mobile design system, visual language, navigation patterns, and design review checklist.
+- `docs/adr`: long-lived architecture decisions.
+- `docs/runbooks`: operational checklists for quality gates and incident triage.
 
-- `src/native/components`: component dùng chung giữa nhiều màn hình.
-- `src/native/components/icons/bottom-nav`: icon bottom navigation đã convert sang React Native component bằng `react-native-svg`.
-- `src/native/components/LoadingOverlay.tsx`: overlay chung cho tác vụ bất đồng bộ có thể mất thời gian.
-- `src/native/theme.ts`: design tokens dùng chung như màu sắc, typography, spacing, radius, border, shadow và layout.
-- `src/native/assets/assetManifest.ts`: manifest asset tĩnh. Component, screen và demo data phải import ảnh từ manifest thay vì rải `require(...)` trực tiếp.
-- `src/assets/images/identra-logo.png`: logo chính thức của Identra, dùng qua `AppLogo` hoặc `AppBrandLogo`.
+Feature and domain docs live next to the code they explain:
 
-### Data Và i18n
+- `src/native/screens/auth/README.md`
+- `src/native/screens/chat-list/README.md`
+- `src/native/screens/chat/README.md`
+- `src/native/screens/news-feed/README.md`
+- `src/native/screens/mini-app/README.md`
+- `src/native/screens/payment/README.md`
+- `src/native/screens/identity/README.md`
+- `src/native/screens/settings/README.md`
+- `src/native/domain/chat/README.md`
+- `src/native/domain/payment/README.md`
+- `src/native/domain/credentials/README.md`
 
-- `src/native/data/demo`: demo data có thể thay thế bằng API thật. Demo data phải có thể xóa bỏ mà UI vẫn hiển thị empty state hợp lệ.
-- `src/native/i18n`: provider, hook `useI18n` và locale `vi`/`en`.
+## Working On A Feature
 
-Quy ước i18n: toàn bộ system UI như tab, button, modal, empty state, accessibility label và navigation copy phải đi qua i18n. Tên người dùng, tin nhắn, nội dung bài viết và dữ liệu demo mô phỏng nội dung người dùng không bắt buộc chuyển ngôn ngữ.
+1. Find the route in `app/` and the real screen implementation in `src/native/screens`.
+2. Read the relevant feature README before changing behavior.
+3. Use demo data from `src/native/data/demo` until a real API integration exists.
+4. Add static images through `src/native/assets/assetManifest.ts`.
+5. Keep reusable system UI copy in `src/native/i18n/locales/vi.ts` and `src/native/i18n/locales/en.ts`.
+6. Move reusable business logic into a domain service or pure logic file when it becomes shared or testable.
+7. Run the relevant targeted test plus `npm run lint`, `npm run typecheck`, and `npm test` before handoff.
 
-### Tests Và Lint
-
-- `tests/`: test Node cho logic thuần, ví dụ navigation, app store state service, i18n, chat search, news feed search và payment utils.
-- `tsconfig.test.json`: build test TypeScript sang JavaScript để chạy bằng `node --test`.
-- `eslint.config.js`: ESLint flat config của Expo, bật rule chặn unused imports/unused vars và duplicate imports.
-
-## Quy Tắc Phát Triển
-
-- Trước khi code UI hoặc chỉnh flow, đọc lại `design.md` và `codex.md`.
-- Mỗi screen/view phải có `nativeID` và `testID` ổn định, dùng tiền tố `screen-` cho screen.
-- Không dựng giả UI của thiết bị như giờ, pin, Wi-Fi, Dynamic Island, home indicator hoặc navigation bar.
-- Luôn tôn trọng safe area thật qua `react-native-safe-area-context`.
-- UI phải hoạt động tốt trên cả Android và iOS; API thiết bị nên dùng Expo module tương thích hai nền tảng.
-- Card, border và shadow phải tinh tế, không làm giao diện bị chia khối nặng hơn thiết kế.
-- Danh sách có thể dài nên dùng `FlatList` thay vì `ScrollView`.
-- Các tác vụ async quan trọng phải khóa tương tác phù hợp và dùng `LoadingOverlay`.
-
-## Quy Trình Khi Thêm Feature
-
-1. Tạo route mỏng trong `app/` nếu feature cần URL/screen riêng.
-2. Đặt screen thật vào `src/native/screens/<feature>` hoặc thư mục con rõ nghĩa.
-3. Tạo hoặc cập nhật README cho feature nếu có rule/flow quan trọng cần người sau nắm được.
-4. Đưa data demo vào `src/native/data/demo` nếu chưa có API thật.
-5. Đưa asset tĩnh vào `assetManifest.ts`.
-6. Đưa system UI copy vào `src/native/i18n/locales/vi.ts` và `src/native/i18n/locales/en.ts`.
-7. Đưa logic thuần vào domain service hoặc file logic riêng khi có thể test.
-8. Bổ sung test cho logic quan trọng rồi chạy `npm run lint`, `npm run typecheck`, `npm test`.
+For detailed implementation guardrails, use `codex.md`. For visual and interaction decisions, use `design.md`.

@@ -2,9 +2,11 @@
 
 This folder owns identity, wallet, credential, profile, security, and credential-sharing surfaces.
 
+Identity is no longer one of the five main bottom tabs. The identity wallet is reached from the side menu or identity-specific routes.
+
 ## Scope
 
-- Identity wallet home.
+- Identity wallet home opened from side menu or route flow.
 - Credential list.
 - Credential detail.
 - Credential sharing and QR sharing flows.
@@ -13,7 +15,7 @@ This folder owns identity, wallet, credential, profile, security, and credential
 
 ## Important Files
 
-- `WalletScreen.tsx`: Identity tab landing screen.
+- `WalletScreen.tsx`: Identity wallet landing screen for side-menu/direct-route entry.
 - `credentials/CredentialsScreen.tsx`: credential list.
 - `credential-detail/CredentialDetailScreen.tsx`: credential details by route params.
 - `share/CredentialSharingScreens.tsx`: sharing and QR-related screens.
@@ -24,6 +26,7 @@ This folder owns identity, wallet, credential, profile, security, and credential
 
 ## Business Rules
 
+- Identity must not be added back to bottom navigation without an explicit navigation architecture update.
 - Identity screens must make verification state explicit with text and icon, not color alone.
 - Credential status must clearly distinguish verified, pending, expired, failed, and unavailable states.
 - Credential details should show status, hero credential metadata, issuer, attributes, and actions.

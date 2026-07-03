@@ -25,7 +25,8 @@ This folder owns Settings, Activity, and related secondary account/support scree
 
 ## Business Rules
 
-- Settings, Activity, Profile, Security, Notifications, and related secondary screens are reached through side menu or route flows, not bottom navigation tabs.
+- Settings, Activity, Identity, Credentials, Profile, Security, Notifications, and related secondary screens are reached through side menu or route flows, not bottom navigation tabs.
+- The five bottom tabs are Chat, News Feed, Scan QR, Payment, and Mini App.
 - The Activity history quick menu must open `screen-activity`.
 - Do not recreate the removed `screen-wallet-history-log` screen.
 - Settings rows should be predictable, grouped clearly, and avoid heavy nested cards.
