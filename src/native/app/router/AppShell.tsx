@@ -36,6 +36,7 @@ import { useAppStore } from '../../store';
 import { border, layout, lightColors, palette, radius, shadows, spacing, touchTarget, typography } from '../../theme';
 import type { AppFlowKey, AppSettings, Language, ThemeMode } from '../../types';
 import { useAppRouterState } from './AppRouterContext';
+import { MainTabKeepAliveScreens, isKeepAliveMainScreen } from './MainTabKeepAliveScreens';
 
 const authPathnames = new Set(['/onboarding', '/login', '/register']);
 const bottomNavIconSize = 28;
@@ -58,7 +59,6 @@ export function AppShell() {
     isDark,
     logout,
     newsFeedChromeProgress,
-    newsFeedScrollY,
     setReturnScreen,
     sideMenuOpen,
   } = useAppRouterState();
@@ -88,10 +88,6 @@ export function AppShell() {
   }, [screen, store]);
 
   useEffect(() => {
-    if (screen !== 'news-feed') newsFeedScrollY.setValue(0);
-  }, [newsFeedScrollY, screen]);
-
-  useEffect(() => {
     SystemUI.setBackgroundColorAsync(systemBarBackground).catch(() => undefined);
   }, [systemBarBackground]);
 
@@ -107,6 +103,7 @@ export function AppShell() {
   const activeTab = screen ? getActiveTabForScreen(screen) : null;
   const showBottomNav = authCompleted && screen ? shouldShowBottomNavForScreen(screen) : false;
   const currentScreen = screen ?? initialScreen;
+  const activeKeepAliveScreen = isKeepAliveMainScreen(screen) ? screen : null;
   const currentSideMenuFlow = getSideMenuFlowForPathname(pathname);
   const openSettings = () => {
     closeSideMenu();
@@ -132,6 +129,7 @@ export function AppShell() {
       >
         <View style={styles.content}>
           <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
+          {authCompleted ? <MainTabKeepAliveScreens activeScreen={activeKeepAliveScreen} /> : null}
         </View>
         {showBottomNav ? (
           <BottomNavigation

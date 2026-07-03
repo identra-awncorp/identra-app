@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react-native';
-import { useMemo, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { Animated, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -30,6 +30,15 @@ type NewsFeedListItem =
   | { id: string; type: 'identra' }
   | { id: string; type: 'smart-contract'; post: SmartContractFeedPost }
   | { id: string; type: 'linh' };
+
+const newsFeedItems: NewsFeedListItem[] = [
+  { id: 'live-duong-ton-son', type: 'live' },
+  { id: 'identra-value-post', type: 'identra' },
+  ...demoSmartContractPosts.map((post) => ({ id: `smart-contract-${post.id}`, type: 'smart-contract' as const, post })),
+  { id: 'linh-tran-da-lat', type: 'linh' },
+];
+
+const keyExtractor = (item: NewsFeedListItem) => item.id;
 
 export function NewsFeedScreen({
   colors,
@@ -83,15 +92,6 @@ export function NewsFeedScreen({
       ),
     [drivenScrollY],
   );
-  const feedItems = useMemo<NewsFeedListItem[]>(
-    () => [
-      { id: 'live-duong-ton-son', type: 'live' },
-      { id: 'identra-value-post', type: 'identra' },
-      ...demoSmartContractPosts.map((post) => ({ id: `smart-contract-${post.id}`, type: 'smart-contract' as const, post })),
-      { id: 'linh-tran-da-lat', type: 'linh' },
-    ],
-    [],
-  );
   const headerTranslateY = stickyTabsProgress.interpolate({
     inputRange: [0, 1],
     outputRange: [0, -(NEWS_FEED_HEADER_HEIGHT + 30)],
@@ -107,7 +107,7 @@ export function NewsFeedScreen({
     outputRange: [1, 0],
     extrapolate: 'clamp',
   });
-  const renderFeedItem = ({ item }: { item: NewsFeedListItem }) => {
+  const renderFeedItem = useCallback(({ item }: { item: NewsFeedListItem }) => {
     if (item.type === 'live') {
       return <LiveFeedPost colors={colors} onOpen={onOpenLiveStream} />;
     }
@@ -136,7 +136,7 @@ export function NewsFeedScreen({
         <SmartContractFeedPostCard
           colors={colors}
           post={item.post}
-          onOpenDetail={() => onOpenSmartContractDetail(item.post)}
+          onOpenDetail={onOpenSmartContractDetail}
         />
       );
     }
@@ -157,7 +157,7 @@ export function NewsFeedScreen({
         views="6,1K"
       />
     );
-  };
+  }, [colors, onOpenLiveStream, onOpenSmartContractDetail]);
 
   return (
     <View nativeID="screen-news-feed" testID="screen-news-feed" style={[styles.screen, { backgroundColor: colors.background }]}>
@@ -199,13 +199,18 @@ export function NewsFeedScreen({
             paddingBottom: 108 + insets.bottom,
           },
         ]}
-        data={feedItems}
-        keyExtractor={(item) => item.id}
+        data={newsFeedItems}
+        initialNumToRender={3}
+        keyExtractor={keyExtractor}
         keyboardShouldPersistTaps="handled"
+        maxToRenderPerBatch={3}
         onScroll={handleScroll}
+        removeClippedSubviews
         renderItem={renderFeedItem}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
+        updateCellsBatchingPeriod={50}
+        windowSize={5}
       />
 
       <Animated.View style={[styles.fab, { bottom: 92 + insets.bottom, transform: [{ scale: fabScale }] }]}>

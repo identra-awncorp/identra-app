@@ -19,12 +19,14 @@ import type { AppColors } from '../../theme';
 import { border, palette, radius, spacing, typography } from '../../theme';
 
 export function QrScannerScreen({
+  active = true,
   colors,
   onOpenActivity,
   onOpenMyQr,
   onOpenChat,
   onOpenMenu,
 }: {
+  active?: boolean;
   colors: AppColors;
   onOpenActivity: () => void;
   onOpenMyQr: () => void;
@@ -38,11 +40,11 @@ export function QrScannerScreen({
   const requestedPermission = useRef(false);
 
   useEffect(() => {
-    if (permission && !permission.granted && permission.canAskAgain && !requestedPermission.current) {
+    if (active && permission && !permission.granted && permission.canAskAgain && !requestedPermission.current) {
       requestedPermission.current = true;
       void requestPermission();
     }
-  }, [permission, requestPermission]);
+  }, [active, permission, requestPermission]);
 
   const showPendingMessage = (title: string) => {
     Alert.alert(title, t('scan.pendingDescription'));
@@ -79,7 +81,7 @@ export function QrScannerScreen({
         </View>
 
         <View style={styles.cameraCard}>
-          {permission?.granted ? (
+          {active && permission?.granted ? (
             <CameraView style={StyleSheet.absoluteFill} enableTorch={torchEnabled} zoom={zoom} />
           ) : (
             <View style={styles.permissionFallback}>

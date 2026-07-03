@@ -9,7 +9,7 @@ import {
   Smile,
   X,
 } from 'lucide-react-native';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -77,7 +77,7 @@ export function ReelsViewerScreen({
     [],
   );
 
-  const resetDismissGesture = () => {
+  const resetDismissGesture = useCallback(() => {
     Animated.spring(screenTranslateY, {
       toValue: 0,
       damping: 22,
@@ -85,9 +85,9 @@ export function ReelsViewerScreen({
       mass: 0.85,
       useNativeDriver: true,
     }).start();
-  };
+  }, [screenTranslateY]);
 
-  const dismissViewer = () => {
+  const dismissViewer = useCallback(() => {
     Animated.timing(screenTranslateY, {
       toValue: height,
       duration: 260,
@@ -96,9 +96,9 @@ export function ReelsViewerScreen({
     }).start(({ finished }) => {
       if (finished) onClose();
     });
-  };
+  }, [height, onClose, screenTranslateY]);
 
-  const openComments = () => {
+  const openComments = useCallback(() => {
     setCommentsOpen(true);
     Animated.parallel([
       Animated.timing(commentsTranslateY, {
@@ -114,9 +114,9 @@ export function ReelsViewerScreen({
         useNativeDriver: true,
       }),
     ]).start();
-  };
+  }, [commentsOpacity, commentsTranslateY]);
 
-  const closeComments = () => {
+  const closeComments = useCallback(() => {
     Animated.parallel([
       Animated.timing(commentsTranslateY, {
         toValue: 430,
@@ -133,7 +133,7 @@ export function ReelsViewerScreen({
     ]).start(({ finished }) => {
       if (finished) setCommentsOpen(false);
     });
-  };
+  }, [commentsOpacity, commentsTranslateY]);
 
   const triggerHeart = () => {
     if (tapTimerRef.current) {
@@ -238,7 +238,17 @@ export function ReelsViewerScreen({
         },
         onPanResponderTerminate: resetDismissGesture,
       }),
-    [commentsOpen, height, onNext, onPrevious, screenTranslateY],
+    [
+      closeComments,
+      commentsOpen,
+      dismissViewer,
+      height,
+      onNext,
+      onPrevious,
+      openComments,
+      resetDismissGesture,
+      screenTranslateY,
+    ],
   );
 
   return (

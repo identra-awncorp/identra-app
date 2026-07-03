@@ -31,10 +31,12 @@ function clampDragOffset(value: number, height: number) {
 }
 
 export function PaymentDemoBannerCarousel({
+  active = true,
   colors,
   height,
   width,
 }: {
+  active?: boolean;
   colors: AppColors;
   height: number;
   width: number;
@@ -108,11 +110,16 @@ export function PaymentDemoBannerCarousel({
   }, [scheduleAutoScroll]);
 
   useEffect(() => {
+    if (!active) {
+      clearAutoScroll();
+      return undefined;
+    }
+
     scheduleAutoScroll(AUTO_SCROLL_INTERVAL_MS);
     return () => {
       clearAutoScroll();
     };
-  }, [clearAutoScroll, scheduleAutoScroll]);
+  }, [active, clearAutoScroll, scheduleAutoScroll]);
 
   const bannerSlideAnimatedStyles = useMemo(
     () =>

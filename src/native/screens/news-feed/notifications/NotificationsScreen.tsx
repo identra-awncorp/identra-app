@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -31,6 +31,8 @@ const notificationFilterTabs: { key: NotificationFilter; labelKey: I18nKey }[] =
   { key: 'system', labelKey: 'notifications.tabs.system' },
 ];
 
+const notificationKeyExtractor = (notification: NotificationItem) => notification.id;
+
 export function NotificationsScreen({
   colors,
   onBack,
@@ -59,97 +61,150 @@ export function NotificationsScreen({
     () => notificationItems.filter((item) => filter === 'all' || item.category === filter),
     [filter],
   );
+  const contentContainerStyle = useMemo(
+    () => [
+      localStyles.notificationContent,
+      { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + 36 },
+    ],
+    [insets.bottom, insets.top],
+  );
+  const markAllRead = useCallback(() => {
+    setReadAll(true);
+  }, []);
+  const changeFilter = useCallback((value: NotificationFilter) => {
+    setFilter(value);
+  }, []);
+  const notificationHeader = useMemo(
+    () => (
+      <View style={localStyles.notificationHeaderBlock}>
+        <View style={styles.notificationHeader}>
+          <IconButton label={t('notifications.backToFeed')} colors={colors} onPress={onBack}>
+            <ArrowLeft color={colors.text} size={26} strokeWidth={2.1} />
+          </IconButton>
+          <Text numberOfLines={1} style={[styles.notificationScreenTitle, { color: colors.text }]}>{t('notifications.title')}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('notifications.markAllReadAccessibility')}
+            onPress={markAllRead}
+            style={({ pressed }) => [styles.markReadButton, { opacity: pressed ? 0.62 : 1 }]}
+          >
+            <Text numberOfLines={1} style={[styles.markReadText, { color: colors.primaryDark }]}>{t('notifications.markAllRead')}</Text>
+          </Pressable>
+          <IconButton label={t('notifications.openSettings')} colors={colors} onPress={onSettings}>
+            <Settings color={colors.textSecondary} size={28} strokeWidth={2.1} />
+          </IconButton>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.notificationTabs, { borderBottomColor: colors.border }]}>
+          {notificationFilterTabs.map((tab) => (
+            <NotificationFilterTab
+              key={tab.key}
+              active={filter === tab.key}
+              colors={colors}
+              count={tabCounts[tab.key]}
+              label={t(tab.labelKey)}
+              onChangeFilter={changeFilter}
+              value={tab.key}
+            />
+          ))}
+        </ScrollView>
+      </View>
+    ),
+    [changeFilter, colors, filter, markAllRead, onBack, onSettings, t, tabCounts],
+  );
+  const notificationEmpty = useMemo(
+    () => (
+      <View style={localStyles.notificationEmpty}>
+        <EmptyState colors={colors} icon={Heart} title={t('notifications.emptyTitle')} description={t('notifications.emptyDescription')} />
+      </View>
+    ),
+    [colors, t],
+  );
+  const notificationFooter = useMemo(
+    () =>
+      visible.length ? (
+        <View style={styles.notificationList}>
+          <View style={styles.notificationEnd}>
+            <View style={[styles.notificationEndLine, { backgroundColor: colors.border }]} />
+            <View style={[styles.notificationEndIcon, { borderColor: colors.border }]}>
+              <CheckCircle2 color={colors.textSecondary} size={17} strokeWidth={2} />
+            </View>
+            <View style={[styles.notificationEndLine, { backgroundColor: colors.border }]} />
+          </View>
+          <Text style={[styles.notificationEndText, { color: colors.textSecondary }]}>{t('common.endOfContent')}</Text>
+        </View>
+      ) : null,
+    [colors, t, visible.length],
+  );
+  const renderNotificationItem = useCallback(
+    ({ item: notification, index }: { item: NotificationItem; index: number }) => (
+      <NotificationRow
+        colors={colors}
+        last={index === visible.length - 1}
+        notification={notification}
+        unread={Boolean(notification.unread && !readAll)}
+      />
+    ),
+    [colors, readAll, visible.length],
+  );
 
   return (
     <View nativeID="screen-notifications" testID="screen-notifications" style={[localStyles.screen, { backgroundColor: colors.background }]}>
       <FlatList
-        contentContainerStyle={[
-          localStyles.notificationContent,
-          { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + 36 },
-        ]}
+        contentContainerStyle={contentContainerStyle}
         data={visible}
-        keyExtractor={(notification) => notification.id}
+        initialNumToRender={8}
+        keyExtractor={notificationKeyExtractor}
         keyboardShouldPersistTaps="handled"
-        ListHeaderComponent={
-          <View style={localStyles.notificationHeaderBlock}>
-            <View style={styles.notificationHeader}>
-              <IconButton label={t('notifications.backToFeed')} colors={colors} onPress={onBack}>
-                <ArrowLeft color={colors.text} size={26} strokeWidth={2.1} />
-              </IconButton>
-              <Text numberOfLines={1} style={[styles.notificationScreenTitle, { color: colors.text }]}>{t('notifications.title')}</Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t('notifications.markAllReadAccessibility')}
-                onPress={() => setReadAll(true)}
-                style={({ pressed }) => [styles.markReadButton, { opacity: pressed ? 0.62 : 1 }]}
-              >
-                <Text numberOfLines={1} style={[styles.markReadText, { color: colors.primaryDark }]}>{t('notifications.markAllRead')}</Text>
-              </Pressable>
-              <IconButton label={t('notifications.openSettings')} colors={colors} onPress={onSettings}>
-                <Settings color={colors.textSecondary} size={28} strokeWidth={2.1} />
-              </IconButton>
-            </View>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.notificationTabs, { borderBottomColor: colors.border }]}>
-              {notificationFilterTabs.map((tab) => {
-                const value = tab.key;
-                const active = filter === value;
-                return (
-                  <Pressable
-                    key={value}
-                    accessibilityRole="tab"
-                    accessibilityState={{ selected: active }}
-                    onPress={() => setFilter(value)}
-                    style={({ pressed }) => [
-                      styles.notificationTab,
-                      { backgroundColor: active ? colors.surfaceMuted : 'transparent', opacity: pressed ? 0.68 : 1 },
-                    ]}
-                  >
-                    <Text style={[styles.notificationTabText, { color: active ? colors.primaryDark : colors.textSecondary }]}>{t(tab.labelKey)}</Text>
-                    <View style={[styles.notificationTabCount, { backgroundColor: active ? colors.primaryDark : colors.surfaceMuted }]}>
-                      <Text style={[styles.notificationTabCountText, { color: active ? palette.white : colors.text }]}>{tabCounts[value]}</Text>
-                    </View>
-                    {active ? <View style={[styles.notificationTabUnderline, { backgroundColor: colors.primaryDark }]} /> : null}
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
-        }
-        ListEmptyComponent={
-          <View style={localStyles.notificationEmpty}>
-            <EmptyState colors={colors} icon={Heart} title={t('notifications.emptyTitle')} description={t('notifications.emptyDescription')} />
-          </View>
-        }
-        ListFooterComponent={
-          visible.length ? (
-            <View style={styles.notificationList}>
-              <View style={styles.notificationEnd}>
-                <View style={[styles.notificationEndLine, { backgroundColor: colors.border }]} />
-                <View style={[styles.notificationEndIcon, { borderColor: colors.border }]}>
-                  <CheckCircle2 color={colors.textSecondary} size={17} strokeWidth={2} />
-                </View>
-                <View style={[styles.notificationEndLine, { backgroundColor: colors.border }]} />
-              </View>
-              <Text style={[styles.notificationEndText, { color: colors.textSecondary }]}>{t('common.endOfContent')}</Text>
-            </View>
-          ) : null
-        }
-        renderItem={({ item: notification, index }) => (
-          <NotificationRow
-            colors={colors}
-            last={index === visible.length - 1}
-            notification={notification}
-            unread={Boolean(notification.unread && !readAll)}
-          />
-        )}
+        maxToRenderPerBatch={8}
+        removeClippedSubviews
+        ListHeaderComponent={notificationHeader}
+        ListEmptyComponent={notificationEmpty}
+        ListFooterComponent={notificationFooter}
+        renderItem={renderNotificationItem}
         showsVerticalScrollIndicator={false}
+        updateCellsBatchingPeriod={50}
+        windowSize={7}
       />
     </View>
   );
 }
 
-function NotificationRow({
+const NotificationFilterTab = memo(function NotificationFilterTab({
+  active,
+  colors,
+  count,
+  label,
+  onChangeFilter,
+  value,
+}: {
+  active: boolean;
+  colors: AppColors;
+  count: number;
+  label: string;
+  onChangeFilter: (value: NotificationFilter) => void;
+  value: NotificationFilter;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected: active }}
+      onPress={() => onChangeFilter(value)}
+      style={({ pressed }) => [
+        styles.notificationTab,
+        { backgroundColor: active ? colors.surfaceMuted : 'transparent', opacity: pressed ? 0.68 : 1 },
+      ]}
+    >
+      <Text style={[styles.notificationTabText, { color: active ? colors.primaryDark : colors.textSecondary }]}>{label}</Text>
+      <View style={[styles.notificationTabCount, { backgroundColor: active ? colors.primaryDark : colors.surfaceMuted }]}>
+        <Text style={[styles.notificationTabCountText, { color: active ? palette.white : colors.text }]}>{count}</Text>
+      </View>
+      {active ? <View style={[styles.notificationTabUnderline, { backgroundColor: colors.primaryDark }]} /> : null}
+    </Pressable>
+  );
+});
+
+const NotificationRow = memo(function NotificationRow({
   colors,
   last,
   notification,
@@ -193,9 +248,9 @@ function NotificationRow({
       </View>
     </Pressable>
   );
-}
+});
 
-function NotificationAvatarView({ notification }: { notification: NotificationItem }) {
+const NotificationAvatarView = memo(function NotificationAvatarView({ notification }: { notification: NotificationItem }) {
   const { avatar, badge } = notification;
   const BadgeIcon = badge.icon;
   const AvatarIcon = avatar.type === 'icon' ? avatar.icon : null;
@@ -218,7 +273,7 @@ function NotificationAvatarView({ notification }: { notification: NotificationIt
       </View>
     </View>
   );
-}
+});
 
 const localStyles = StyleSheet.create({
   screen: { flex: 1 },

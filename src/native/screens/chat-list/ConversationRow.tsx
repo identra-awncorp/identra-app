@@ -1,4 +1,5 @@
 import { BellOff, Check, CheckCheck, Clock3, FileText } from 'lucide-react-native';
+import { memo } from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
 import { mediaPreviewImage } from '../../data/demo/chatDemoData';
 import type { ChatMediaPreview, ChatPreview, DeliveryStatus } from '../../data/demo/chatDemoData';
@@ -13,14 +14,14 @@ import {
   shouldShowGroupSender,
 } from './chatListLogic';
 
-export function ConversationRow({
+export const ConversationRow = memo(function ConversationRow({
   colors,
   conversation,
-  onPress,
+  onOpenConversation,
 }: {
   colors: AppColors;
   conversation: ChatPreview;
-  onPress: () => void;
+  onOpenConversation: (conversationId: string) => void;
 }) {
   const { t } = useI18n();
   const hasUnread = Boolean(conversation.unread);
@@ -29,7 +30,7 @@ export function ConversationRow({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={t('chatList.accessibility.openConversation', { name: conversation.name })}
-      onPress={onPress}
+      onPress={() => onOpenConversation(conversation.id)}
       style={({ pressed }) => [
         styles.conversationRow,
         { backgroundColor: pressed ? colors.surfaceMuted : 'transparent' },
@@ -75,7 +76,7 @@ export function ConversationRow({
       </View>
     </Pressable>
   );
-}
+});
 
 function ConversationPreview({
   colors,

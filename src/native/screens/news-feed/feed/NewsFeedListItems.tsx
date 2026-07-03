@@ -17,7 +17,7 @@ import {
   Ticket,
   type LucideIcon,
 } from 'lucide-react-native';
-import type { ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 import { Image, ImageBackground, Pressable, Text, View, type ImageSourcePropType } from 'react-native';
 import { AppLogo } from '../../../components/AppLogo';
 import { useI18n } from '../../../i18n';
@@ -32,7 +32,7 @@ import {
 import type { SmartContractFeedPost } from '../../../types';
 import { newsFeedStyles as styles } from './newsFeedStyles';
 
-export function LiveFeedPost({ colors, onOpen }: { colors: AppColors; onOpen: () => void }) {
+export const LiveFeedPost = memo(function LiveFeedPost({ colors, onOpen }: { colors: AppColors; onOpen: () => void }) {
   const { t } = useI18n();
 
   return (
@@ -120,9 +120,9 @@ export function LiveFeedPost({ colors, onOpen }: { colors: AppColors; onOpen: ()
       </View>
     </View>
   );
-}
+});
 
-export function FeedPost({
+export const FeedPost = memo(function FeedPost({
   avatar,
   colors,
   comments,
@@ -180,15 +180,15 @@ export function FeedPost({
       </View>
     </View>
   );
-}
+});
 
-export function SmartContractFeedPostCard({
+export const SmartContractFeedPostCard = memo(function SmartContractFeedPostCard({
   colors,
   onOpenDetail,
   post,
 }: {
   colors: AppColors;
-  onOpenDetail: () => void;
+  onOpenDetail: (post: SmartContractFeedPost) => void;
   post?: SmartContractFeedPost | null;
 }) {
   const { t } = useI18n();
@@ -286,7 +286,7 @@ export function SmartContractFeedPostCard({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t('newsFeed.smartContract.detailAccessibility')}
-              onPress={onOpenDetail}
+              onPress={() => onOpenDetail(post)}
               style={({ pressed }) => [styles.smartRejectButton, { borderColor: colors.primaryDark, opacity: pressed ? 0.72 : 1 }]}
             >
               <Text style={[styles.smartRejectText, { color: colors.primaryDark }]}>{t('newsFeed.smartContract.detail')}</Text>
@@ -321,9 +321,9 @@ export function SmartContractFeedPostCard({
       </View>
     </View>
   );
-}
+});
 
-export function IdentraAvatar() {
+export const IdentraAvatar = memo(function IdentraAvatar() {
   return (
     <LinearGradient colors={[palette.blue[400], palette.purple[500]]} style={styles.identraAvatar}>
       <View style={styles.identraAvatarInner}>
@@ -331,15 +331,15 @@ export function IdentraAvatar() {
       </View>
     </LinearGradient>
   );
-}
+});
 
-export function InitialAvatar({ colors, initials }: { colors: AppColors; initials: string }) {
+export const InitialAvatar = memo(function InitialAvatar({ colors, initials }: { colors: AppColors; initials: string }) {
   return (
     <LinearGradient colors={[colors.primaryDark, colors.secondary]} style={styles.initialAvatar}>
       <Text style={styles.initialAvatarText}>{initials}</Text>
     </LinearGradient>
   );
-}
+});
 
 function LiveBadge() {
   const { t } = useI18n();

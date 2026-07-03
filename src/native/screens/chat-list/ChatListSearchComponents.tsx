@@ -1,5 +1,5 @@
 import { ChevronRight, Plus } from 'lucide-react-native';
-import { type ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
 import { useI18n } from '../../i18n';
 import type { AppColors } from '../../theme';
@@ -7,7 +7,7 @@ import { type SearchIcon, type SearchMiniApp, type SearchPerson } from '../../da
 import { VerifiedBadgeIcon } from './ChatListAvatar';
 import { styles } from './ChatListStyles';
 
-export function SearchTab({
+export const SearchTab = memo(function SearchTab({
   active,
   colors,
   icon: Icon,
@@ -44,9 +44,9 @@ export function SearchTab({
       </Text>
     </Pressable>
   );
-}
+});
 
-export function SearchSection({
+export const SearchSection = memo(function SearchSection({
   actionLabel,
   children,
   colors,
@@ -79,9 +79,9 @@ export function SearchSection({
       )}
     </View>
   );
-}
+});
 
-export function ConnectedPersonRow({
+export const ConnectedPersonRow = memo(function ConnectedPersonRow({
   colors,
   person,
   showDivider,
@@ -118,9 +118,9 @@ export function ConnectedPersonRow({
       <ChevronRight color={colors.textSecondary} size={22} strokeWidth={2.1} />
     </Pressable>
   );
-}
+});
 
-export function MiniAppRow({
+export const MiniAppRow = memo(function MiniAppRow({
   app,
   colors,
   showDivider,
@@ -168,4 +168,4 @@ export function MiniAppRow({
       </View>
     </Pressable>
   );
-}
+});

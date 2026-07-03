@@ -1,5 +1,5 @@
 import { Box, ChevronLeft, Grid2X2, MessageCircle, Plus, Search, SquarePen, UserRound } from 'lucide-react-native';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Keyboard, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { chatConversations, quickContacts } from '../../data/demo/chatDemoData';
@@ -25,6 +25,9 @@ import { ShareThoughtScreen } from './ShareThoughtScreen';
 import { ThoughtViewerScreen } from './ThoughtViewerScreen';
 
 type ChatSearchSectionKey = 'people' | 'apps';
+
+const conversationKeyExtractor = (conversation: ChatPreview) => conversation.id;
+const searchSectionKeyExtractor = (item: ChatSearchSectionKey) => item;
 
 export function ChatListScreen({
   colors,
@@ -57,7 +60,10 @@ export function ChatListScreen({
   }, [normalizedQuery]);
   const showPeopleResults = searchCategory === 'all' || searchCategory === 'people';
   const showMiniAppResults = searchCategory === 'all' || searchCategory === 'apps';
-  const activeReels = activeReelContact ? reelsByContact[activeReelContact.id] ?? [] : [];
+  const activeReels = useMemo(
+    () => (activeReelContact ? reelsByContact[activeReelContact.id] ?? [] : []),
+    [activeReelContact],
+  );
   const displayedQuickContacts = useMemo(() => {
     if (!sharedThought.trim()) return quickContacts;
     return quickContacts.map((contact) =>
@@ -86,38 +92,53 @@ export function ChatListScreen({
     return () => cancelAnimationFrame(focusFrame);
   }, [searchActive]);
 
-  const openSearch = () => {
+  const openSearch = useCallback(() => {
     setSearchActive(true);
-  };
-  const closeSearch = ({ clear = false } = {}) => {
+  }, []);
+  const closeSearch = useCallback(({ clear = false }: { clear?: boolean } = {}) => {
     Keyboard.dismiss();
     if (clear) setQuery('');
     setSearchActive(false);
-  };
-  const openCreateMode = () => {
+  }, []);
+  const closeSearchPanel = useCallback(() => {
+    closeSearch();
+  }, [closeSearch]);
+  const cancelSearch = useCallback(() => {
+    closeSearch({ clear: true });
+  }, [closeSearch]);
+  const showAllSearchResults = useCallback(() => {
+    setSearchCategory('all');
+  }, []);
+  const showPeopleSearchResults = useCallback(() => {
+    setSearchCategory('people');
+  }, []);
+  const showAppSearchResults = useCallback(() => {
+    setSearchCategory('apps');
+  }, []);
+  const openCreateMode = useCallback(() => {
     Keyboard.dismiss();
     setCreateModeOpen(true);
-  };
-  const closeCreateMode = () => {
+  }, []);
+  const closeCreateMode = useCallback(() => {
     setCreateModeOpen(false);
-  };
-  const openShareThought = () => {
+  }, []);
+  const openShareThought = useCallback(() => {
     Keyboard.dismiss();
     setShareThoughtOpen(true);
-  };
-  const closeShareThought = () => {
+  }, []);
+  const closeShareThought = useCallback(() => {
     Keyboard.dismiss();
     setShareThoughtOpen(false);
-  };
-  const submitThought = () => {
+  }, []);
+  const submitThought = useCallback(() => {
     Keyboard.dismiss();
     const trimmedThought = thoughtDraft.trim();
     if (trimmedThought) {
       setSharedThought(trimmedThought);
     }
     setShareThoughtOpen(false);
-  };
-  const handleQuickContactPress = (contact: ChatPreview) => {
+  }, [thoughtDraft]);
+  const handleQuickContactPress = useCallback((contact: ChatPreview) => {
     if (contact.id === 'story') {
       openShareThought();
       return;
@@ -132,23 +153,23 @@ export function ChatListScreen({
     }
 
     onOpenConversation(contact.id);
-  };
-  const handleThoughtBubblePress = (contact: ChatPreview) => {
+  }, [onOpenConversation, openShareThought]);
+  const handleThoughtBubblePress = useCallback((contact: ChatPreview) => {
     if (contact.id === 'story' && !sharedThought.trim()) {
       openShareThought();
       return;
     }
 
     setActiveThoughtContact(contact);
-  };
-  const closeThoughtViewer = () => {
+  }, [openShareThought, sharedThought]);
+  const closeThoughtViewer = useCallback(() => {
     setActiveThoughtContact(null);
-  };
-  const closeReels = () => {
+  }, []);
+  const closeReels = useCallback(() => {
     setActiveReelContact(null);
     setActiveReelIndex(0);
-  };
-  const renderSearchSection = ({ item }: { item: ChatSearchSectionKey }) => {
+  }, []);
+  const renderSearchSection = useCallback(({ item }: { item: ChatSearchSectionKey }) => {
     if (item === 'people') {
       return (
         <SearchSection
@@ -192,17 +213,135 @@ export function ChatListScreen({
         </View>
       </SearchSection>
     );
-  };
-  const showNextReel = () => {
+  }, [colors, filteredMiniApps, filteredPeople, t]);
+  const showNextReel = useCallback(() => {
     if (activeReelIndex >= activeReels.length - 1) {
       closeReels();
       return;
     }
     setActiveReelIndex((index) => index + 1);
-  };
-  const showPreviousReel = () => {
+  }, [activeReelIndex, activeReels.length, closeReels]);
+  const showPreviousReel = useCallback(() => {
     setActiveReelIndex((index) => Math.max(0, index - 1));
-  };
+  }, []);
+  const headerActions = useMemo(
+    () => [
+      {
+        key: 'share-thought',
+        label: t('chatList.shareThought'),
+        icon: SquarePen,
+        onPress: openShareThought,
+      },
+      {
+        key: 'create-conversation',
+        label: t('chatList.createConversation'),
+        icon: Plus,
+        onPress: openCreateMode,
+      },
+    ],
+    [openCreateMode, openShareThought, t],
+  );
+  const searchTabs = useMemo(
+    () => (
+      <View style={[styles.searchTabs, { borderBottomColor: colors.border }]}>
+        <SearchTab
+          active={searchCategory === 'all'}
+          colors={colors}
+          icon={Grid2X2}
+          label={t('chatList.tabs.all')}
+          onPress={showAllSearchResults}
+        />
+        <SearchTab
+          active={searchCategory === 'people'}
+          colors={colors}
+          icon={UserRound}
+          label={t('chatList.tabs.people')}
+          onPress={showPeopleSearchResults}
+        />
+        <SearchTab
+          active={searchCategory === 'apps'}
+          colors={colors}
+          icon={Box}
+          label={t('chatList.tabs.apps')}
+          onPress={showAppSearchResults}
+        />
+      </View>
+    ),
+    [colors, searchCategory, showAllSearchResults, showAppSearchResults, showPeopleSearchResults, t],
+  );
+  const searchContentContainerStyle = useMemo(
+    () => [styles.searchContent, { paddingBottom: Math.max(insets.bottom, 16) + 16 }],
+    [insets.bottom],
+  );
+  const conversationContentContainerStyle = useMemo(
+    () => [styles.content, { paddingBottom: Math.max(insets.bottom, 8) }],
+    [insets.bottom],
+  );
+  const chatListHeader = useMemo(
+    () => (
+      <>
+        <View style={styles.searchArea}>
+          <Pressable
+            accessibilityRole="search"
+            accessibilityLabel={t('chatList.openSearch')}
+            onPress={openSearch}
+            style={styles.searchInputPressable}
+          >
+            <View style={[styles.searchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Search color={colors.textSecondary} size={24} strokeWidth={1.9} />
+              <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]}>
+                {t('chatList.searchPlaceholder')}
+              </Text>
+            </View>
+          </Pressable>
+        </View>
+
+        <ScrollView
+          contentContainerStyle={styles.quickContacts}
+          horizontal
+          style={styles.quickContactsScroll}
+          showsHorizontalScrollIndicator={false}
+        >
+          {displayedQuickContacts.map((contact) => (
+            <QuickContact
+              key={contact.id}
+              colors={colors}
+              contact={contact}
+              onAvatarPress={handleQuickContactPress}
+              onThoughtPress={handleThoughtBubblePress}
+            />
+          ))}
+        </ScrollView>
+
+        {chatConversations.length ? <View style={styles.conversationList} /> : null}
+      </>
+    ),
+    [colors, displayedQuickContacts, handleQuickContactPress, handleThoughtBubblePress, openSearch, t],
+  );
+  const emptyListComponent = useMemo(
+    () => (
+      <View style={[styles.conversationList, styles.emptyState]}>
+        <View style={[styles.emptyIcon, { backgroundColor: colors.surfaceMuted }]}>
+          <MessageCircle color={colors.primaryDark} size={30} strokeWidth={1.9} />
+        </View>
+        <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('chatList.empty.conversationsTitle')}</Text>
+        <Text style={[styles.emptyDescription, { color: colors.textSecondary }]}>
+          {t('chatList.empty.conversationsDescription')}
+        </Text>
+      </View>
+    ),
+    [colors, t],
+  );
+  const renderConversationItem = useCallback(
+    ({ item: conversation }: { item: ChatPreview }) => (
+      <ConversationRow
+        colors={colors}
+        conversation={conversation}
+        onOpenConversation={onOpenConversation}
+      />
+    ),
+    [colors, onOpenConversation],
+  );
 
   if (activeThoughtContact) {
     return (
@@ -292,20 +431,7 @@ export function ChatListScreen({
           colors={colors}
           menuLabel={t('chatList.openMenu')}
           onOpenMenu={onOpenMenu}
-          actions={[
-            {
-              key: 'share-thought',
-              label: t('chatList.shareThought'),
-              icon: SquarePen,
-              onPress: openShareThought,
-            },
-            {
-              key: 'create-conversation',
-              label: t('chatList.createConversation'),
-              icon: Plus,
-              onPress: openCreateMode,
-            },
-          ]}
+          actions={headerActions}
         />
 
         {searchActive ? (
@@ -314,7 +440,7 @@ export function ChatListScreen({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t('chatList.backToList')}
-                onPress={() => closeSearch()}
+                onPress={closeSearchPanel}
                 style={styles.searchBackButton}
               >
                 <ChevronLeft color={colors.text} size={30} strokeWidth={2.2} />
@@ -337,93 +463,46 @@ export function ChatListScreen({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t('chatList.cancelSearch')}
-                onPress={() => closeSearch({ clear: true })}
+                onPress={cancelSearch}
                 style={styles.cancelButton}
               >
                 <Text style={[styles.cancelText, { color: colors.primaryDark }]}>{t('common.cancel')}</Text>
               </Pressable>
             </View>
 
-            <View style={[styles.searchTabs, { borderBottomColor: colors.border }]}>
-              <SearchTab colors={colors} icon={Grid2X2} label={t('chatList.tabs.all')} active={searchCategory === 'all'} onPress={() => setSearchCategory('all')} />
-              <SearchTab colors={colors} icon={UserRound} label={t('chatList.tabs.people')} active={searchCategory === 'people'} onPress={() => setSearchCategory('people')} />
-              <SearchTab colors={colors} icon={Box} label={t('chatList.tabs.apps')} active={searchCategory === 'apps'} onPress={() => setSearchCategory('apps')} />
-            </View>
+            {searchTabs}
 
             <FlatList
-              contentContainerStyle={[styles.searchContent, { paddingBottom: Math.max(insets.bottom, 16) + 16 }]}
+              contentContainerStyle={searchContentContainerStyle}
               data={searchSections}
+              initialNumToRender={2}
               keyboardDismissMode="interactive"
               keyboardShouldPersistTaps="handled"
-              keyExtractor={(item) => item}
+              keyExtractor={searchSectionKeyExtractor}
+              maxToRenderPerBatch={2}
+              removeClippedSubviews
               renderItem={renderSearchSection}
               showsVerticalScrollIndicator={false}
+              updateCellsBatchingPeriod={50}
+              windowSize={3}
             />
           </View>
         ) : (
           <FlatList
             style={styles.body}
-            contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 8) }]}
+            contentContainerStyle={conversationContentContainerStyle}
             data={chatConversations}
-            keyExtractor={(conversation) => conversation.id}
+            initialNumToRender={8}
+            keyExtractor={conversationKeyExtractor}
             keyboardShouldPersistTaps="handled"
-            renderItem={({ item: conversation }) => (
-              <ConversationRow
-                colors={colors}
-                conversation={conversation}
-                onPress={() => onOpenConversation(conversation.id)}
-              />
-            )}
+            maxToRenderPerBatch={8}
+            removeClippedSubviews
+            renderItem={renderConversationItem}
             showsVerticalScrollIndicator={false}
-            ListHeaderComponent={
-              <>
-                <View style={styles.searchArea}>
-                  <Pressable
-                    accessibilityRole="search"
-                    accessibilityLabel={t('chatList.openSearch')}
-                    onPress={openSearch}
-                    style={styles.searchInputPressable}
-                  >
-                    <View style={[styles.searchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                      <Search color={colors.textSecondary} size={24} strokeWidth={1.9} />
-                      <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]}>
-                        {t('chatList.searchPlaceholder')}
-                      </Text>
-                    </View>
-                  </Pressable>
-                </View>
-
-                <ScrollView
-                  contentContainerStyle={styles.quickContacts}
-                  horizontal
-                  style={styles.quickContactsScroll}
-                  showsHorizontalScrollIndicator={false}
-                >
-                  {displayedQuickContacts.map((contact) => (
-                    <QuickContact
-                      key={contact.id}
-                      colors={colors}
-                      contact={contact}
-                      onAvatarPress={handleQuickContactPress}
-                      onThoughtPress={handleThoughtBubblePress}
-                    />
-                  ))}
-                </ScrollView>
-
-                {chatConversations.length ? <View style={styles.conversationList} /> : null}
-              </>
-            }
-            ListEmptyComponent={
-              <View style={[styles.conversationList, styles.emptyState]}>
-                <View style={[styles.emptyIcon, { backgroundColor: colors.surfaceMuted }]}>
-                  <MessageCircle color={colors.primaryDark} size={30} strokeWidth={1.9} />
-                </View>
-                <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('chatList.empty.conversationsTitle')}</Text>
-                <Text style={[styles.emptyDescription, { color: colors.textSecondary }]}>
-                  {t('chatList.empty.conversationsDescription')}
-                </Text>
-              </View>
-            }
+            updateCellsBatchingPeriod={50}
+            windowSize={7}
+            ListHeaderComponent={chatListHeader}
+            ListEmptyComponent={emptyListComponent}
           />
         )}
 

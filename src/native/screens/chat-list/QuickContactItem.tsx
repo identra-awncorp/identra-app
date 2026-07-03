@@ -1,4 +1,5 @@
 import { Plus } from 'lucide-react-native';
+import { memo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import type { ChatPreview } from '../../data/demo/chatDemoData';
 import type { AppColors } from '../../theme';
@@ -7,7 +8,7 @@ import { QUICK_AVATAR_INNER_SIZE, THOUGHT_BUBBLE_MAX_LENGTH } from './ChatListDa
 import { ChatAvatar } from './ChatListAvatar';
 import { styles } from './ChatListStyles';
 
-export function QuickContact({
+export const QuickContact = memo(function QuickContact({
   colors,
   contact,
   onAvatarPress,
@@ -97,4 +98,4 @@ export function QuickContact({
       </Pressable>
     </View>
   );
-}
+});

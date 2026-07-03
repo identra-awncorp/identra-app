@@ -25,6 +25,7 @@ import { loadPaymentBalanceVisible, savePaymentBalanceVisible } from './paymentP
 import type { Offer, PaymentAction, PaymentCard } from './paymentTypes';
 
 export function PaymentScreen({
+  active = true,
   colors,
   onManageCard,
   onOpenCardDetail,
@@ -36,6 +37,7 @@ export function PaymentScreen({
   onOpenSuggestion,
   paymentSettings,
 }: {
+  active?: boolean;
   colors: AppColors;
   onManageCard: (card: PaymentCard) => void;
   onOpenCardDetail: (card: PaymentCard) => void;
@@ -129,7 +131,7 @@ export function PaymentScreen({
           onEdit={() => Alert.alert(paymentT(t, 'home.editQuick.title'), paymentT(t, 'home.editQuick.description'))}
         />
 
-        <PaymentDemoBannerCarousel colors={colors} width={contentWidth} height={bannerHeight} />
+        <PaymentDemoBannerCarousel active={active} colors={colors} width={contentWidth} height={bannerHeight} />
 
         <SuggestionRail
           actions={suggestionActions}
