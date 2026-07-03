@@ -1186,6 +1186,22 @@ export const en = {
           title: 'Bill voucher',
           description: 'Save fees on electricity, water, and internet payments.',
         },
+        dining: {
+          title: 'Dining cashback',
+          description: 'Get rewards when paying at favorite restaurants.',
+        },
+        travel: {
+          title: 'Weekend travel',
+          description: 'Save offers for hotels, rides, and experiences.',
+        },
+        education: {
+          title: 'Lighter tuition',
+          description: 'Pay tuition and courses with fee offers.',
+        },
+        lifestyle: {
+          title: 'Daily entertainment',
+          description: 'Offers for movies, music, and digital services.',
+        },
       },
     },
     cvv: {

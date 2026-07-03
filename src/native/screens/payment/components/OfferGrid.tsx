@@ -1,5 +1,4 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 
 import { useI18n } from '../../../i18n';
 import type { AppColors } from '../../../theme';
@@ -59,7 +58,6 @@ function OfferCard({
   width: number;
 }) {
   const { t } = useI18n();
-  const Icon = offer.icon;
   const title = paymentOfferText(t, offer, 'title');
   const description = paymentOfferText(t, offer, 'description');
 
@@ -79,13 +77,9 @@ function OfferCard({
         },
       ]}
     >
-      <LinearGradient colors={offer.gradient} style={styles.offerVisual}>
-        <View style={styles.offerBubbleLarge} />
-        <View style={styles.offerBubbleSmall} />
-        <View style={styles.offerIconPlate}>
-          <Icon color={colors.primaryDark} size={27} strokeWidth={1.9} />
-        </View>
-      </LinearGradient>
+      <View style={styles.offerVisual}>
+        <Image source={offer.imageSource} resizeMode="cover" style={styles.offerImage} />
+      </View>
       <Text numberOfLines={2} style={[styles.offerTitle, { color: colors.text }]}>
         {title}
       </Text>

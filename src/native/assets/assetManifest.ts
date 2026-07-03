@@ -40,5 +40,15 @@ export const assetManifest = {
       require('../../assets/images/payment-demo/demo-banner-3.png'),
       require('../../assets/images/payment-demo/demo-banner-4.png'),
     ],
+    specialOffers: [
+      require('../../assets/images/payment-demo/special-offer-1.png'),
+      require('../../assets/images/payment-demo/special-offer-2.png'),
+      require('../../assets/images/payment-demo/special-offer-3.png'),
+      require('../../assets/images/payment-demo/special-offer-4.png'),
+      require('../../assets/images/payment-demo/special-offer-5.png'),
+      require('../../assets/images/payment-demo/special-offer-6.png'),
+      require('../../assets/images/payment-demo/special-offer-7.png'),
+      require('../../assets/images/payment-demo/special-offer-8.png'),
+    ],
   },
 } as const;

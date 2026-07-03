@@ -1,17 +1,13 @@
 import {
-  BadgePercent,
   Banknote,
   BriefcaseBusiness,
   Car,
   ChartCandlestick,
-  CreditCard,
   Droplets,
   Download,
   Gift,
-  HandCoins,
   History,
   Landmark,
-  Percent,
   QrCode,
   ReceiptText,
   Scissors,
@@ -21,7 +17,10 @@ import {
   Wallet,
 } from 'lucide-react-native';
 
+import { assetManifest } from '../../assets/assetManifest';
 import type { Offer, PaymentAction, PaymentCard } from '../../screens/payment/paymentTypes';
+
+const specialOfferImages = assetManifest.payment.specialOffers;
 
 export const paymentCards: PaymentCard[] = [
   {
@@ -92,28 +91,48 @@ export const paymentOffers: Offer[] = [
     id: 'shopping',
     title: 'Hoàn tiền 20%',
     description: 'Khi mua sắm cuối tuần bằng Identra Pay.',
-    gradient: ['#EAF2FF', '#C7D7FF'],
-    icon: BadgePercent,
+    imageSource: specialOfferImages[0],
   },
   {
     id: 'saving',
     title: 'Gửi góp linh hoạt',
     description: 'Tạo mục tiêu tiết kiệm chỉ trong vài chạm.',
-    gradient: ['#EAFDF4', '#C8F1DE'],
-    icon: HandCoins,
+    imageSource: specialOfferImages[1],
   },
   {
     id: 'card',
     title: 'Thẻ ảo miễn phí',
     description: 'Tách ngân sách riêng cho mua sắm online.',
-    gradient: ['#F2ECFF', '#D9CAFF'],
-    icon: CreditCard,
+    imageSource: specialOfferImages[2],
   },
   {
     id: 'voucher',
     title: 'Ưu đãi hóa đơn',
     description: 'Giảm phí khi thanh toán điện, nước và internet.',
-    gradient: ['#FFF1DF', '#FFD8A8'],
-    icon: Percent,
+    imageSource: specialOfferImages[3],
+  },
+  {
+    id: 'dining',
+    title: 'Ăn uống hoàn tiền',
+    description: 'Nhận ưu đãi khi thanh toán tại quán yêu thích.',
+    imageSource: specialOfferImages[4],
+  },
+  {
+    id: 'travel',
+    title: 'Du lịch cuối tuần',
+    description: 'Lưu ưu đãi khách sạn, vé xe và trải nghiệm.',
+    imageSource: specialOfferImages[5],
+  },
+  {
+    id: 'education',
+    title: 'Học phí nhẹ hơn',
+    description: 'Thanh toán học phí và khóa học với ưu đãi phí.',
+    imageSource: specialOfferImages[6],
+  },
+  {
+    id: 'lifestyle',
+    title: 'Giải trí mỗi ngày',
+    description: 'Ưu đãi phim, nhạc và dịch vụ số trong ví.',
+    imageSource: specialOfferImages[7],
   },
 ];

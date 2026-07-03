@@ -1178,6 +1178,22 @@ export const vi = {
           title: 'Ưu đãi hóa đơn',
           description: 'Giảm phí khi thanh toán điện, nước và internet.',
         },
+        dining: {
+          title: 'Ăn uống hoàn tiền',
+          description: 'Nhận ưu đãi khi thanh toán tại quán yêu thích.',
+        },
+        travel: {
+          title: 'Du lịch cuối tuần',
+          description: 'Lưu ưu đãi khách sạn, vé xe và trải nghiệm.',
+        },
+        education: {
+          title: 'Học phí nhẹ hơn',
+          description: 'Thanh toán học phí và khóa học với ưu đãi phí.',
+        },
+        lifestyle: {
+          title: 'Giải trí mỗi ngày',
+          description: 'Ưu đãi phim, nhạc và dịch vụ số trong ví.',
+        },
       },
     },
     cvv: {

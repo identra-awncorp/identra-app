@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react-native';
+import type { ImageSourcePropType } from 'react-native';
 
 export type GradientColors = [string, string, ...string[]];
 
@@ -32,6 +33,5 @@ export interface Offer {
   id: string;
   title: string;
   description: string;
-  gradient: GradientColors;
-  icon: LucideIcon;
+  imageSource: ImageSourcePropType;
 }
