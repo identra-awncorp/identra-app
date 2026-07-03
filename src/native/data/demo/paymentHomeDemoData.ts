@@ -21,7 +21,7 @@ import {
   Wallet,
 } from 'lucide-react-native';
 
-import type { Offer, PaymentAction, PaymentCard, PromoBanner } from '../../screens/payment/paymentTypes';
+import type { Offer, PaymentAction, PaymentCard } from '../../screens/payment/paymentTypes';
 
 export const paymentCards: PaymentCard[] = [
   {
@@ -85,25 +85,6 @@ export const suggestionActions: PaymentAction[] = [
   { id: 'saving', label: 'Tiết kiệm', icon: Landmark, color: '#8563E9', background: '#F2ECFF' },
   { id: 'rewards', label: 'Hoàn tiền', icon: Gift, color: '#E78318', background: '#FFF3E5' },
   { id: 'insurance', label: 'Bảo hiểm', icon: ShieldCheck, color: '#2C7BE5', background: '#EAF3FF' },
-];
-
-export const promoBanners: PromoBanner[] = [
-  {
-    id: 'cashback',
-    title: 'Thanh toán dễ dàng',
-    description: 'Hoàn tiền mỗi ngày khi chi tiêu qua Identra Pay.',
-    action: 'Khám phá ngay',
-    gradient: ['#EEF2FF', '#D8E1FF', '#F2F7FF'],
-    icon: Gift,
-  },
-  {
-    id: 'security',
-    title: 'Bảo vệ mọi giao dịch',
-    description: 'Xác thực nhanh, cảnh báo tức thì và kiểm soát thẻ ngay trong app.',
-    action: 'Quản lý bảo mật',
-    gradient: ['#EAFDF4', '#D9F4FF', '#EEF2FF'],
-    icon: ShieldCheck,
-  },
 ];
 
 export const paymentOffers: Offer[] = [

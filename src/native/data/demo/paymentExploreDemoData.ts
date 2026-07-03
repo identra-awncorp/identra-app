@@ -14,7 +14,7 @@ import {
 
 import type { GradientColors } from '../../screens/payment/paymentTypes';
 
-export type PaymentExploreSection = 'suggestion' | 'promo' | 'offer';
+export type PaymentExploreSection = 'suggestion' | 'offer';
 export type PaymentExploreActionTarget = 'activate' | 'bill' | 'business' | 'card' | 'saving' | 'security' | 'service';
 
 export interface PaymentExploreDetail {
@@ -175,52 +175,6 @@ export const paymentExploreDetails: PaymentExploreDetail[] = [
       { title: 'Thanh toán', description: 'Lưu lịch đóng phí vào Identra Pay.' },
     ],
     conditions: ['Quyền lợi bảo hiểm phụ thuộc đối tác phát hành.', 'Thông tin trong demo chưa phải tư vấn tài chính.'],
-  },
-  {
-    id: 'cashback',
-    section: 'promo',
-    title: 'Thanh toán dễ dàng',
-    subtitle: 'Hoàn tiền mỗi ngày khi chi tiêu qua Identra Pay.',
-    description: 'Kích hoạt chương trình hoàn tiền cho thanh toán QR, hóa đơn và thẻ trong tháng.',
-    badge: 'Banner',
-    actionLabel: 'Kích hoạt hoàn tiền',
-    actionTarget: 'activate',
-    gradient: ['#EEF2FF', '#D8E1FF', '#F2F7FF'],
-    icon: Gift,
-    color: '#355CFF',
-    background: '#EEF2FF',
-    reward: 'Hoàn tới 5%',
-    validUntil: '31/07/2026',
-    benefits: ['Tự động ghi nhận giao dịch đủ điều kiện.', 'Theo dõi hoàn tiền trong lịch sử.', 'Áp dụng cho nhiều nhóm chi tiêu.'],
-    steps: [
-      { title: 'Kích hoạt', description: 'Lưu chương trình vào tài khoản.' },
-      { title: 'Thanh toán', description: 'Dùng Identra Pay khi mua sắm hoặc trả hóa đơn.' },
-      { title: 'Nhận thưởng', description: 'Khoản hoàn tiền được ghi nhận sau đối soát.' },
-    ],
-    conditions: ['Tối đa 100.000 VND hoàn tiền mỗi tháng.', 'Không áp dụng cho giao dịch bị hoàn/hủy.'],
-  },
-  {
-    id: 'security',
-    section: 'promo',
-    title: 'Bảo vệ mọi giao dịch',
-    subtitle: 'Xác thực nhanh, cảnh báo tức thì và kiểm soát thẻ.',
-    description: 'Bật lớp bảo vệ nâng cao cho ví, thẻ và thanh toán online ngay trong app.',
-    badge: 'Bảo mật',
-    actionLabel: 'Mở quản lý bảo mật',
-    actionTarget: 'security',
-    gradient: ['#EAFDF4', '#D9F4FF', '#EEF2FF'],
-    icon: ShieldCheck,
-    color: '#12B76A',
-    background: '#EAFDF4',
-    reward: 'Cảnh báo miễn phí',
-    validUntil: 'Luôn khả dụng',
-    benefits: ['Khóa thẻ nhanh khi nghi ngờ rủi ro.', 'Bật/tắt thanh toán online.', 'Nhận cảnh báo giao dịch bất thường.'],
-    steps: [
-      { title: 'Mở quản lý', description: 'Đi tới phần quản lý thẻ và ví.' },
-      { title: 'Bật bảo vệ', description: 'Chọn các lớp xác thực cần dùng.' },
-      { title: 'Theo dõi', description: 'Xem cảnh báo trong thông báo Payment.' },
-    ],
-    conditions: ['Một số thiết lập yêu cầu xác thực thiết bị.', 'Cảnh báo thời gian thực sẽ phụ thuộc API giao dịch.'],
   },
   {
     id: 'shopping',

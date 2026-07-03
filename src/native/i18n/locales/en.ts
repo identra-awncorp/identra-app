@@ -1133,6 +1133,9 @@ export const en = {
         title: 'Edit quick access',
         description: 'Quick access ordering will be added later.',
       },
+      banner: {
+        accessibility: 'Payment banner {{index}}',
+      },
       comingSoon: 'Coming soon',
       actions: {
         transfer: 'Transfer',
@@ -1164,18 +1167,6 @@ export const en = {
           balanceLabel: 'Savings account',
           statementDate: 'Every 1st day',
           status: 'Active',
-        },
-      },
-      promos: {
-        cashback: {
-          title: 'Easy payments',
-          description: 'Daily cashback when spending with Identra Pay.',
-          action: 'Explore now',
-        },
-        security: {
-          title: 'Protect every transaction',
-          description: 'Fast authentication, instant alerts, and card controls in the app.',
-          action: 'Manage security',
         },
       },
       offers: {

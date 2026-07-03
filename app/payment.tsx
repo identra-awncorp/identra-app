@@ -41,7 +41,7 @@ export default function PaymentRoute() {
     router.push({ pathname: '/payment-flow', params: { flow } } as unknown as Href);
   };
 
-  const openPaymentExplore = (section: 'suggestion' | 'promo' | 'offer', itemId: string) => {
+  const openPaymentExplore = (section: 'suggestion' | 'offer', itemId: string) => {
     router.push({ pathname: '/payment-explore-detail', params: { section, itemId } } as unknown as Href);
   };
 
@@ -55,7 +55,6 @@ export default function PaymentRoute() {
       onManageCard={(card) => router.push({ pathname: '/payment-card-manage', params: { cardId: card.id } } as unknown as Href)}
       onOpenQuickAction={(action) => openPaymentFlow(action.id)}
       onOpenSuggestion={(action) => openPaymentExplore('suggestion', action.id)}
-      onOpenPromo={(banner) => openPaymentExplore('promo', banner.id)}
       onOpenOffer={(offer) => openPaymentExplore('offer', offer.id)}
     />
   );

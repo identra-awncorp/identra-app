@@ -10,7 +10,7 @@ This folder owns the Payment/IDPay product surface.
 - Receive money flow: QR receive screen, amount/note setup, and share/copy actions.
 - Service payment flows: mobile top-up and bill payment.
 - Transaction history and transaction receipt detail.
-- Payment suggestions, promo banners, and offer detail surfaces.
+- Payment suggestions, vertical image banners, and offer detail surfaces.
 - Payment search, notifications, placeholder flows, and empty/notice states.
 
 Payment-related sheets launched from Chat still live in `src/native/screens/chat/action-sheets`.
@@ -18,19 +18,19 @@ Payment-related sheets launched from Chat still live in `src/native/screens/chat
 ## Important Files
 
 - `PaymentScreen.tsx`: Payment tab landing screen.
-- `components/*`: Payment Home UI pieces such as header, card carousel, quick access, promo carousel, suggestions, and offers.
+- `components/*`: Payment Home UI pieces such as header, card carousel, quick access, vertical image banner, suggestions, and offers.
 - `PaymentInteractionScreens.tsx`: search, notifications, card/account, card management, and generic placeholder flow screens.
 - `TransferFlowScreens.tsx`: transfer recipient, amount, confirmation, result, and receipt screens.
 - `ReceiveMoneyScreen.tsx`: receive-money QR flow and share/setup sheets.
 - `PaymentServiceFlowScreens.tsx`: mobile top-up and bill payment flows.
 - `PaymentHistoryScreens.tsx`: transaction history list, filtering, search, and transaction detail.
-- `PaymentExploreScreens.tsx`: suggestion, promo, and offer detail surfaces.
+- `PaymentExploreScreens.tsx`: suggestion and offer detail surfaces.
 - `paymentPreferences.ts`: local persisted display preference for Payment Home balance visibility.
-- `src/native/data/demo/paymentHomeDemoData.ts`: Payment Home cards/actions/banners/offers.
+- `src/native/data/demo/paymentHomeDemoData.ts`: Payment Home cards/actions/offers.
 - `src/native/data/demo/paymentTransferDemoData.ts`: transfer recipients and receipt demo data.
 - `src/native/data/demo/paymentServiceDemoData.ts`: mobile top-up and bill payment demo data.
 - `src/native/data/demo/paymentHistoryDemoData.ts`: transaction history demo data.
-- `src/native/data/demo/paymentExploreDemoData.ts`: suggestions, promos, and offer detail demo data.
+- `src/native/data/demo/paymentExploreDemoData.ts`: suggestions and offer detail demo data.
 - `src/native/screens/chat/paymentUtils.ts`: current amount parsing/formatting helpers shared with chat payment flows.
 - `src/native/domain/payment`: target location for growing payment domain logic.
 
@@ -45,7 +45,7 @@ Route files under `app/` should stay thin and connect to the screen files above.
 - `app/payment-receive.tsx`: receive-money route.
 - `app/payment-phone.tsx`, `app/payment-bill.tsx`: service payment routes.
 - `app/payment-history.tsx`, `app/payment-transaction-detail.tsx`: transaction history routes.
-- `app/payment-explore-detail.tsx`: suggestion/promo/offer detail route.
+- `app/payment-explore-detail.tsx`: suggestion/offer detail route.
 
 ## Business Rules
 

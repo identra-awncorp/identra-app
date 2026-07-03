@@ -4,7 +4,6 @@ import { Alert, useWindowDimensions, View } from 'react-native';
 import {
   paymentCards,
   paymentOffers,
-  promoBanners,
   quickActions,
   suggestionActions,
 } from '../../data/demo/paymentHomeDemoData';
@@ -15,14 +14,14 @@ import { layout, spacing } from '../../theme';
 import { OfferGrid } from './components/OfferGrid';
 import { PaymentCardCarousel } from './components/PaymentCardCarousel';
 import { PaymentCvvSheet } from './components/PaymentCvvSheet';
+import { PaymentDemoBannerCarousel } from './components/PaymentDemoBannerCarousel';
 import { PaymentHeader } from './components/PaymentHeader';
-import { PromoCarousel } from './components/PromoCarousel';
 import { QuickAccessGrid } from './components/QuickAccessGrid';
 import { SuggestionRail } from './components/SuggestionRail';
 import { paymentHomeStyles as styles } from './components/paymentHomeStyles';
 import { paymentT } from './paymentI18n';
 import { loadPaymentBalanceVisible, savePaymentBalanceVisible } from './paymentPreferences';
-import type { Offer, PaymentAction, PaymentCard, PromoBanner } from './paymentTypes';
+import type { Offer, PaymentAction, PaymentCard } from './paymentTypes';
 
 export function PaymentScreen({
   colors,
@@ -31,7 +30,6 @@ export function PaymentScreen({
   onOpenMenu,
   onOpenNotifications,
   onOpenOffer,
-  onOpenPromo,
   onOpenQuickAction,
   onOpenSearch,
   onOpenSuggestion,
@@ -42,7 +40,6 @@ export function PaymentScreen({
   onOpenMenu: () => void;
   onOpenNotifications: () => void;
   onOpenOffer: (offer: Offer) => void;
-  onOpenPromo: (banner: PromoBanner) => void;
   onOpenQuickAction: (action: PaymentAction) => void;
   onOpenSearch: () => void;
   onOpenSuggestion: (action: PaymentAction) => void;
@@ -60,7 +57,7 @@ export function PaymentScreen({
   const quickColumnCount = Math.ceil(quickActions.length / 2);
   const quickTrackWidth = quickItemWidth * quickColumnCount + spacing.sm * Math.max(0, quickColumnCount - 1);
   const suggestionItemWidth = Math.max(78, (contentWidth - spacing.md * 3.5) / 4.5);
-  const bannerPageWidth = contentWidth + spacing.md;
+  const bannerHeight = Math.max(150, Math.min(210, Math.round(contentWidth / 2.2)));
   const offerCardWidth = (contentWidth - spacing.md) / 2;
 
   const showCopiedCardNumber = (card: PaymentCard) => {
@@ -117,13 +114,7 @@ export function PaymentScreen({
           onEdit={() => Alert.alert(paymentT(t, 'home.editQuick.title'), paymentT(t, 'home.editQuick.description'))}
         />
 
-        <PromoCarousel
-          banners={promoBanners}
-          colors={colors}
-          width={contentWidth}
-          pageWidth={bannerPageWidth}
-          onAction={onOpenPromo}
-        />
+        <PaymentDemoBannerCarousel colors={colors} width={contentWidth} height={bannerHeight} />
 
         <SuggestionRail
           actions={suggestionActions}

@@ -1125,6 +1125,9 @@ export const vi = {
         title: 'Sửa truy cập nhanh',
         description: 'Tùy chỉnh thứ tự truy cập nhanh sẽ được bổ sung sau.',
       },
+      banner: {
+        accessibility: 'Banner Payment {{index}}',
+      },
       comingSoon: 'Sắp ra mắt',
       actions: {
         transfer: 'Chuyển tiền',
@@ -1156,18 +1159,6 @@ export const vi = {
           balanceLabel: 'Tài khoản tiết kiệm',
           statementDate: 'Ngày 01 hằng tháng',
           status: 'Đang hoạt động',
-        },
-      },
-      promos: {
-        cashback: {
-          title: 'Thanh toán dễ dàng',
-          description: 'Hoàn tiền mỗi ngày khi chi tiêu qua Identra Pay.',
-          action: 'Khám phá ngay',
-        },
-        security: {
-          title: 'Bảo vệ mọi giao dịch',
-          description: 'Xác thực nhanh, cảnh báo tức thì và kiểm soát thẻ ngay trong app.',
-          action: 'Quản lý bảo mật',
         },
       },
       offers: {

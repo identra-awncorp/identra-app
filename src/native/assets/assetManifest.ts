@@ -33,4 +33,12 @@ export const assetManifest = {
     dalat: require('../../assets/images/news-feed-demo/8d353b31-b11d-443f-b55c-5760f92e2068.png'),
     linh: require('../../assets/images/news-feed-demo/photo_2026-06-26_11-13-00 (6).jpg'),
   },
+  payment: {
+    demoBanners: [
+      require('../../assets/images/payment-demo/demo-banner-1.png'),
+      require('../../assets/images/payment-demo/demo-banner-2.png'),
+      require('../../assets/images/payment-demo/demo-banner-3.png'),
+      require('../../assets/images/payment-demo/demo-banner-4.png'),
+    ],
+  },
 } as const;

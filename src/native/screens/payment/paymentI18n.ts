@@ -1,6 +1,6 @@
 import type { I18nKey, I18nParams } from '../../i18n';
 import type { PaymentFlowConfig } from '../../data/demo/paymentFlowDemoData';
-import type { Offer, PaymentAction, PaymentCard, PromoBanner } from './paymentTypes';
+import type { Offer, PaymentAction, PaymentCard } from './paymentTypes';
 
 type Translate = (key: I18nKey, params?: I18nParams) => string;
 
@@ -24,10 +24,6 @@ export function paymentActionLabel(t: Translate, action: PaymentAction) {
 
 export function paymentCardText(t: Translate, card: PaymentCard, field: 'accountType' | 'balanceLabel' | 'statementDate' | 'status') {
   return optional(t, `home.cards.${card.id}.${field}`, card[field]);
-}
-
-export function paymentPromoText(t: Translate, banner: PromoBanner, field: 'title' | 'description' | 'action') {
-  return optional(t, `home.promos.${banner.id}.${field}`, banner[field]);
 }
 
 export function paymentOfferText(t: Translate, offer: Offer, field: 'title' | 'description') {

@@ -28,15 +28,6 @@ export interface PaymentAction {
   background: string;
 }
 
-export interface PromoBanner {
-  id: string;
-  title: string;
-  description: string;
-  action: string;
-  gradient: GradientColors;
-  icon: LucideIcon;
-}
-
 export interface Offer {
   id: string;
   title: string;
