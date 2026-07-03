@@ -2,12 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PAYMENT_BALANCE_VISIBLE_KEY = 'identra.payment.balanceVisible.v1';
 
-export async function loadPaymentBalanceVisible(): Promise<boolean> {
+export async function loadPaymentBalanceVisible(defaultVisible = true): Promise<boolean> {
   try {
     const saved = await AsyncStorage.getItem(PAYMENT_BALANCE_VISIBLE_KEY);
-    return saved ? JSON.parse(saved) === true : true;
+    return saved ? JSON.parse(saved) === true : defaultVisible;
   } catch {
-    return true;
+    return defaultVisible;
   }
 }
 

@@ -11,6 +11,7 @@ import { ScreenScroll } from '../../components/AppUiPrimitives';
 import { useI18n } from '../../i18n';
 import type { AppColors } from '../../theme';
 import { layout, spacing } from '../../theme';
+import type { FlowSettingValues } from '../../types';
 import { OfferGrid } from './components/OfferGrid';
 import { PaymentCardCarousel } from './components/PaymentCardCarousel';
 import { PaymentCvvSheet } from './components/PaymentCvvSheet';
@@ -33,6 +34,7 @@ export function PaymentScreen({
   onOpenQuickAction,
   onOpenSearch,
   onOpenSuggestion,
+  paymentSettings,
 }: {
   colors: AppColors;
   onManageCard: (card: PaymentCard) => void;
@@ -43,11 +45,12 @@ export function PaymentScreen({
   onOpenQuickAction: (action: PaymentAction) => void;
   onOpenSearch: () => void;
   onOpenSuggestion: (action: PaymentAction) => void;
+  paymentSettings: FlowSettingValues;
 }) {
   const { t } = useI18n();
   const { width } = useWindowDimensions();
   const [cvvCard, setCvvCard] = useState<PaymentCard | null>(null);
-  const [balanceVisible, setBalanceVisible] = useState(true);
+  const [balanceVisible, setBalanceVisible] = useState(!paymentSettings.hideBalanceByDefault);
 
   const screenWidth = Math.max(layout.minWidth, width);
   const contentWidth = screenWidth - layout.screenPadding * 2;
@@ -67,19 +70,31 @@ export function PaymentScreen({
   useEffect(() => {
     let mounted = true;
 
-    loadPaymentBalanceVisible().then((visible) => {
+    loadPaymentBalanceVisible(!paymentSettings.hideBalanceByDefault).then((visible) => {
       if (mounted) setBalanceVisible(visible);
     });
 
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [paymentSettings.hideBalanceByDefault]);
 
   const updateBalanceVisible = useCallback((visible: boolean) => {
     setBalanceVisible(visible);
     void savePaymentBalanceVisible(visible).catch(() => undefined);
   }, []);
+
+  const requestCvv = useCallback((card: PaymentCard) => {
+    if (!paymentSettings.requireAuthForCvv) {
+      setCvvCard(card);
+      return;
+    }
+
+    Alert.alert(paymentT(t, 'common.cvvAuthTitle'), paymentT(t, 'common.cvvAuthDescription'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: paymentT(t, 'common.cvvAuthAction'), onPress: () => setCvvCard(card) },
+    ]);
+  }, [paymentSettings.requireAuthForCvv, t]);
 
   return (
     <View nativeID="screen-payment" testID="screen-payment" style={[styles.screen, { backgroundColor: colors.background }]}>
@@ -102,7 +117,7 @@ export function PaymentScreen({
           onCopyCardNumber={showCopiedCardNumber}
           onOpenCardDetail={onOpenCardDetail}
           onManageCard={onManageCard}
-          onRequestCvv={setCvvCard}
+          onRequestCvv={requestCvv}
         />
 
         <QuickAccessGrid

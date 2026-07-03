@@ -2,9 +2,11 @@ import { useRouter, type Href } from 'expo-router';
 
 import { PaymentScreen } from '@/screens/payment';
 import { useAppRouterState } from '@/app/router/AppRouterContext';
+import { useAppStore } from '@/store';
 
 export default function PaymentRoute() {
   const router = useRouter();
+  const store = useAppStore();
   const { colors, openSideMenu } = useAppRouterState();
 
   const openPaymentFlow = (flow: string) => {
@@ -56,6 +58,7 @@ export default function PaymentRoute() {
       onOpenQuickAction={(action) => openPaymentFlow(action.id)}
       onOpenSuggestion={(action) => openPaymentExplore('suggestion', action.id)}
       onOpenOffer={(offer) => openPaymentExplore('offer', offer.id)}
+      paymentSettings={store.settings.flowSettings.payment}
     />
   );
 }

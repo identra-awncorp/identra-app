@@ -61,7 +61,15 @@ import { PaymentRequestFeedback } from './components/PaymentRequestFeedback';
 import { paymentSurfaces } from './components/paymentSurfaces';
 import { paymentCardText, paymentT } from './paymentI18n';
 
-export function PhoneTopUpScreen({ colors, onBack }: { colors: AppColors; onBack: () => void }) {
+export function PhoneTopUpScreen({
+  colors,
+  confirmBeforeTopup = true,
+  onBack,
+}: {
+  colors: AppColors;
+  confirmBeforeTopup?: boolean;
+  onBack: () => void;
+}) {
   const { t } = useI18n();
   const source = paymentCards[0];
   const [phoneNumber, setPhoneNumber] = useState(topupContacts[0].phone);
@@ -74,6 +82,10 @@ export function PhoneTopUpScreen({ colors, onBack }: { colors: AppColors; onBack
   const selectedAmount = topupAmounts.find((amount) => amount.id === amountId) ?? topupAmounts[0];
   const availableBalance = parsePaymentBalance(source.balance);
 
+  const openAuthSheet = () => {
+    setAuthState(openPaymentAuthState());
+  };
+
   const submit = () => {
     const validation = validatePhoneTopUpDraft({ phoneNumber });
 
@@ -82,7 +94,15 @@ export function PhoneTopUpScreen({ colors, onBack }: { colors: AppColors; onBack
       return;
     }
 
-    setAuthState(openPaymentAuthState());
+    if (!confirmBeforeTopup) {
+      openAuthSheet();
+      return;
+    }
+
+    Alert.alert(paymentT(t, 'service.phone.preAuthTitle'), paymentT(t, 'service.phone.preAuthDescription'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: paymentT(t, 'service.phone.preAuthAction'), onPress: openAuthSheet },
+    ]);
   };
 
   const closeAuthSheet = () => {
@@ -266,10 +286,12 @@ export function PhoneTopUpScreen({ colors, onBack }: { colors: AppColors; onBack
 
 export function BillPaymentScreen({
   colors,
+  confirmBeforeBill = true,
   initialCategoryId,
   onBack,
 }: {
   colors: AppColors;
+  confirmBeforeBill?: boolean;
   initialCategoryId?: string | string[];
   onBack: () => void;
 }) {
@@ -313,6 +335,10 @@ export function BillPaymentScreen({
     setBill(result.bill);
   };
 
+  const openAuthSheet = () => {
+    setAuthState(openPaymentAuthState());
+  };
+
   const payBill = () => {
     const validation = validateBillPaymentDraft({ bill });
 
@@ -321,7 +347,15 @@ export function BillPaymentScreen({
       return;
     }
 
-    setAuthState(openPaymentAuthState());
+    if (!confirmBeforeBill) {
+      openAuthSheet();
+      return;
+    }
+
+    Alert.alert(paymentT(t, 'service.bill.preAuthTitle'), paymentT(t, 'service.bill.preAuthDescription'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: paymentT(t, 'service.bill.preAuthAction'), onPress: openAuthSheet },
+    ]);
   };
 
   const closeAuthSheet = () => {

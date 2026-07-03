@@ -1,8 +1,19 @@
 import { Stack, usePathname, useRouter } from 'expo-router';
 import * as SystemUI from 'expo-system-ui';
-import { X } from 'lucide-react-native';
-import { useEffect, useRef } from 'react';
-import { ActivityIndicator, Animated, Easing, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
+import {
+  Bug,
+  Check,
+  ChevronDown,
+  Languages,
+  LogOut,
+  Moon,
+  Settings,
+  Sun,
+  X,
+  type LucideIcon,
+} from 'lucide-react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Animated, Easing, Pressable, ScrollView, StatusBar, StyleSheet, Switch, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -12,24 +23,25 @@ import {
   getScreenForPathname,
   getScreenForTab,
   initialScreen,
-  shouldCaptureReturnScreen,
   shouldShowBottomNavForScreen,
   shouldUseFloatingBottomNav,
-  sideMenuItems,
   type BottomNavScreenConfig,
   type ScreenKey,
   type TabKey,
 } from '../navigation/navigationConfig';
+import { getSideMenuFlowForPathname, sideMenuSettingsByFlow, type SideMenuSettingItemConfig } from '../navigation/sideMenuSettingsConfig';
 import { AppBrandLogo } from '../../components/AppLogo';
 import { useI18n } from '../../i18n';
 import { useAppStore } from '../../store';
 import { border, layout, lightColors, palette, radius, shadows, spacing, touchTarget, typography } from '../../theme';
+import type { AppFlowKey, AppSettings, Language, ThemeMode } from '../../types';
 import { useAppRouterState } from './AppRouterContext';
 
 const authPathnames = new Set(['/onboarding', '/login', '/register']);
 const bottomNavIconSize = 28;
 const scanNavLineWidth = 34;
 const scanNavLineHeight = 1.5;
+const sideMenuIconSize = 22;
 
 export function AppShell() {
   const store = useAppStore();
@@ -44,6 +56,7 @@ export function AppShell() {
     closeSideMenu,
     colors,
     isDark,
+    logout,
     newsFeedChromeProgress,
     newsFeedScrollY,
     setReturnScreen,
@@ -94,6 +107,17 @@ export function AppShell() {
   const activeTab = screen ? getActiveTabForScreen(screen) : null;
   const showBottomNav = authCompleted && screen ? shouldShowBottomNavForScreen(screen) : false;
   const currentScreen = screen ?? initialScreen;
+  const currentSideMenuFlow = getSideMenuFlowForPathname(pathname);
+  const openSettings = () => {
+    closeSideMenu();
+    if (screen) setReturnScreen(screen);
+    router.push(getPathForScreen('settings'));
+  };
+  const handleLogout = async () => {
+    closeSideMenu();
+    await logout();
+    router.replace('/login');
+  };
 
   return (
     <View style={[styles.root, { backgroundColor: systemBarBackground }]}>
@@ -121,17 +145,15 @@ export function AppShell() {
         ) : null}
         <SideMenu
           colors={colors}
-          currentScreen={currentScreen}
           bottomInset={insets.bottom}
+          flowKey={currentSideMenuFlow}
+          settings={store.settings}
           topInset={insets.top}
-          unreadActivityCount={unreadActivityCount}
           visible={sideMenuOpen}
           onClose={closeSideMenu}
-          onNavigate={(target) => {
-            closeSideMenu();
-            if (screen && shouldCaptureReturnScreen(target)) setReturnScreen(screen);
-            router.push(getPathForScreen(target));
-          }}
+          onLogout={() => void handleLogout()}
+          onOpenSettings={openSettings}
+          onUpdateSettings={store.updateSettings}
         />
       </View>
     </View>
@@ -380,29 +402,137 @@ function ScanQrBottomNavButton({
 function SideMenu({
   bottomInset,
   colors,
-  currentScreen,
+  flowKey,
   onClose,
-  onNavigate,
+  onLogout,
+  onOpenSettings,
+  onUpdateSettings,
+  settings,
   topInset,
-  unreadActivityCount,
   visible,
 }: {
   bottomInset: number;
   colors: typeof lightColors;
-  currentScreen: ScreenKey;
+  flowKey: AppFlowKey;
   onClose: () => void;
-  onNavigate: (screen: ScreenKey) => void;
+  onLogout: () => void;
+  onOpenSettings: () => void;
+  onUpdateSettings: (settings: Partial<AppSettings>) => void;
+  settings: AppSettings;
   topInset: number;
-  unreadActivityCount: number;
   visible: boolean;
 }) {
   const { t } = useI18n();
-  if (!visible) return null;
+  const { width: windowWidth } = useWindowDimensions();
+  const panelProgress = useRef(new Animated.Value(visible ? 1 : 0)).current;
+  const backdropAlpha = useRef(new Animated.Value(visible ? 1 : 0)).current;
+  const [renderSideMenu, setRenderSideMenu] = useState(visible);
+  const [themeOpen, setThemeOpen] = useState(false);
+  const [languageOpen, setLanguageOpen] = useState(false);
+  const flowConfig = sideMenuSettingsByFlow[flowKey];
+  const flowSettings = settings.flowSettings[flowKey] ?? {};
+  const themeOptions: ThemeMode[] = ['system', 'light', 'dark'];
+  const getThemeIcon = (theme: ThemeMode) => (theme === 'dark' ? Moon : Sun);
+  const themeIcon = getThemeIcon(settings.theme);
+  const panelTranslateX = panelProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-Math.max(windowWidth, 1), 0],
+  });
+
+  useEffect(() => {
+    if (visible) setRenderSideMenu(true);
+
+    const animation = visible
+      ? Animated.parallel([
+          Animated.timing(backdropAlpha, {
+            toValue: 1,
+            duration: 150,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(panelProgress, {
+            toValue: 1,
+            duration: 300,
+            easing: Easing.bezier(0.16, 1, 0.3, 1),
+            useNativeDriver: true,
+          }),
+        ])
+      : Animated.parallel([
+          Animated.timing(panelProgress, {
+            toValue: 0,
+            duration: 230,
+            easing: Easing.bezier(0.7, 0, 0.84, 0),
+            useNativeDriver: true,
+          }),
+          Animated.timing(backdropAlpha, {
+            toValue: 0,
+            duration: 170,
+            delay: 40,
+            easing: Easing.in(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ]);
+
+    animation.start(({ finished }) => {
+      if (!finished || visible) return;
+      setRenderSideMenu(false);
+      setThemeOpen(false);
+      setLanguageOpen(false);
+    });
+
+    return () => {
+      animation.stop();
+    };
+  }, [backdropAlpha, panelProgress, visible]);
+
+  const updateFlowSetting = (settingId: string, value: boolean) => {
+    const nextFlowSettings = {
+      ...settings.flowSettings,
+      [flowKey]: {
+        ...flowSettings,
+        [settingId]: value,
+      },
+    };
+
+    onUpdateSettings({
+      ...(flowKey === 'identity' && settingId === 'hideSensitiveData' ? { hideSensitiveData: value } : {}),
+      flowSettings: nextFlowSettings,
+    });
+  };
+
+  const setTheme = (theme: ThemeMode) => {
+    onUpdateSettings({ theme });
+    setThemeOpen(false);
+  };
+
+  const setLanguage = (language: Language) => {
+    onUpdateSettings({ language });
+    setLanguageOpen(false);
+  };
+
+  const reportIssue = () => {
+    Alert.alert(t('app.sideMenu.reportAlertTitle'), t('app.sideMenu.reportAlertDescription'));
+  };
+
+  const confirmLogout = () => {
+    Alert.alert(t('app.sideMenu.logoutConfirmTitle'), t('app.sideMenu.logoutConfirmDescription'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('app.sideMenu.logoutConfirmAction'),
+        style: 'destructive',
+        onPress: onLogout,
+      },
+    ]);
+  };
+
+  if (!renderSideMenu) return null;
 
   return (
     <View nativeID="identra-side-menu" testID="identra-side-menu" style={styles.sideMenuLayer}>
-      <Pressable accessibilityRole="button" accessibilityLabel={t('app.sideMenu.close')} onPress={onClose} style={[styles.sideMenuBackdrop, { backgroundColor: colors.overlay }]} />
-      <View
+      <Animated.View style={[styles.sideMenuBackdrop, { opacity: backdropAlpha }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('app.sideMenu.close')} onPress={onClose} style={[styles.sideMenuBackdrop, { backgroundColor: colors.overlay }]} />
+      </Animated.View>
+      <Animated.View
         style={[
           styles.sideMenuPanel,
           shadows.floating,
@@ -411,6 +541,7 @@ function SideMenu({
             borderColor: colors.border,
             paddingTop: Math.max(spacing.lg, topInset + spacing.sm),
             paddingBottom: Math.max(spacing.lg, bottomInset + spacing.md),
+            transform: [{ translateX: panelTranslateX }],
           },
         ]}
       >
@@ -420,46 +551,217 @@ function SideMenu({
             <X color={colors.text} size={24} strokeWidth={2} />
           </Pressable>
         </View>
-        <Text style={[styles.sideMenuEyebrow, { color: colors.textSecondary }]}>{t('app.sideMenu.title')}</Text>
-        <View style={styles.sideMenuList}>
-          {sideMenuItems.map((item) => {
-            const Icon = item.icon;
-            const active = item.target === currentScreen;
-            const badge = item.badgeKey === 'unreadActivityCount' ? unreadActivityCount : undefined;
-            const label = t(item.labelKey);
-            const description = t(item.descriptionKey);
-            return (
-              <Pressable
-                key={item.target}
-                accessibilityRole="button"
-                accessibilityLabel={label}
-                accessibilityState={{ selected: active }}
-                onPress={() => onNavigate(item.target)}
-                style={({ pressed }) => [
-                  styles.sideMenuItem,
-                  {
-                    backgroundColor: active ? colors.surfaceMuted : 'transparent',
-                    opacity: pressed ? 0.66 : 1,
-                  },
-                ]}
-              >
-                <View style={[styles.sideMenuItemIcon, { backgroundColor: active ? palette.blue[100] : colors.surfaceMuted }]}>
-                  <Icon color={active ? colors.primaryDark : colors.textSecondary} size={22} strokeWidth={1.9} />
-                </View>
-                <View style={styles.sideMenuItemCopy}>
-                  <Text style={[styles.sideMenuItemTitle, { color: colors.text }]}>{label}</Text>
-                  <Text numberOfLines={1} style={[styles.sideMenuItemDescription, { color: colors.textSecondary }]}>{description}</Text>
-                </View>
-                {badge ? (
-                  <View style={styles.sideMenuBadge}>
-                    <Text style={styles.sideMenuBadgeText}>{badge > 99 ? '99+' : badge}</Text>
-                  </View>
-                ) : null}
-              </Pressable>
-            );
-          })}
-        </View>
+
+        <ScrollView
+          contentContainerStyle={styles.sideMenuScrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.sideMenuSection}>
+            <Text style={[styles.sideMenuSectionTitle, { color: colors.textSecondary }]}>{t('app.sideMenu.globalTitle')}</Text>
+            <SideMenuActionRow
+              colors={colors}
+              description={t('app.sideMenu.themeDescription')}
+              icon={themeIcon}
+              meta={t(`app.sideMenu.themes.${settings.theme}`)}
+              rightIcon={ChevronDown}
+              title={t('app.sideMenu.themeTitle')}
+              variant="global"
+              onPress={() => {
+                setThemeOpen((current) => !current);
+                setLanguageOpen(false);
+              }}
+            />
+            {themeOpen ? (
+              <View style={styles.sideMenuDropdown}>
+                {themeOptions.map((theme) => (
+                  <SideMenuActionRow
+                    key={theme}
+                    colors={colors}
+                    description={t('app.sideMenu.themeDescription')}
+                    icon={settings.theme === theme ? Check : getThemeIcon(theme)}
+                    title={t(`app.sideMenu.themes.${theme}`)}
+                    variant="global"
+                    onPress={() => setTheme(theme)}
+                  />
+                ))}
+              </View>
+            ) : null}
+            <SideMenuActionRow
+              colors={colors}
+              description={t('app.sideMenu.languageDescription')}
+              icon={Languages}
+              meta={t(`app.sideMenu.languages.${settings.language}`)}
+              rightIcon={ChevronDown}
+              title={t('app.sideMenu.languageTitle')}
+              variant="global"
+              onPress={() => {
+                setLanguageOpen((current) => !current);
+                setThemeOpen(false);
+              }}
+            />
+            {languageOpen ? (
+              <View style={styles.sideMenuDropdown}>
+                {(['vi', 'en'] as Language[]).map((language) => (
+                  <SideMenuActionRow
+                    key={language}
+                    colors={colors}
+                    description={t('app.sideMenu.languageDescription')}
+                    icon={settings.language === language ? Check : Languages}
+                    title={t(`app.sideMenu.languages.${language}`)}
+                    variant="global"
+                    onPress={() => setLanguage(language)}
+                  />
+                ))}
+              </View>
+            ) : null}
+          </View>
+
+          {flowConfig.sections.map((section) => (
+            <View key={section.id} style={styles.sideMenuSection}>
+              <Text style={[styles.sideMenuSectionTitle, { color: colors.textSecondary }]}>{t(section.titleKey)}</Text>
+              {section.items.map((item) => (
+                <SideMenuSettingRow
+                  key={item.id}
+                  colors={colors}
+                  item={item}
+                  value={item.type === 'toggle' ? Boolean(flowSettings[item.settingId]) : false}
+                  onValueChange={(value) => {
+                    if (item.type === 'toggle') updateFlowSetting(item.settingId, value);
+                  }}
+                />
+              ))}
+            </View>
+          ))}
+
+          <View style={styles.sideMenuSection}>
+            <Text style={[styles.sideMenuSectionTitle, { color: colors.textSecondary }]}>{t('app.sideMenu.globalTitle')}</Text>
+            <SideMenuActionRow
+              colors={colors}
+              description={t('app.sideMenu.generalSettingsDescription')}
+              icon={Settings}
+              title={t('app.sideMenu.generalSettingsTitle')}
+              variant="global"
+              onPress={onOpenSettings}
+            />
+            <SideMenuActionRow
+              colors={colors}
+              description={t('app.sideMenu.reportDescription')}
+              icon={Bug}
+              title={t('app.sideMenu.reportTitle')}
+              variant="warning"
+              onPress={reportIssue}
+            />
+            <SideMenuActionRow
+              colors={colors}
+              description={t('app.sideMenu.logoutDescription')}
+              icon={LogOut}
+              title={t('app.sideMenu.logoutTitle')}
+              variant="danger"
+              onPress={confirmLogout}
+            />
+          </View>
+        </ScrollView>
+      </Animated.View>
+    </View>
+  );
+}
+
+function SideMenuSettingRow({
+  colors,
+  item,
+  onValueChange,
+  value,
+}: {
+  colors: typeof lightColors;
+  item: SideMenuSettingItemConfig;
+  onValueChange: (value: boolean) => void;
+  value: boolean;
+}) {
+  const { t } = useI18n();
+
+  if (item.type !== 'toggle') return null;
+
+  return (
+    <View style={[styles.sideMenuRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <SideMenuRowIcon colors={colors} icon={item.icon} />
+      <View style={styles.sideMenuItemCopy}>
+        <Text style={[styles.sideMenuItemTitle, { color: colors.text }]}>{t(item.titleKey)}</Text>
+        <Text numberOfLines={2} style={[styles.sideMenuItemDescription, { color: colors.textSecondary }]}>{t(item.descriptionKey)}</Text>
       </View>
+      <Switch
+        accessibilityLabel={t(item.titleKey)}
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: colors.border, true: colors.primary }}
+        thumbColor={palette.white}
+      />
+    </View>
+  );
+}
+
+function SideMenuActionRow({
+  colors,
+  description,
+  icon,
+  meta,
+  onPress,
+  rightIcon,
+  title,
+  variant = 'default',
+}: {
+  colors: typeof lightColors;
+  description: string;
+  icon: LucideIcon;
+  meta?: string;
+  onPress: () => void;
+  rightIcon?: LucideIcon;
+  title: string;
+  variant?: 'default' | 'global' | 'warning' | 'danger';
+}) {
+  const Icon = icon;
+  const RightIcon = rightIcon;
+  const color =
+    variant === 'danger'
+      ? colors.danger
+      : variant === 'warning'
+        ? colors.warning
+        : variant === 'global'
+          ? colors.primaryDark
+          : colors.textSecondary;
+  const backgroundColor = variant === 'default' ? colors.surfaceMuted : colors.surfaceMuted;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.sideMenuRow,
+        styles.sideMenuActionRow,
+        {
+          backgroundColor,
+          borderColor: colors.border,
+          opacity: pressed ? 0.68 : 1,
+        },
+      ]}
+    >
+      <View style={[styles.sideMenuItemIcon, { backgroundColor: colors.surface }]}>
+        <Icon color={color} size={sideMenuIconSize} strokeWidth={1.9} />
+      </View>
+      <View style={styles.sideMenuItemCopy}>
+        <Text style={[styles.sideMenuItemTitle, { color }]}>{title}</Text>
+        <Text numberOfLines={2} style={[styles.sideMenuItemDescription, { color: colors.textSecondary }]}>{description}</Text>
+      </View>
+      {meta ? <Text numberOfLines={1} style={[styles.sideMenuMeta, { color }]}>{meta}</Text> : null}
+      {RightIcon ? <RightIcon color={color} size={18} strokeWidth={2} /> : null}
+    </Pressable>
+  );
+}
+
+function SideMenuRowIcon({ colors, icon: Icon }: { colors: typeof lightColors; icon: LucideIcon }) {
+  return (
+    <View style={[styles.sideMenuItemIcon, { backgroundColor: colors.surfaceMuted }]}>
+      <Icon color={colors.primaryDark} size={sideMenuIconSize} strokeWidth={1.9} />
     </View>
   );
 }
@@ -520,30 +822,32 @@ const styles = StyleSheet.create({
   sideMenuLayer: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 20 },
   sideMenuBackdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   sideMenuPanel: {
-    width: '82%',
-    maxWidth: 342,
+    width: '100%',
     height: '100%',
-    borderRightWidth: border.thin,
-    paddingHorizontal: spacing.lg,
+    borderRightWidth: 0,
+    paddingHorizontal: spacing.md,
   },
-  sideMenuHeader: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  sideMenuHeader: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.xs },
   sideMenuBrand: { flex: 1 },
   sideMenuClose: { width: touchTarget.minimum, height: touchTarget.minimum, borderRadius: radius.round, alignItems: 'center', justifyContent: 'center' },
-  sideMenuEyebrow: { marginTop: spacing.lg, marginBottom: spacing.sm, fontSize: typography.size.xs, fontWeight: typography.weight.black, textTransform: 'uppercase', letterSpacing: 0.8 },
-  sideMenuList: { gap: spacing.xs },
-  sideMenuItem: { minHeight: 68, borderRadius: radius.lg, paddingHorizontal: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  sideMenuScrollContent: { paddingTop: spacing.md, paddingBottom: spacing.xl, gap: spacing.lg },
+  sideMenuSection: { gap: spacing.xs },
+  sideMenuSectionTitle: { paddingHorizontal: spacing.xs, fontSize: typography.size.xs, lineHeight: typography.lineHeight.xs, fontWeight: typography.weight.extraBold, textTransform: 'uppercase', letterSpacing: 0 },
+  sideMenuRow: {
+    minHeight: 68,
+    borderRadius: radius.lg,
+    borderWidth: border.hairline,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  sideMenuActionRow: { borderWidth: border.hairline },
+  sideMenuDropdown: { gap: spacing.xs },
   sideMenuItemIcon: { width: touchTarget.minimum, height: touchTarget.minimum, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   sideMenuItemCopy: { flex: 1, minWidth: 0 },
-  sideMenuItemTitle: { fontSize: typography.size.sm, fontWeight: typography.weight.black },
+  sideMenuItemTitle: { fontSize: typography.size.sm, lineHeight: typography.lineHeight.sm, fontWeight: typography.weight.semibold },
   sideMenuItemDescription: { marginTop: spacing.xxs, fontSize: typography.size.xs, lineHeight: typography.lineHeight.xs, fontWeight: typography.weight.medium },
-  sideMenuBadge: {
-    minWidth: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: palette.red[500],
-    paddingHorizontal: spacing.xs,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sideMenuBadgeText: { color: palette.white, fontSize: 10, fontWeight: typography.weight.black },
+  sideMenuMeta: { maxWidth: 72, fontSize: typography.size.xs, lineHeight: typography.lineHeight.xs, fontWeight: typography.weight.semibold, textAlign: 'right' },
 });

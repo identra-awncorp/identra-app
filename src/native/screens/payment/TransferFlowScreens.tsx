@@ -198,6 +198,7 @@ export function TransferAmountScreen({
 export function TransferConfirmScreen({
   amount,
   colors,
+  confirmBeforeTransfer = true,
   note,
   onBack,
   onComplete,
@@ -205,6 +206,7 @@ export function TransferConfirmScreen({
 }: {
   amount?: string | string[];
   colors: AppColors;
+  confirmBeforeTransfer?: boolean;
   note?: string | string[];
   onBack: () => void;
   onComplete: (receipt: TransferReceipt) => void;
@@ -230,6 +232,18 @@ export function TransferConfirmScreen({
   );
   const openAuthSheet = () => {
     setAuthState(openPaymentAuthState());
+  };
+
+  const requestAuthSheet = () => {
+    if (!confirmBeforeTransfer) {
+      openAuthSheet();
+      return;
+    }
+
+    Alert.alert(paymentT(t, 'transfer.confirm.preAuthTitle'), paymentT(t, 'transfer.confirm.preAuthDescription'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: paymentT(t, 'transfer.confirm.preAuthAction'), onPress: openAuthSheet },
+    ]);
   };
 
   const closeAuthSheet = () => {
@@ -283,7 +297,7 @@ export function TransferConfirmScreen({
             {paymentT(t, 'transfer.confirm.notice')}
           </Text>
         </View>
-        <PrimaryButton colors={colors} title={paymentT(t, 'transfer.confirm.submit')} onPress={openAuthSheet} />
+        <PrimaryButton colors={colors} title={paymentT(t, 'transfer.confirm.submit')} onPress={requestAuthSheet} />
       </ScreenScroll>
       <PaymentAuthSheet
         amount={receiptPreview.amount}

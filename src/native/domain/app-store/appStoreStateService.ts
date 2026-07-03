@@ -1,4 +1,5 @@
 import type { ActivityLog, AppSettings, Credential, PersonalInfo } from '../../types';
+import { normalizeAppSettings } from './appSettingsDefaults';
 
 export interface PersistedAppState {
   credentials: Credential[];
@@ -142,9 +143,18 @@ export function updateSettingsInAppState(
   state: PersistedAppState,
   settings: Partial<AppSettings>,
 ): PersistedAppState {
+  const nextSettings = normalizeAppSettings({ ...state.settings, ...settings });
+
+  if ('hideSensitiveData' in settings) {
+    nextSettings.flowSettings.identity = {
+      ...nextSettings.flowSettings.identity,
+      hideSensitiveData: nextSettings.hideSensitiveData,
+    };
+  }
+
   return {
     ...state,
-    settings: { ...state.settings, ...settings },
+    settings: nextSettings,
   };
 }
 

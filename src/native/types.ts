@@ -2,6 +2,9 @@ export type { ScreenKey, TabKey } from './app/navigation/navigationTypes';
 
 export type Language = 'vi' | 'en';
 export type ThemeMode = 'light' | 'dark' | 'system';
+export type AppFlowKey = 'chat' | 'feed' | 'scan' | 'payment' | 'identity';
+export type FlowSettingValues = Record<string, boolean>;
+export type AppFlowSettings = Record<AppFlowKey, FlowSettingValues>;
 export type CredentialStatus = 'verified' | 'pending' | 'expired';
 export type SmartContractAvailability = 'available' | 'soldOut';
 
@@ -111,4 +114,5 @@ export interface AppSettings {
   theme: ThemeMode;
   notificationsEnabled: boolean;
   hideSensitiveData: boolean;
+  flowSettings: AppFlowSettings;
 }

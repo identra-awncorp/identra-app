@@ -4,6 +4,7 @@ import type {
   Credential,
   PersonalInfo,
 } from '../../types';
+import { defaultFlowSettings } from '../../domain/app-store/appSettingsDefaults';
 
 const common = {
   didHolder: 'did:identra:1234',
@@ -28,6 +29,7 @@ export const INITIAL_SETTINGS: AppSettings = {
   theme: 'system',
   notificationsEnabled: true,
   hideSensitiveData: true,
+  flowSettings: defaultFlowSettings,
 };
 
 export const INITIAL_CREDENTIALS: Credential[] = [

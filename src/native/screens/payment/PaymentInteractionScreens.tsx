@@ -144,15 +144,28 @@ export function PaymentAccountDetailScreen({
   colors,
   onBack,
   onManageCard,
+  requireAuthForCvv = true,
 }: {
   cardId?: string | string[];
   colors: AppColors;
   onBack: () => void;
   onManageCard: (card: PaymentCard) => void;
+  requireAuthForCvv?: boolean;
 }) {
   const { t } = useI18n();
   const card = getPaymentCardById(cardId);
   const [cvvCard, setCvvCard] = useState<PaymentCard | null>(null);
+  const requestCvv = () => {
+    if (!requireAuthForCvv) {
+      setCvvCard(card);
+      return;
+    }
+
+    Alert.alert(paymentT(t, 'common.cvvAuthTitle'), paymentT(t, 'common.cvvAuthDescription'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: paymentT(t, 'common.cvvAuthAction'), onPress: () => setCvvCard(card) },
+    ]);
+  };
 
   return (
     <>
@@ -192,7 +205,7 @@ export function PaymentAccountDetailScreen({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={paymentT(t, 'account.getCvv')}
-            onPress={() => setCvvCard(card)}
+            onPress={requestCvv}
             style={({ pressed }) => [
               styles.accountActionButton,
               styles.accountSecondaryAction,
