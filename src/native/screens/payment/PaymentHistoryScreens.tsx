@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     fontSize: typography.size.xl,
     lineHeight: typography.lineHeight.xl,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   heroIcon: {
     width: 58,
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     fontSize: typography.size.md,
     lineHeight: typography.lineHeight.md,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
     fontVariant: ['tabular-nums'],
   },
   searchBox: {
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
   },
   filterText: {
     fontSize: typography.size.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   sectionHeading: {
     flexDirection: 'row',
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: typography.size.lg,
     lineHeight: typography.lineHeight.lg,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   countPill: {
     minHeight: 28,
@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
   },
   countText: {
     fontSize: typography.size.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   transactionGroup: {
     gap: spacing.sm,
@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
   dateLabel: {
     paddingHorizontal: spacing.xxs,
     fontSize: typography.size.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   listCard: {
     paddingHorizontal: spacing.md,
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontSize: typography.size.sm,
     lineHeight: typography.lineHeight.sm,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   rowDescription: {
     marginTop: spacing.xs,
@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
   rowAmount: {
     fontSize: typography.size.sm,
     lineHeight: typography.lineHeight.sm,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
     fontVariant: ['tabular-nums'],
   },
   rowCurrency: {
@@ -576,13 +576,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: typography.size.lg,
     lineHeight: typography.lineHeight.lg,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   receiptAmount: {
     marginTop: spacing.sm,
     fontSize: typography.size.xl,
     lineHeight: typography.lineHeight.xl,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
     fontVariant: ['tabular-nums'],
   },
   statusPill: {
@@ -596,7 +596,7 @@ const styles = StyleSheet.create({
   },
   statusPillText: {
     fontSize: typography.size.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   detailCard: {
     paddingVertical: spacing.xs,
@@ -619,14 +619,14 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     fontSize: typography.size.sm,
     lineHeight: typography.lineHeight.sm,
-    fontWeight: typography.weight.bold,
+    fontWeight: typography.weight.semibold,
   },
   detailValueStrong: {
     flex: 1.24,
     textAlign: 'right',
     fontSize: typography.size.lg,
     lineHeight: typography.lineHeight.lg,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
     fontVariant: ['tabular-nums'],
   },
   notice: {

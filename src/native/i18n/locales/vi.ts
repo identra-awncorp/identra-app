@@ -1103,6 +1103,7 @@ export const vi = {
         edit: 'Sửa',
         suggestions: 'Đề xuất',
         offers: 'Ưu đãi',
+        viewMore: 'Xem thêm',
       },
       card: {
         manageCard: 'Quản lý thẻ',
@@ -1110,8 +1111,8 @@ export const vi = {
         viewDetails: 'Xem chi tiết tài khoản và thẻ',
         detail: 'Chi tiết',
         copyCardNumber: 'Sao chép số thẻ',
-        validThru: 'VALID THRU',
-        cardHolder: 'CARD HOLDER',
+        validThru: 'THỜI HẠN',
+        cardHolder: 'CHỦ THẺ',
         hideBalance: 'Ẩn số dư',
         showBalance: 'Hiện số dư',
         getCvvCode: 'Lấy mã số CVV',
@@ -1146,7 +1147,7 @@ export const vi = {
       cards: {
         'main-card': {
           accountType: 'Tài khoản thanh toán',
-          balanceLabel: 'Số dư tài khoản chính',
+          balanceLabel: 'SỐ DƯ',
           statementDate: 'Ngày 25 hằng tháng',
           status: 'Đang hoạt động',
         },

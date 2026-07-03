@@ -606,7 +606,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: typography.size.lg,
     lineHeight: typography.lineHeight.lg,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   listCard: { paddingHorizontal: spacing.md, paddingVertical: 0 },
   recipientRow: {
@@ -646,13 +646,13 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontSize: typography.size.sm,
     lineHeight: typography.lineHeight.sm,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   summaryName: {
     flexShrink: 1,
     fontSize: typography.size.md,
     lineHeight: typography.lineHeight.md,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   rowDescription: {
     marginTop: spacing.xs,
@@ -684,12 +684,12 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     fontSize: typography.size.xs,
     lineHeight: typography.lineHeight.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   fieldLabel: {
     fontSize: typography.size.sm,
     lineHeight: typography.lineHeight.sm,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   amountBox: {
     minHeight: 68,
@@ -705,12 +705,12 @@ const styles = StyleSheet.create({
     minWidth: 0,
     fontSize: typography.size.xl,
     lineHeight: typography.lineHeight.xl,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
     fontVariant: ['tabular-nums'],
   },
   amountCurrency: {
     fontSize: typography.size.md,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   quickAmountRow: {
     flexDirection: 'row',
@@ -727,7 +727,7 @@ const styles = StyleSheet.create({
   },
   quickAmountText: {
     fontSize: typography.size.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   noteInput: {
     minHeight: 52,
@@ -757,14 +757,14 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     fontSize: typography.size.sm,
     lineHeight: typography.lineHeight.sm,
-    fontWeight: typography.weight.bold,
+    fontWeight: typography.weight.semibold,
   },
   summaryValueStrong: {
     flex: 1.2,
     textAlign: 'right',
     fontSize: typography.size.lg,
     lineHeight: typography.lineHeight.lg,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
     fontVariant: ['tabular-nums'],
   },
   notice: {
@@ -797,12 +797,12 @@ const styles = StyleSheet.create({
   resultTitle: {
     fontSize: typography.size.lg,
     lineHeight: typography.lineHeight.lg,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   resultAmount: {
     fontSize: typography.size.xl,
     lineHeight: typography.lineHeight.xl,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   resultDescription: {
     textAlign: 'center',
@@ -826,13 +826,13 @@ const styles = StyleSheet.create({
   receiptTitle: {
     marginTop: spacing.md,
     fontSize: typography.size.md,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   receiptAmount: {
     marginTop: spacing.sm,
     fontSize: typography.size.xl,
     lineHeight: typography.lineHeight.xl,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   successPill: {
     minHeight: 30,
@@ -845,7 +845,7 @@ const styles = StyleSheet.create({
   },
   successPillText: {
     fontSize: typography.size.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   receiptActions: { gap: spacing.sm },
   authLayer: { flex: 1, justifyContent: 'flex-end' },
@@ -890,7 +890,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     fontSize: typography.size.lg,
     lineHeight: typography.lineHeight.lg,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   authDescription: {
     marginTop: spacing.sm,
@@ -914,7 +914,7 @@ const styles = StyleSheet.create({
   },
   pinDot: {
     fontSize: typography.size.lg,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   hiddenPinInput: {
     position: 'absolute',
@@ -934,7 +934,7 @@ const styles = StyleSheet.create({
   },
   biometricText: {
     fontSize: typography.size.sm,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   authSubmit: {
     minHeight: 50,
@@ -946,6 +946,6 @@ const styles = StyleSheet.create({
   authSubmitText: {
     color: palette.white,
     fontSize: typography.size.md,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
 });

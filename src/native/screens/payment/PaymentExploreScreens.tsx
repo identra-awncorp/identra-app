@@ -247,19 +247,19 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: typography.size.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   heroTitle: {
     marginTop: spacing.xl,
     fontSize: typography.size.xl,
     lineHeight: typography.lineHeight.xl,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   heroSubtitle: {
     marginTop: spacing.sm,
     fontSize: typography.size.md,
     lineHeight: typography.lineHeight.md,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   heroDescription: {
     marginTop: spacing.sm,
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   metricValue: {
     marginTop: spacing.xxs,
     fontSize: typography.size.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   actionRow: {
     flexDirection: 'row',
@@ -309,13 +309,13 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontSize: typography.size.sm,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   primaryActionWrap: { flex: 1 },
   sectionTitle: {
     fontSize: typography.size.lg,
     lineHeight: typography.lineHeight.lg,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   listCard: {
     paddingHorizontal: spacing.md,
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
     fontSize: typography.size.sm,
     lineHeight: typography.lineHeight.sm,
-    fontWeight: typography.weight.bold,
+    fontWeight: typography.weight.semibold,
   },
   stepCard: {
     paddingHorizontal: spacing.md,
@@ -363,13 +363,13 @@ const styles = StyleSheet.create({
   stepNumberText: {
     color: palette.white,
     fontSize: typography.size.sm,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   rowCopy: { flex: 1, minWidth: 0 },
   rowTitle: {
     fontSize: typography.size.sm,
     lineHeight: typography.lineHeight.sm,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   rowDescription: {
     marginTop: spacing.xs,

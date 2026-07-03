@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     fontSize: typography.size.lg,
     lineHeight: typography.lineHeight.lg,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   description: {
     marginTop: spacing.sm,
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   cvvText: {
     fontSize: 42,
     lineHeight: 48,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
     letterSpacing: 6,
     fontVariant: ['tabular-nums'],
   },
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: palette.white,
     fontSize: typography.size.md,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   secondaryButton: {
     minHeight: 48,
@@ -239,6 +239,6 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontSize: typography.size.md,
-    fontWeight: typography.weight.extraBold,
+    fontWeight: typography.weight.semibold,
   },
 });

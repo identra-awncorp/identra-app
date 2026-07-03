@@ -96,22 +96,22 @@ function PromoCard({
           style={({ pressed }) => [styles.promoButton, { opacity: pressed ? 0.72 : 1 }]}
         >
           <Text style={styles.promoButtonText}>{action}</Text>
-          <ArrowRight color={palette.white} size={18} strokeWidth={2.4} />
+          <ArrowRight color={palette.white} size={15} strokeWidth={2} />
         </Pressable>
       </View>
       <View style={styles.promoArt}>
         <View style={styles.promoCoin}>
-          <Percent color="#F59E0B" size={22} strokeWidth={2.4} />
+          <Percent color="#F59E0B" size={19} strokeWidth={2} />
         </View>
         <View style={styles.promoPhone}>
           <View style={styles.promoPhoneSpeaker} />
           <View style={styles.promoPhoneScreen}>
-            <Icon color={palette.white} size={32} strokeWidth={2} />
+            <Icon color={palette.white} size={28} strokeWidth={1.9} />
             <Text style={styles.promoPhoneText}>PAY</Text>
           </View>
         </View>
         <View style={styles.promoShield}>
-          <ShieldCheck color="#3F58FF" size={28} strokeWidth={2.1} />
+          <ShieldCheck color="#3F58FF" size={24} strokeWidth={1.9} />
         </View>
       </View>
     </LinearGradient>

@@ -16,10 +16,14 @@ export function PaymentSectionHeader({
 }) {
   return (
     <View style={styles.sectionHeader}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>{title}</Text>
+      <Text numberOfLines={1} style={[styles.sectionTitle, { color: colors.text }]}>
+        {title}
+      </Text>
       {action ? (
         <Pressable accessibilityRole="button" accessibilityLabel={action} onPress={onAction} hitSlop={8}>
-          <Text style={[styles.sectionAction, { color: colors.primaryDark }]}>{action}</Text>
+          <Text numberOfLines={1} style={[styles.sectionAction, { color: colors.primaryDark }]}>
+            {action}
+          </Text>
         </Pressable>
       ) : null}
     </View>

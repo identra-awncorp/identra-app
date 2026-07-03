@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
   avatarText: {
     color: palette.white,
     fontSize: typography.size.md,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   heroCopy: { flex: 1, minWidth: 0 },
   heroNameRow: {
@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
     color: palette.white,
     fontSize: typography.size.md,
     lineHeight: typography.lineHeight.md,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   heroProvider: {
     marginTop: spacing.xxs,
@@ -573,7 +573,7 @@ const styles = StyleSheet.create({
   idpayBadgeText: {
     color: palette.white,
     fontSize: typography.size.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   qrPanel: {
     marginTop: spacing.xl,
@@ -619,21 +619,21 @@ const styles = StyleSheet.create({
   heroMetaLabel: {
     color: 'rgba(255, 255, 255, 0.72)',
     fontSize: 11,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.medium,
   },
   heroMetaValue: {
     marginTop: spacing.xs,
     color: palette.white,
     fontSize: typography.size.md,
     lineHeight: typography.lineHeight.md,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   heroAmountValue: {
     marginTop: spacing.xs,
     color: palette.white,
     fontSize: typography.size.xl,
     lineHeight: typography.lineHeight.xl,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
     fontVariant: ['tabular-nums'],
   },
   heroCardHint: {
@@ -662,12 +662,12 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: typography.size.sm,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   primaryActionText: {
     color: palette.white,
     fontSize: typography.size.sm,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   accountCard: {
     minHeight: 88,
@@ -686,7 +686,7 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontSize: typography.size.sm,
     lineHeight: typography.lineHeight.sm,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   rowDescription: {
     marginTop: spacing.xs,
@@ -715,7 +715,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     fontSize: typography.size.sm,
     lineHeight: typography.lineHeight.sm,
-    fontWeight: typography.weight.bold,
+    fontWeight: typography.weight.semibold,
   },
   notice: {
     minHeight: 66,
@@ -774,7 +774,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     fontSize: typography.size.lg,
     lineHeight: typography.lineHeight.lg,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   sheetDescription: {
     marginTop: spacing.sm,
@@ -787,7 +787,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     fontSize: typography.size.sm,
     lineHeight: typography.lineHeight.sm,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   amountInputBox: {
     minHeight: 68,
@@ -803,12 +803,12 @@ const styles = StyleSheet.create({
     minWidth: 0,
     fontSize: typography.size.xl,
     lineHeight: typography.lineHeight.xl,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
     fontVariant: ['tabular-nums'],
   },
   amountCurrency: {
     fontSize: typography.size.md,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   quickAmountRow: {
     flexDirection: 'row',
@@ -825,7 +825,7 @@ const styles = StyleSheet.create({
   },
   quickAmountText: {
     fontSize: typography.size.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   noteInput: {
     minHeight: 52,

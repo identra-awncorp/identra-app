@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.size.sm,
     lineHeight: typography.lineHeight.sm,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   description: {
     marginTop: spacing.xxs,
@@ -94,6 +94,6 @@ const styles = StyleSheet.create({
   retry: {
     marginTop: spacing.sm,
     fontSize: typography.size.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
 });

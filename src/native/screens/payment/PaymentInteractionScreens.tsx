@@ -523,7 +523,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: typography.size.lg,
     lineHeight: typography.lineHeight.lg,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   listCard: { paddingHorizontal: spacing.md, paddingVertical: 0 },
   navRow: {
@@ -550,7 +550,7 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontSize: typography.size.sm,
     lineHeight: typography.lineHeight.sm,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   rowDescription: {
     marginTop: spacing.xs,
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
   },
   headerAction: {
     fontSize: typography.size.sm,
-    fontWeight: typography.weight.extraBold,
+    fontWeight: typography.weight.semibold,
   },
   notificationTitleRow: {
     flexDirection: 'row',
@@ -593,7 +593,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: typography.size.lg,
     lineHeight: typography.lineHeight.lg,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   accountHero: {
     borderWidth: border.hairline,
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
   },
   statusPillText: {
     fontSize: 11,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   accountBalanceLabel: {
     marginTop: spacing.xl,
@@ -630,16 +630,17 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   accountBalance: {
-    maxWidth: '78%',
+    flexShrink: 1,
     fontSize: typography.size.xl + 4,
     lineHeight: typography.lineHeight.xl + 3,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
     fontVariant: ['tabular-nums'],
   },
   accountCurrency: {
+    flexShrink: 0,
     fontSize: typography.size.lg,
     lineHeight: typography.lineHeight.lg,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   accountActionRow: {
     flexDirection: 'row',
@@ -658,11 +659,11 @@ const styles = StyleSheet.create({
   accountPrimaryActionText: {
     color: palette.white,
     fontSize: typography.size.md,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   accountSecondaryActionText: {
     fontSize: typography.size.md,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   infoGrid: {
     flexDirection: 'row',
@@ -685,7 +686,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     fontSize: typography.size.sm,
     lineHeight: typography.lineHeight.sm,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   transactionRow: {
     minHeight: 78,
@@ -698,7 +699,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     fontSize: typography.size.xs,
     lineHeight: typography.lineHeight.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   switchTrack: {
     width: 48,
@@ -731,13 +732,13 @@ const styles = StyleSheet.create({
   },
   flowBadgeText: {
     fontSize: typography.size.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   flowTitle: {
     marginTop: spacing.lg,
     fontSize: typography.size.xl,
     lineHeight: typography.lineHeight.xl,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   flowDescription: {
     marginTop: spacing.sm,
@@ -762,6 +763,6 @@ const styles = StyleSheet.create({
   stepNumberText: {
     color: palette.white,
     fontSize: typography.size.sm,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
 });

@@ -6,7 +6,6 @@ import type { AppColors } from '../../../theme';
 import { paymentActionLabel, paymentT } from '../paymentI18n';
 import type { PaymentAction } from '../paymentTypes';
 import { paymentHomeStyles as styles } from './paymentHomeStyles';
-import { paymentSurfaces } from './paymentSurfaces';
 
 export function PaymentActionCard({
   action,
@@ -26,6 +25,7 @@ export function PaymentActionCard({
   const label = paymentActionLabel(t, action);
   const comingSoon = isPaymentActionComingSoon(action.id);
   const accessibilityLabel = comingSoon ? `${label}, ${paymentT(t, 'home.comingSoon')}` : label;
+  const iconSize = 26;
 
   return (
     <Pressable
@@ -35,17 +35,15 @@ export function PaymentActionCard({
       style={({ pressed }) => [
         styles.actionCard,
         compact && styles.actionCardCompact,
-        paymentSurfaces.card,
         {
           width,
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
+          backgroundColor: 'transparent',
           opacity: pressed ? 0.7 : 1,
         },
       ]}
     >
       <View style={[styles.actionIconWrap, compact && styles.actionIconWrapCompact, { backgroundColor: action.background }]}>
-        <Icon color={action.color} size={compact ? 22 : 27} strokeWidth={2.2} />
+        <Icon color={action.color} size={iconSize} strokeWidth={2} />
       </View>
       <Text numberOfLines={compact ? 3 : 2} style={[styles.actionLabel, compact && styles.actionLabelCompact, { color: colors.text }]}>
         {label}

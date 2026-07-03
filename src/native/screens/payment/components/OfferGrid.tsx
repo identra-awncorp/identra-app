@@ -13,18 +13,25 @@ export function OfferGrid({
   colors,
   offers,
   onAction,
+  onMore,
   width,
 }: {
   colors: AppColors;
   offers: Offer[];
   onAction: (offer: Offer) => void;
+  onMore?: () => void;
   width: number;
 }) {
   const { t } = useI18n();
 
   return (
     <>
-      <PaymentSectionHeader title={paymentT(t, 'home.sections.offers')} colors={colors} />
+      <PaymentSectionHeader
+        title={paymentT(t, 'home.sections.offers')}
+        action={onMore ? paymentT(t, 'home.sections.viewMore') : undefined}
+        colors={colors}
+        onAction={onMore}
+      />
       <View style={styles.offerGrid}>
         {offers.map((offer) => (
           <OfferCard
@@ -76,7 +83,7 @@ function OfferCard({
         <View style={styles.offerBubbleLarge} />
         <View style={styles.offerBubbleSmall} />
         <View style={styles.offerIconPlate}>
-          <Icon color={colors.primaryDark} size={32} strokeWidth={2.1} />
+          <Icon color={colors.primaryDark} size={27} strokeWidth={1.9} />
         </View>
       </LinearGradient>
       <Text numberOfLines={2} style={[styles.offerTitle, { color: colors.text }]}>

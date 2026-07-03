@@ -1111,6 +1111,7 @@ export const en = {
         edit: 'Edit',
         suggestions: 'Suggestions',
         offers: 'Offers',
+        viewMore: 'See more',
       },
       card: {
         manageCard: 'Manage card',
@@ -1154,7 +1155,7 @@ export const en = {
       cards: {
         'main-card': {
           accountType: 'Payment account',
-          balanceLabel: 'Main account balance',
+          balanceLabel: 'BALANCE',
           statementDate: 'Every 25th day',
           status: 'Active',
         },

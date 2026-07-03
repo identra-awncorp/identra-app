@@ -55,10 +55,11 @@ export function PaymentScreen({
   const screenWidth = Math.max(layout.minWidth, width);
   const contentWidth = screenWidth - layout.screenPadding * 2;
   const cardPageWidth = contentWidth + spacing.md;
-  const heroHeight = Math.max(272, Math.min(306, contentWidth * 0.78));
-  const quickItemWidth = Math.max(76, (contentWidth - spacing.md * 3) / 4);
-  const quickTrackWidth = quickItemWidth * 5 + spacing.md * 4;
-  const suggestionItemWidth = Math.max(76, (contentWidth - spacing.md * 3.5) / 4.5);
+  const heroHeight = Math.max(286, Math.min(318, contentWidth * 0.82));
+  const quickItemWidth = Math.max(70, (contentWidth - spacing.sm * 3) / 4);
+  const quickColumnCount = Math.ceil(quickActions.length / 2);
+  const quickTrackWidth = quickItemWidth * quickColumnCount + spacing.sm * Math.max(0, quickColumnCount - 1);
+  const suggestionItemWidth = Math.max(78, (contentWidth - spacing.md * 3.5) / 4.5);
   const bannerPageWidth = contentWidth + spacing.md;
   const offerCardWidth = (contentWidth - spacing.md) / 2;
 
@@ -129,6 +130,7 @@ export function PaymentScreen({
           colors={colors}
           itemWidth={suggestionItemWidth}
           onAction={onOpenSuggestion}
+          onMore={() => onOpenSuggestion(suggestionActions[0])}
         />
 
         <OfferGrid
@@ -136,6 +138,7 @@ export function PaymentScreen({
           colors={colors}
           width={offerCardWidth}
           onAction={onOpenOffer}
+          onMore={() => onOpenOffer(paymentOffers[0])}
         />
       </ScreenScroll>
       <PaymentCvvSheet card={cvvCard} colors={colors} onClose={() => setCvvCard(null)} />

@@ -33,7 +33,7 @@ export const paymentCards: PaymentCard[] = [
     accountType: 'Tài khoản thanh toán',
     expiry: '12/27',
     holder: 'NGUYEN HOANG NAM',
-    balanceLabel: 'Số dư tài khoản chính',
+    balanceLabel: 'Số dư',
     balance: '128,450,000',
     currency: 'VND',
     dailyLimit: '50,000,000 VND',

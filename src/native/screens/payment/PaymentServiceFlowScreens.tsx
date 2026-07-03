@@ -849,7 +849,7 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: typography.size.lg,
     lineHeight: typography.lineHeight.lg,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   heroDescription: {
     marginTop: spacing.xs,
@@ -867,12 +867,12 @@ const styles = StyleSheet.create({
   },
   promoPillText: {
     fontSize: typography.size.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   sectionTitle: {
     fontSize: typography.size.lg,
     lineHeight: typography.lineHeight.lg,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   inputCard: { gap: spacing.md },
   inputRow: {
@@ -888,7 +888,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     fontSize: typography.size.md,
-    fontWeight: typography.weight.semibold,
+    fontWeight: typography.weight.medium,
   },
   contactRow: {
     flexDirection: 'row',
@@ -914,11 +914,11 @@ const styles = StyleSheet.create({
   },
   contactAvatarText: {
     fontSize: typography.size.md,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   contactName: {
     fontSize: typography.size.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   contactPhone: {
     marginTop: spacing.xxs,
@@ -947,17 +947,17 @@ const styles = StyleSheet.create({
   },
   carrierShortName: {
     fontSize: typography.size.sm,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   carrierName: {
     marginTop: spacing.sm,
     fontSize: typography.size.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   carrierBonus: {
     marginTop: spacing.xxs,
     fontSize: 11,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.medium,
   },
   amountGrid: {
     flexDirection: 'row',
@@ -985,12 +985,12 @@ const styles = StyleSheet.create({
   popularText: {
     color: palette.white,
     fontSize: 10,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   amountValue: {
     fontSize: typography.size.lg,
     lineHeight: typography.lineHeight.lg,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
     fontVariant: ['tabular-nums'],
   },
   amountCurrencySmall: {
@@ -1001,7 +1001,7 @@ const styles = StyleSheet.create({
   amountBonus: {
     marginTop: spacing.sm,
     fontSize: typography.size.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   sourceCard: {
     minHeight: 86,
@@ -1020,7 +1020,7 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontSize: typography.size.sm,
     lineHeight: typography.lineHeight.sm,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   rowDescription: {
     marginTop: spacing.xs,
@@ -1033,7 +1033,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     fontSize: typography.size.xs,
     lineHeight: typography.lineHeight.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   summaryCard: {
     paddingVertical: spacing.xs,
@@ -1056,14 +1056,14 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     fontSize: typography.size.sm,
     lineHeight: typography.lineHeight.sm,
-    fontWeight: typography.weight.bold,
+    fontWeight: typography.weight.semibold,
   },
   summaryValueStrong: {
     flex: 1.22,
     textAlign: 'right',
     fontSize: typography.size.lg,
     lineHeight: typography.lineHeight.lg,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
     fontVariant: ['tabular-nums'],
   },
   notice: {
@@ -1104,7 +1104,7 @@ const styles = StyleSheet.create({
   categoryLabel: {
     marginTop: spacing.sm,
     fontSize: typography.size.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   providerRow: {
     flexDirection: 'row',
@@ -1121,7 +1121,7 @@ const styles = StyleSheet.create({
   },
   providerText: {
     fontSize: typography.size.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   savedCodeButton: {
     minHeight: 48,
@@ -1135,7 +1135,7 @@ const styles = StyleSheet.create({
   savedCodeText: {
     flex: 1,
     fontSize: typography.size.xs,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   billCard: {
     paddingVertical: spacing.xs,
@@ -1156,7 +1156,7 @@ const styles = StyleSheet.create({
   },
   statusPillText: {
     fontSize: 11,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   authLayer: { flex: 1, justifyContent: 'flex-end' },
   authBackdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
@@ -1200,7 +1200,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     fontSize: typography.size.lg,
     lineHeight: typography.lineHeight.lg,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   authDescription: {
     marginTop: spacing.sm,
@@ -1223,7 +1223,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     fontSize: typography.size.xl,
     lineHeight: typography.lineHeight.xl,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
     fontVariant: ['tabular-nums'],
   },
   pinBoxes: {
@@ -1242,7 +1242,7 @@ const styles = StyleSheet.create({
   },
   pinDot: {
     fontSize: typography.size.lg,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   hiddenPinInput: {
     position: 'absolute',
@@ -1262,7 +1262,7 @@ const styles = StyleSheet.create({
   },
   biometricText: {
     fontSize: typography.size.sm,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   authSubmit: {
     minHeight: 50,
@@ -1274,7 +1274,7 @@ const styles = StyleSheet.create({
   authSubmitText: {
     color: palette.white,
     fontSize: typography.size.md,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.semibold,
   },
   resultContent: {
     paddingBottom: spacing.xxl,
@@ -1292,13 +1292,13 @@ const styles = StyleSheet.create({
   resultTitle: {
     fontSize: typography.size.lg,
     lineHeight: typography.lineHeight.lg,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
     textAlign: 'center',
   },
   resultAmount: {
     fontSize: typography.size.xl,
     lineHeight: typography.lineHeight.xl,
-    fontWeight: typography.weight.black,
+    fontWeight: typography.weight.extraBold,
   },
   resultDescription: {
     textAlign: 'center',

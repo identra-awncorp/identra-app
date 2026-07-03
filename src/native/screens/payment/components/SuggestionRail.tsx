@@ -13,17 +13,24 @@ export function SuggestionRail({
   colors,
   itemWidth,
   onAction,
+  onMore,
 }: {
   actions: PaymentAction[];
   colors: AppColors;
   itemWidth: number;
   onAction: (action: PaymentAction) => void;
+  onMore?: () => void;
 }) {
   const { t } = useI18n();
 
   return (
     <>
-      <PaymentSectionHeader title={paymentT(t, 'home.sections.suggestions')} colors={colors} />
+      <PaymentSectionHeader
+        title={paymentT(t, 'home.sections.suggestions')}
+        action={onMore ? paymentT(t, 'home.sections.viewMore') : undefined}
+        colors={colors}
+        onAction={onMore}
+      />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionScroller}>
         {actions.map((item) => (
           <PaymentActionCard

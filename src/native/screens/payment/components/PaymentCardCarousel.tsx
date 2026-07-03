@@ -87,19 +87,25 @@ export function PaymentCardCarousel({
                   onPress={() => onManageCard(card)}
                   style={({ pressed }) => [styles.manageButton, { opacity: pressed ? 0.72 : 1 }]}
                 >
-                  <Settings color={palette.white} size={20} strokeWidth={2} />
-                  <Text style={styles.manageButtonText}>{paymentT(t, 'home.card.manage')}</Text>
+                  <Settings color={palette.white} size={19} strokeWidth={1.9} />
+                  <Text numberOfLines={1} style={styles.manageButtonText}>
+                    {paymentT(t, 'home.card.manage')}
+                  </Text>
                 </Pressable>
                 <View style={styles.cardBrandStack}>
-                  <Text style={styles.cardBrand}>{card.brand}</Text>
+                  <Text numberOfLines={1} style={styles.cardBrand}>
+                    {card.brand}
+                  </Text>
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={paymentT(t, 'home.card.viewDetails')}
                     onPress={() => onOpenCardDetail(card)}
                     style={({ pressed }) => [styles.cardDetailButton, { opacity: pressed ? 0.72 : 1 }]}
                   >
-                    <Text style={styles.cardDetailText}>{paymentT(t, 'home.card.detail')}</Text>
-                    <ChevronRight color={palette.white} size={14} strokeWidth={2.4} />
+                    <Text numberOfLines={1} style={styles.cardDetailText}>
+                      {paymentT(t, 'home.card.detail')}
+                    </Text>
+                    <ChevronRight color={palette.white} size={14} strokeWidth={2.1} />
                   </Pressable>
                 </View>
               </View>
@@ -110,7 +116,7 @@ export function PaymentCardCarousel({
                     <View style={styles.chipLineHorizontal} />
                     <View style={styles.chipLineVertical} />
                   </View>
-                  <Wifi color={palette.white} size={26} strokeWidth={2.4} style={styles.contactlessIcon} />
+                  <Wifi color={palette.white} size={25} strokeWidth={2.1} style={styles.contactlessIcon} />
                 </View>
                 <View style={styles.cardNumberRow}>
                   <Text adjustsFontSizeToFit numberOfLines={1} style={styles.cardNumber}>
@@ -122,7 +128,7 @@ export function PaymentCardCarousel({
                     onPress={() => onCopyCardNumber(card)}
                     hitSlop={8}
                   >
-                    <Copy color="rgba(255,255,255,0.9)" size={18} strokeWidth={2} />
+                    <Copy color="rgba(255,255,255,0.9)" size={18} strokeWidth={1.9} />
                   </Pressable>
                 </View>
                 <View style={styles.cardMetaRow}>
@@ -171,7 +177,7 @@ export function PaymentCardCarousel({
                   onPress={() => onRequestCvv(card)}
                   style={({ pressed }) => [styles.cvvButton, { opacity: pressed ? 0.72 : 1 }]}
                 >
-                  <LockKeyhole color={palette.white} size={18} strokeWidth={2.2} />
+                  <LockKeyhole color={palette.white} size={17} strokeWidth={1.9} />
                   <Text numberOfLines={1} style={styles.cvvButtonText}>
                     {paymentT(t, 'home.card.getCvvCode')}
                   </Text>
