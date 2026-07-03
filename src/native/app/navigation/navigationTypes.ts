@@ -1,7 +1,8 @@
-export type TabKey = 'chat' | 'feed' | 'scan' | 'payment' | 'identity';
+export type TabKey = 'chat' | 'feed' | 'scan' | 'payment' | 'miniApp';
 
 export type ScreenKey =
   | 'wallet'
+  | 'mini-app'
   | 'news-feed'
   | 'news-feed-search'
   | 'compose-post'

@@ -57,6 +57,12 @@ export const defaultFlowSettings: AppFlowSettings = {
     cardContactless: true,
     cardAtmWithdrawals: true,
   },
+  miniApp: {
+    showFrequentApps: true,
+    enableAppSuggestions: true,
+    publicServiceShortcuts: true,
+    miniAppNotifications: true,
+  },
   identity: {
     hideSensitiveData: true,
     compactDid: true,
@@ -84,6 +90,7 @@ export function normalizeFlowSettings(settings?: Partial<AppFlowSettings>): AppF
     feed: { ...defaultFlowSettings.feed, ...(settings?.feed ?? {}) },
     scan: { ...defaultFlowSettings.scan, ...(settings?.scan ?? {}) },
     payment: { ...defaultFlowSettings.payment, ...(settings?.payment ?? {}) },
+    miniApp: { ...defaultFlowSettings.miniApp, ...(settings?.miniApp ?? {}) },
     identity: { ...defaultFlowSettings.identity, ...(settings?.identity ?? {}) },
   };
 }

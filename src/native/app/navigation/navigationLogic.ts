@@ -9,13 +9,14 @@ export const tabScreens: Record<TabKey, ScreenKey> = {
   feed: 'news-feed',
   scan: 'scan',
   payment: 'payment',
-  identity: 'wallet',
+  miniApp: 'mini-app',
 };
 
-export const bottomNavScreenKeys: ScreenKey[] = ['chat-list', 'news-feed', 'scan', 'payment', 'wallet', 'credentials'];
+export const bottomNavScreenKeys: ScreenKey[] = ['chat-list', 'news-feed', 'scan', 'payment', 'mini-app'];
 
 export const screenPaths: Record<ScreenKey, Href> = {
   wallet: '/wallet',
+  'mini-app': '/mini-app',
   'news-feed': '/news-feed',
   'news-feed-search': '/news-feed-search',
   'compose-post': '/compose-post',
@@ -50,8 +51,7 @@ const activeTabByScreen: Partial<Record<ScreenKey, TabKey>> = {
   'news-feed': 'feed',
   scan: 'scan',
   payment: 'payment',
-  wallet: 'identity',
-  credentials: 'identity',
+  'mini-app': 'miniApp',
 };
 
 const returnScreenTargets = new Set<ScreenKey>(['credentials', 'notifications', 'profile', 'security']);

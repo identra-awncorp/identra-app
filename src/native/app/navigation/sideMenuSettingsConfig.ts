@@ -11,6 +11,7 @@ import {
   Eye,
   FileWarning,
   Flashlight,
+  Grid2X2,
   Heart,
   History,
   Image,
@@ -21,6 +22,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Smartphone,
+  Sparkles,
   UserRound,
   UserX,
   UsersRound,
@@ -201,6 +203,23 @@ export const sideMenuSettingsByFlow: Record<AppFlowKey, SideMenuFlowConfig> = {
       },
     ],
   },
+  miniApp: {
+    key: 'miniApp',
+    titleKey: 'app.sideMenu.miniApp.title',
+    descriptionKey: 'app.sideMenu.miniApp.description',
+    sections: [
+      {
+        id: 'discovery',
+        titleKey: 'app.sideMenu.miniApp.discoverySection',
+        items: [
+          { type: 'toggle', id: 'showFrequentApps', settingId: 'showFrequentApps', titleKey: 'app.sideMenu.miniApp.frequentTitle', descriptionKey: 'app.sideMenu.miniApp.frequentDescription', icon: Grid2X2 },
+          { type: 'toggle', id: 'enableAppSuggestions', settingId: 'enableAppSuggestions', titleKey: 'app.sideMenu.miniApp.suggestionTitle', descriptionKey: 'app.sideMenu.miniApp.suggestionDescription', icon: Sparkles },
+          { type: 'toggle', id: 'publicServiceShortcuts', settingId: 'publicServiceShortcuts', titleKey: 'app.sideMenu.miniApp.publicServiceTitle', descriptionKey: 'app.sideMenu.miniApp.publicServiceDescription', icon: ShieldCheck },
+          { type: 'toggle', id: 'miniAppNotifications', settingId: 'miniAppNotifications', titleKey: 'app.sideMenu.miniApp.notificationTitle', descriptionKey: 'app.sideMenu.miniApp.notificationDescription', icon: Bell },
+        ],
+      },
+    ],
+  },
   identity: {
     key: 'identity',
     titleKey: 'app.sideMenu.identitySettings.title',
@@ -235,6 +254,7 @@ export function getSideMenuFlowForPathname(pathname: string): AppFlowKey {
   if (pathname === '/chat-list' || pathname === '/chat') return 'chat';
   if (pathname === '/scan' || pathname === '/connection-qr') return 'scan';
   if (pathname.startsWith('/payment')) return 'payment';
+  if (pathname === '/mini-app') return 'miniApp';
   if (
     pathname === '/wallet' ||
     pathname.startsWith('/credentials') ||

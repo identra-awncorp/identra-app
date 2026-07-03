@@ -9,6 +9,7 @@ import {
   Moon,
   Settings,
   Sun,
+  WalletCards,
   X,
   type LucideIcon,
 } from 'lucide-react-native';
@@ -110,6 +111,11 @@ export function AppShell() {
     if (screen) setReturnScreen(screen);
     router.push(getPathForScreen('settings'));
   };
+  const openIdentity = () => {
+    closeSideMenu();
+    if (screen) setReturnScreen(screen);
+    router.push(getPathForScreen('wallet'));
+  };
   const handleLogout = async () => {
     closeSideMenu();
     await logout();
@@ -149,6 +155,7 @@ export function AppShell() {
           topInset={insets.top}
           visible={sideMenuOpen}
           onClose={closeSideMenu}
+          onOpenIdentity={openIdentity}
           onLogout={() => void handleLogout()}
           onOpenSettings={openSettings}
           onUpdateSettings={store.updateSettings}
@@ -402,6 +409,7 @@ function SideMenu({
   colors,
   flowKey,
   onClose,
+  onOpenIdentity,
   onLogout,
   onOpenSettings,
   onUpdateSettings,
@@ -413,6 +421,7 @@ function SideMenu({
   colors: typeof lightColors;
   flowKey: AppFlowKey;
   onClose: () => void;
+  onOpenIdentity: () => void;
   onLogout: () => void;
   onOpenSettings: () => void;
   onUpdateSettings: (settings: Partial<AppSettings>) => void;
@@ -612,6 +621,14 @@ function SideMenu({
                 ))}
               </View>
             ) : null}
+            <SideMenuActionRow
+              colors={colors}
+              description={t('app.sideMenu.openIdentityDescription')}
+              icon={WalletCards}
+              title={t('app.sideMenu.openIdentityTitle')}
+              variant="global"
+              onPress={onOpenIdentity}
+            />
           </View>
 
           {flowConfig.sections.map((section) => (

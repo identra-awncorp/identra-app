@@ -2,7 +2,7 @@ import type { ComponentType } from 'react';
 
 import {
   ChatNavIcon,
-  IdentityNavIcon,
+  MiniAppNavIcon,
   NewsFeedNavIcon,
   PaymentNavIcon,
   ScanQrNavIcon,
@@ -51,5 +51,5 @@ export const bottomNavItems: BottomNavScreenConfig[] = [
   { key: 'feed', labelKey: 'app.bottomNav.feed', icon: NewsFeedNavIcon },
   { key: 'scan', labelKey: 'app.bottomNav.scan', icon: ScanQrNavIcon },
   { key: 'payment', labelKey: 'app.bottomNav.payment', icon: PaymentNavIcon },
-  { key: 'identity', labelKey: 'app.bottomNav.identity', icon: IdentityNavIcon },
+  { key: 'miniApp', labelKey: 'app.bottomNav.miniApp', icon: MiniAppNavIcon },
 ];

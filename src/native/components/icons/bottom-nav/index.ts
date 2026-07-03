@@ -4,3 +4,4 @@ export { NewsFeedNavIcon } from './NewsFeedNavIcon';
 export { ScanQrNavIcon } from './ScanQrNavIcon';
 export { PaymentNavIcon } from './PaymentNavIcon';
 export { IdentityNavIcon } from './IdentityNavIcon';
+export { MiniAppNavIcon } from './MiniAppNavIcon';

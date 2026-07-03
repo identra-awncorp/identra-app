@@ -1,28 +1,28 @@
 import { useRouter, type Href } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 
 import { ChatListScreen } from '../../screens/chat-list';
+import { MiniAppScreen } from '../../screens/mini-app';
 import { NewsFeedScreen } from '../../screens/news-feed';
 import { PaymentScreen } from '../../screens/payment';
 import { QrScannerScreen } from '../../screens/scan';
-import { WalletScreen } from '../../screens/identity';
 import { useI18n } from '../../i18n';
 import { useAppStore } from '../../store';
 import type { ScreenKey } from '../../types';
 import { useAppRouterState } from './AppRouterContext';
 
-export type KeepAliveMainScreen = Extract<ScreenKey, 'chat-list' | 'news-feed' | 'scan' | 'payment' | 'wallet'>;
+export type KeepAliveMainScreen = Extract<ScreenKey, 'chat-list' | 'news-feed' | 'scan' | 'payment' | 'mini-app'>;
 
 export const keepAliveMainScreens: KeepAliveMainScreen[] = [
   'chat-list',
   'news-feed',
   'scan',
   'payment',
-  'wallet',
+  'mini-app',
 ];
 
-const stagedWarmScreens: KeepAliveMainScreen[] = ['chat-list', 'news-feed', 'payment', 'wallet'];
+const stagedWarmScreens: KeepAliveMainScreen[] = ['chat-list', 'news-feed', 'payment', 'mini-app'];
 
 export function isKeepAliveMainScreen(screen: ScreenKey | null): screen is KeepAliveMainScreen {
   return Boolean(screen && keepAliveMainScreens.includes(screen as KeepAliveMainScreen));
@@ -48,7 +48,7 @@ export function MainTabKeepAliveScreens({ activeScreen }: { activeScreen: KeepAl
     'news-feed': activeScreen === 'news-feed',
     scan: activeScreen === 'scan',
     payment: activeScreen === 'payment',
-    wallet: activeScreen === 'wallet',
+    'mini-app': activeScreen === 'mini-app',
   }));
 
   useEffect(() => {
@@ -204,38 +204,17 @@ export function MainTabKeepAliveScreens({ activeScreen }: { activeScreen: KeepAl
         />
       </KeepAliveLayer>
 
-      <KeepAliveLayer active={activeScreen === 'wallet'} mounted={mountedScreens.wallet}>
-        <WalletScreen
+      <KeepAliveLayer active={activeScreen === 'mini-app'} mounted={mountedScreens['mini-app']}>
+        <MiniAppScreen
           colors={colors}
-          credentials={store.credentials}
-          did={store.profile.did}
-          onOpenActivity={() => router.push('/activity')}
-          onOpenChat={() => {
-            setChatReturnScreen('wallet');
-            router.replace('/chat-list');
-          }}
-          onOpenCredential={(credential) => {
-            router.push({ pathname: '/credentials/[credentialId]', params: { credentialId: credential.id } });
-          }}
-          onOpenCredentials={() => {
-            setReturnScreen('wallet');
-            router.push('/credentials');
-          }}
           onOpenMenu={openSideMenu}
           onOpenNotifications={() => {
-            setReturnScreen('wallet');
+            setReturnScreen('mini-app');
             router.push('/notifications');
           }}
-          onOpenProfile={() => {
-            setReturnScreen('wallet');
-            router.push('/profile');
+          onOpenSearch={() => {
+            Alert.alert(t('miniApp.search.title'), t('miniApp.search.description'));
           }}
-          onOpenScan={() => router.push('/scan')}
-          onOpenSecurity={() => {
-            setReturnScreen('wallet');
-            router.push('/security');
-          }}
-          onOpenShare={() => router.push('/share')}
         />
       </KeepAliveLayer>
     </View>
