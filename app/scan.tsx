@@ -9,12 +9,13 @@ export default function ScanRoute() {
   const router = useRouter();
   const store = useAppStore();
   const { t } = useI18n();
-  const { colors, connectionInvitation, setChatReturnScreen, setConnectionInvitation } = useAppRouterState();
+  const { colors, connectionInvitation, openSideMenu, setChatReturnScreen, setConnectionInvitation } = useAppRouterState();
 
   return (
     <QrScannerScreen
       colors={colors}
       onOpenActivity={() => router.push('/activity')}
+      onOpenMenu={openSideMenu}
       onOpenChat={() => {
         setChatReturnScreen('scan');
         router.replace('/chat-list');

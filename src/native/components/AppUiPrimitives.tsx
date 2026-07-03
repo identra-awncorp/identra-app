@@ -35,10 +35,19 @@ interface ScreenScrollProps extends PropsWithChildren {
   id: string;
   colors: AppColors;
   contentStyle?: StyleProp<ViewStyle>;
+  includeTopInset?: boolean;
+  includeBottomInset?: boolean;
   refreshControl?: ReactNode;
 }
 
-export function ScreenScroll({ id, colors, children, contentStyle }: ScreenScrollProps) {
+export function ScreenScroll({
+  id,
+  colors,
+  children,
+  contentStyle,
+  includeTopInset = true,
+  includeBottomInset = true,
+}: ScreenScrollProps) {
   const insets = useSafeAreaInsets();
   const content = StyleSheet.flatten([styles.screenContent, contentStyle]) ?? {};
 
@@ -50,8 +59,8 @@ export function ScreenScroll({ id, colors, children, contentStyle }: ScreenScrol
         contentContainerStyle={[
           content,
           {
-            paddingTop: getNumericStyleValue(content.paddingTop) + insets.top,
-            paddingBottom: getNumericStyleValue(content.paddingBottom) + insets.bottom,
+            paddingTop: getNumericStyleValue(content.paddingTop) + (includeTopInset ? insets.top : 0),
+            paddingBottom: getNumericStyleValue(content.paddingBottom) + (includeBottomInset ? insets.bottom : 0),
           },
         ]}
       >

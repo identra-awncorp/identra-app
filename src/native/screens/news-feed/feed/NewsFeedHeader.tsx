@@ -1,9 +1,7 @@
-import { Heart, Menu, Search } from 'lucide-react-native';
-import { Pressable, Text, View } from 'react-native';
-import { AppBrandLogo } from '../../../components/AppLogo';
+import { Heart, Search } from 'lucide-react-native';
+import { MainTopHeader } from '../../../components/MainTopHeader';
 import { useI18n } from '../../../i18n';
 import type { AppColors } from '../../../theme';
-import { newsFeedStyles as styles } from './newsFeedStyles';
 
 export function NewsFeedHeader({
   colors,
@@ -19,38 +17,25 @@ export function NewsFeedHeader({
   const { t } = useI18n();
 
   return (
-    <View style={styles.header}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t('newsFeed.openMenu')}
-        onPress={onOpenMenu}
-        style={({ pressed }) => [styles.iconButton, { opacity: pressed ? 0.62 : 1 }]}
-      >
-        <Menu color={colors.text} size={29} strokeWidth={1.9} />
-      </Pressable>
-      <AppBrandLogo colors={colors} logoSize={30} wordmarkSize={20} style={styles.brand} />
-      <Pressable
-        accessibilityRole="search"
-        accessibilityLabel={t('newsFeed.searchFeed')}
-        onPress={onOpenSearch}
-        style={[styles.searchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}
-      >
-        <Search color={colors.textSecondary} size={22} strokeWidth={1.9} />
-        <Text numberOfLines={1} style={[styles.searchPlaceholder, { color: colors.textSecondary }]}>
-          {t('common.search')}
-        </Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t('newsFeed.openNotifications')}
-        onPress={onOpenNotifications}
-        style={({ pressed }) => [styles.iconButton, { opacity: pressed ? 0.62 : 1 }]}
-      >
-        <Heart color={colors.textSecondary} size={29} strokeWidth={1.9} />
-        <View style={styles.notificationBadge}>
-          <Text style={styles.notificationBadgeText}>3</Text>
-        </View>
-      </Pressable>
-    </View>
+    <MainTopHeader
+      colors={colors}
+      menuLabel={t('newsFeed.openMenu')}
+      onOpenMenu={onOpenMenu}
+      actions={[
+        {
+          key: 'search',
+          label: t('newsFeed.searchFeed'),
+          icon: Search,
+          onPress: onOpenSearch,
+        },
+        {
+          key: 'notifications',
+          label: t('newsFeed.openNotifications'),
+          icon: Heart,
+          onPress: onOpenNotifications,
+          badge: '3',
+        },
+      ]}
+    />
   );
 }

@@ -1,64 +1,15 @@
 import { StyleSheet } from 'react-native';
 
-import { border, layout, palette, radius, spacing, touchTarget, typography } from '../../../theme';
+import { border, palette, radius, spacing, typography } from '../../../theme';
 
 export const paymentHomeStyles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
   screenContent: {
     paddingTop: spacing.sm,
     paddingBottom: spacing.xxl,
     gap: spacing.lg,
-  },
-  header: {
-    minHeight: layout.appBarHeight,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  headerIconButton: {
-    width: touchTarget.minimum,
-    height: touchTarget.minimum,
-    borderRadius: radius.round,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  brandName: {
-    flex: 1,
-    fontSize: typography.size.xl,
-    lineHeight: typography.lineHeight.xl,
-    fontWeight: typography.weight.black,
-    letterSpacing: 0,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  circleActionButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    borderWidth: border.hairline,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    minWidth: 23,
-    height: 23,
-    borderRadius: 12,
-    backgroundColor: palette.red[500],
-    borderWidth: border.thick,
-    borderColor: palette.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xs,
-  },
-  notificationBadgeText: {
-    color: palette.white,
-    fontSize: 11,
-    fontWeight: typography.weight.black,
   },
   heroScroller: {
     paddingTop: spacing.xs,

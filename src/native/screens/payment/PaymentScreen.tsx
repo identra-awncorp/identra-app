@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, useWindowDimensions } from 'react-native';
+import { Alert, useWindowDimensions, View } from 'react-native';
 
 import {
   paymentCards,
@@ -84,15 +84,15 @@ export function PaymentScreen({
   }, []);
 
   return (
-    <>
-      <ScreenScroll id="screen-payment" colors={colors} contentStyle={styles.screenContent}>
-        <PaymentHeader
-          colors={colors}
-          onOpenMenu={onOpenMenu}
-          onOpenSearch={onOpenSearch}
-          onOpenNotifications={onOpenNotifications}
-        />
+    <View nativeID="screen-payment" testID="screen-payment" style={[styles.screen, { backgroundColor: colors.background }]}>
+      <PaymentHeader
+        colors={colors}
+        onOpenMenu={onOpenMenu}
+        onOpenSearch={onOpenSearch}
+        onOpenNotifications={onOpenNotifications}
+      />
 
+      <ScreenScroll id="screen-payment-content" colors={colors} contentStyle={styles.screenContent} includeTopInset={false}>
         <PaymentCardCarousel
           balanceVisible={balanceVisible}
           cards={paymentCards}
@@ -139,6 +139,6 @@ export function PaymentScreen({
         />
       </ScreenScroll>
       <PaymentCvvSheet card={cvvCard} colors={colors} onClose={() => setCvvCard(null)} />
-    </>
+    </View>
   );
 }

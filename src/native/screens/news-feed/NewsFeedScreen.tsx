@@ -166,7 +166,6 @@ export function NewsFeedScreen({
           styles.headerOverlay,
           {
             backgroundColor: colors.background,
-            paddingTop: insets.top,
             transform: [{ translateY: headerTranslateY }],
           },
         ]}

@@ -1,7 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { border, layout, palette, radius, spacing, typography } from '../../theme';
 import {
-  CHAT_LIST_HEADER_HEIGHT,
   LIST_AVATAR_SIZE,
   QUICK_AVATAR_SIZE,
   QUICK_CONTACT_WIDTH,
@@ -508,10 +507,6 @@ export const styles = StyleSheet.create({
   suggestedContactMeta: { fontSize: 14, lineHeight: 20, fontWeight: '600' },
   suggestedChatButton: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1 },
-  header: { minHeight: CHAT_LIST_HEADER_HEIGHT, paddingHorizontal: spacing.lg + spacing.xxs, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  brand: { flex: 1, minWidth: 0 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  headerAction: { borderRadius: 22 },
   searchArea: {
     minHeight: 76,
     paddingHorizontal: 18,

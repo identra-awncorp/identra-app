@@ -3,7 +3,6 @@ import {
   Flashlight,
   History,
   ImageUp,
-  Menu,
   MessageCircle,
   Minus,
   Plus,
@@ -13,8 +12,8 @@ import {
 } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
-import { AppBrandLogo } from '../../components/AppLogo';
-import { IconButton, ScreenScroll } from '../../components/AppUiPrimitives';
+import { MainTopHeader } from '../../components/MainTopHeader';
+import { ScreenScroll } from '../../components/AppUiPrimitives';
 import { useI18n } from '../../i18n';
 import type { AppColors } from '../../theme';
 import { border, palette, radius, spacing, typography } from '../../theme';
@@ -24,11 +23,13 @@ export function QrScannerScreen({
   onOpenActivity,
   onOpenMyQr,
   onOpenChat,
+  onOpenMenu,
 }: {
   colors: AppColors;
   onOpenActivity: () => void;
   onOpenMyQr: () => void;
   onOpenChat: () => void;
+  onOpenMenu: () => void;
 }) {
   const { t } = useI18n();
   const [permission, requestPermission] = useCameraPermissions();
@@ -48,125 +49,137 @@ export function QrScannerScreen({
   };
 
   return (
-    <ScreenScroll id="screen-scanner" colors={colors} contentStyle={styles.screenContent}>
-      <View style={styles.brandHeader}>
-        <IconButton label={t('scan.openMenu')} colors={colors}>
-          <Menu color={colors.text} size={26} />
-        </IconButton>
-        <AppBrandLogo colors={colors} style={styles.brandLogo} />
-        <IconButton label={t('scan.openChat')} colors={colors} onPress={onOpenChat}>
-          <MessageCircle color={colors.text} size={25} />
-        </IconButton>
-      </View>
+    <View nativeID="screen-scanner" testID="screen-scanner" style={[styles.screen, { backgroundColor: colors.background }]}>
+      <MainTopHeader
+        colors={colors}
+        menuLabel={t('scan.openMenu')}
+        onOpenMenu={onOpenMenu}
+        actions={[
+          {
+            key: 'history',
+            label: t('scan.history.title'),
+            icon: History,
+            onPress: onOpenActivity,
+          },
+          {
+            key: 'chat',
+            label: t('scan.openChat'),
+            icon: MessageCircle,
+            onPress: onOpenChat,
+          },
+        ]}
+      />
 
-      <View style={styles.intro}>
-        <Text style={[styles.title, { color: colors.text }]}>{t('scan.title')}</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          {t('scan.subtitle')}
-        </Text>
-      </View>
-
-      <View style={styles.cameraCard}>
-        {permission?.granted ? (
-          <CameraView style={StyleSheet.absoluteFill} enableTorch={torchEnabled} zoom={zoom} />
-        ) : (
-          <View style={styles.permissionFallback}>
-            <ScanLine color={palette.white} size={48} strokeWidth={1.6} />
-            <Text style={styles.permissionTitle}>{t('scan.permissionTitle')}</Text>
-            <Text style={styles.permissionText}>{t('scan.permissionDescription')}</Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('scan.permissionTitle')}
-              onPress={() => void requestPermission()}
-              style={({ pressed }) => [styles.permissionButton, { opacity: pressed ? 0.72 : 1 }]}
-            >
-              <Text style={styles.permissionButtonText}>{t('scan.openCamera')}</Text>
-            </Pressable>
-          </View>
-        )}
-
-        <View pointerEvents="box-none" style={styles.cameraOverlay}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={torchEnabled ? t('scan.torchOff') : t('scan.torchOn')}
-            onPress={() => setTorchEnabled((current) => !current)}
-            style={({ pressed }) => [
-              styles.torchButton,
-              torchEnabled && styles.torchButtonActive,
-              { opacity: pressed ? 0.75 : 1 },
-            ]}
-          >
-            <Flashlight color={palette.white} size={19} fill={torchEnabled ? palette.white : 'none'} />
-            <Text style={styles.torchText}>{torchEnabled ? t('scan.torchOff') : t('scan.torchOn')}</Text>
-          </Pressable>
-
-          <View pointerEvents="none" style={styles.scannerFrame}>
-            <View style={[styles.corner, styles.cornerTopLeft]} />
-            <View style={[styles.corner, styles.cornerTopRight]} />
-            <View style={[styles.corner, styles.cornerBottomLeft]} />
-            <View style={[styles.corner, styles.cornerBottomRight]} />
-            <View style={styles.scanLine} />
-          </View>
-
-          <View style={styles.zoomControl}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('scan.zoomOut')}
-              onPress={() => setZoom((current) => Math.max(0, current - 0.1))}
-              style={({ pressed }) => [styles.zoomButton, { opacity: pressed ? 0.6 : 1 }]}
-            >
-              <Minus color={palette.white} size={18} />
-            </Pressable>
-            <Text style={styles.zoomText}>{(1 + zoom * 4).toFixed(1)}x</Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('scan.zoomIn')}
-              onPress={() => setZoom((current) => Math.min(1, current + 0.1))}
-              style={({ pressed }) => [styles.zoomButton, { opacity: pressed ? 0.6 : 1 }]}
-            >
-              <Plus color={palette.white} size={18} />
-            </Pressable>
-          </View>
-        </View>
-      </View>
-
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('scan.actionSection')}</Text>
-      <View style={styles.actions}>
-        <QuickAction
-          colors={colors}
-          icon={ImageUp}
-          title={t('scan.pickImage.title')}
-          description={t('scan.pickImage.description')}
-          onPress={() => showPendingMessage(t('scan.pickImage.title'))}
-        />
-        <QuickAction
-          colors={colors}
-          icon={QrCode}
-          title={t('scan.myQr.title')}
-          description={t('scan.myQr.description')}
-          onPress={onOpenMyQr}
-        />
-        <QuickAction
-          colors={colors}
-          icon={History}
-          title={t('scan.history.title')}
-          description={t('scan.history.description')}
-          onPress={onOpenActivity}
-        />
-      </View>
-
-      <View style={[styles.securityCard, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
-        <View style={styles.securityIcon}>
-          <ShieldCheck color={palette.white} size={28} strokeWidth={2} />
-        </View>
-        <View style={styles.securityText}>
-          <Text style={[styles.securityTitle, { color: colors.text }]}>{t('scan.securityTitle')}</Text>
-          <Text style={[styles.securityDescription, { color: colors.textSecondary }]}>
-            {t('scan.securityDescription')}
+      <ScreenScroll id="screen-scanner-content" colors={colors} contentStyle={styles.screenContent} includeTopInset={false}>
+        <View style={styles.intro}>
+          <Text style={[styles.title, { color: colors.text }]}>{t('scan.title')}</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            {t('scan.subtitle')}
           </Text>
         </View>
-      </View>
-    </ScreenScroll>
+
+        <View style={styles.cameraCard}>
+          {permission?.granted ? (
+            <CameraView style={StyleSheet.absoluteFill} enableTorch={torchEnabled} zoom={zoom} />
+          ) : (
+            <View style={styles.permissionFallback}>
+              <ScanLine color={palette.white} size={48} strokeWidth={1.6} />
+              <Text style={styles.permissionTitle}>{t('scan.permissionTitle')}</Text>
+              <Text style={styles.permissionText}>{t('scan.permissionDescription')}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('scan.permissionTitle')}
+                onPress={() => void requestPermission()}
+                style={({ pressed }) => [styles.permissionButton, { opacity: pressed ? 0.72 : 1 }]}
+              >
+                <Text style={styles.permissionButtonText}>{t('scan.openCamera')}</Text>
+              </Pressable>
+            </View>
+          )}
+
+          <View pointerEvents="box-none" style={styles.cameraOverlay}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={torchEnabled ? t('scan.torchOff') : t('scan.torchOn')}
+              onPress={() => setTorchEnabled((current) => !current)}
+              style={({ pressed }) => [
+                styles.torchButton,
+                torchEnabled && styles.torchButtonActive,
+                { opacity: pressed ? 0.75 : 1 },
+              ]}
+            >
+              <Flashlight color={palette.white} size={19} fill={torchEnabled ? palette.white : 'none'} />
+              <Text style={styles.torchText}>{torchEnabled ? t('scan.torchOff') : t('scan.torchOn')}</Text>
+            </Pressable>
+
+            <View pointerEvents="none" style={styles.scannerFrame}>
+              <View style={[styles.corner, styles.cornerTopLeft]} />
+              <View style={[styles.corner, styles.cornerTopRight]} />
+              <View style={[styles.corner, styles.cornerBottomLeft]} />
+              <View style={[styles.corner, styles.cornerBottomRight]} />
+              <View style={styles.scanLine} />
+            </View>
+
+            <View style={styles.zoomControl}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('scan.zoomOut')}
+                onPress={() => setZoom((current) => Math.max(0, current - 0.1))}
+                style={({ pressed }) => [styles.zoomButton, { opacity: pressed ? 0.6 : 1 }]}
+              >
+                <Minus color={palette.white} size={18} />
+              </Pressable>
+              <Text style={styles.zoomText}>{(1 + zoom * 4).toFixed(1)}x</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('scan.zoomIn')}
+                onPress={() => setZoom((current) => Math.min(1, current + 0.1))}
+                style={({ pressed }) => [styles.zoomButton, { opacity: pressed ? 0.6 : 1 }]}
+              >
+                <Plus color={palette.white} size={18} />
+              </Pressable>
+            </View>
+          </View>
+        </View>
+
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('scan.actionSection')}</Text>
+        <View style={styles.actions}>
+          <QuickAction
+            colors={colors}
+            icon={ImageUp}
+            title={t('scan.pickImage.title')}
+            description={t('scan.pickImage.description')}
+            onPress={() => showPendingMessage(t('scan.pickImage.title'))}
+          />
+          <QuickAction
+            colors={colors}
+            icon={QrCode}
+            title={t('scan.myQr.title')}
+            description={t('scan.myQr.description')}
+            onPress={onOpenMyQr}
+          />
+          <QuickAction
+            colors={colors}
+            icon={History}
+            title={t('scan.history.title')}
+            description={t('scan.history.description')}
+            onPress={onOpenActivity}
+          />
+        </View>
+
+        <View style={[styles.securityCard, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
+          <View style={styles.securityIcon}>
+            <ShieldCheck color={palette.white} size={28} strokeWidth={2} />
+          </View>
+          <View style={styles.securityText}>
+            <Text style={[styles.securityTitle, { color: colors.text }]}>{t('scan.securityTitle')}</Text>
+            <Text style={[styles.securityDescription, { color: colors.textSecondary }]}>
+              {t('scan.securityDescription')}
+            </Text>
+          </View>
+        </View>
+      </ScreenScroll>
+    </View>
   );
 }
 
@@ -208,9 +221,8 @@ function QuickAction({
 }
 
 const styles = StyleSheet.create({
-  screenContent: { paddingTop: spacing.xxs, paddingBottom: spacing.xl, gap: spacing.md + spacing.xxs },
-  brandHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: spacing.sm - 1 },
-  brandLogo: { flex: 1 },
+  screen: { flex: 1 },
+  screenContent: { paddingTop: spacing.sm, paddingBottom: spacing.xl, gap: spacing.md + spacing.xxs },
   intro: { paddingHorizontal: 1, gap: 3 },
   title: { fontSize: typography.size.xl, lineHeight: 34, fontWeight: typography.weight.black, letterSpacing: -0.65 },
   subtitle: { fontSize: typography.size.sm, lineHeight: typography.lineHeight.sm },

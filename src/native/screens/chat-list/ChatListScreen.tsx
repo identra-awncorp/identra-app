@@ -1,12 +1,11 @@
-import { Box, ChevronLeft, Grid2X2, Menu, MessageCircle, Plus, Search, SquarePen, UserRound } from 'lucide-react-native';
+import { Box, ChevronLeft, Grid2X2, MessageCircle, Plus, Search, SquarePen, UserRound } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Keyboard, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppBrandLogo } from '../../components/AppLogo';
 import { chatConversations, quickContacts } from '../../data/demo/chatDemoData';
 import type { ChatPreview } from '../../data/demo/chatDemoData';
 import { useI18n } from '../../i18n';
-import { IconButton } from '../../components/AppUiPrimitives';
+import { MainTopHeader } from '../../components/MainTopHeader';
 import type { AppColors } from '../../theme';
 import {
   ConnectedPersonRow,
@@ -289,20 +288,25 @@ export function ChatListScreen({
       style={[styles.screen, { backgroundColor: colors.background }]}
     >
       <View pointerEvents="auto" style={styles.defaultLayer}>
-        <View style={[styles.header, { paddingTop: insets.top }]}>
-          <IconButton colors={colors} label={t('chatList.openMenu')} onPress={onOpenMenu} style={styles.headerAction}>
-            <Menu color={colors.text} size={27} strokeWidth={1.9} />
-          </IconButton>
-          <AppBrandLogo colors={colors} logoSize={28} wordmarkSize={20} style={styles.brand} />
-          <View style={styles.headerActions}>
-            <IconButton colors={colors} label={t('chatList.shareThought')} onPress={openShareThought} style={styles.headerAction}>
-              <SquarePen color={colors.text} size={23} strokeWidth={1.9} />
-            </IconButton>
-            <IconButton colors={colors} label={t('chatList.createConversation')} onPress={openCreateMode} style={styles.headerAction}>
-              <Plus color={colors.text} size={27} strokeWidth={1.8} />
-            </IconButton>
-          </View>
-        </View>
+        <MainTopHeader
+          colors={colors}
+          menuLabel={t('chatList.openMenu')}
+          onOpenMenu={onOpenMenu}
+          actions={[
+            {
+              key: 'share-thought',
+              label: t('chatList.shareThought'),
+              icon: SquarePen,
+              onPress: openShareThought,
+            },
+            {
+              key: 'create-conversation',
+              label: t('chatList.createConversation'),
+              icon: Plus,
+              onPress: openCreateMode,
+            },
+          ]}
+        />
 
         {searchActive ? (
           <View style={styles.body}>

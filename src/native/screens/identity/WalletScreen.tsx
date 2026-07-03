@@ -5,7 +5,6 @@ import {
   ContactRound,
   History,
   LockKeyhole,
-  Menu,
   MessageCircle,
   Share2,
   ShieldCheck,
@@ -15,12 +14,11 @@ import { assetManifest } from '../../assets/assetManifest';
 import type { AppColors } from '../../theme';
 import { border, palette, radius, shadows, spacing, typography } from '../../theme';
 import type { Credential } from '../../types';
-import { AppBrandLogo } from '../../components/AppLogo';
+import { MainTopHeader } from '../../components/MainTopHeader';
 import { useI18n } from '../../i18n';
 import {
   Card,
   CredentialIcon,
-  IconButton,
   ListChevron,
   ScreenScroll,
   StatusPill,
@@ -80,38 +78,39 @@ export function WalletScreen({
   ];
 
   return (
-    <ScreenScroll
-      id="screen-wallet-home"
-      colors={colors}
-      contentStyle={styles.screenContent}
-    >
-      <View style={styles.brandHeader}>
-        <IconButton label={t('identity.wallet.openMenu')} colors={colors} onPress={onOpenMenu}>
-          <Menu color={colors.text} size={26} />
-        </IconButton>
-        <AppBrandLogo colors={colors} style={styles.brandLogo} />
-        <IconButton label={t('identity.wallet.openChat')} colors={colors} onPress={onOpenChat}>
-          <MessageCircle color={colors.text} size={25} />
-        </IconButton>
-      </View>
+    <View nativeID="screen-wallet-home" testID="screen-wallet-home" style={[styles.screen, { backgroundColor: colors.background }]}>
+      <MainTopHeader
+        colors={colors}
+        menuLabel={t('identity.wallet.openMenu')}
+        onOpenMenu={onOpenMenu}
+        actions={[
+          {
+            key: 'chat',
+            label: t('identity.wallet.openChat'),
+            icon: MessageCircle,
+            onPress: onOpenChat,
+          },
+          {
+            key: 'notifications',
+            label: t('identity.wallet.openNotifications'),
+            icon: Bell,
+            onPress: onOpenNotifications,
+            dot: true,
+          },
+        ]}
+      />
 
+      <ScreenScroll
+        id="screen-wallet-home-content"
+        colors={colors}
+        contentStyle={styles.screenContent}
+        includeTopInset={false}
+      >
       <View style={styles.titleRow}>
         <View>
           <Text style={[styles.screenTitle, { color: colors.text }]}>{t('identity.wallet.title')}</Text>
           <Text style={[styles.did, { color: colors.textSecondary }]}>{did}</Text>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('identity.wallet.openNotifications')}
-          onPress={onOpenNotifications}
-          style={({ pressed }) => [
-            styles.notification,
-            { backgroundColor: colors.surface, borderColor: colors.border, opacity: pressed ? 0.75 : 1 },
-          ]}
-        >
-          <Bell color={colors.text} size={25} />
-          <View style={styles.notificationDot} />
-        </Pressable>
       </View>
 
       <Pressable accessibilityRole="button" onPress={() => featured && onOpenCredential(featured)}>
@@ -234,36 +233,17 @@ export function WalletScreen({
           <Text style={styles.bannerButtonText}>{t('identity.wallet.bannerAction')}</Text>
         </Pressable>
       </LinearGradient>
-    </ScreenScroll>
+      </ScreenScroll>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screenContent: { paddingTop: spacing.xxs, paddingBottom: spacing.xl, gap: spacing.md },
-  brandHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: spacing.sm - 1 },
-  brandLogo: { flex: 1 },
-  titleRow: { minHeight: 67, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.xs },
+  screen: { flex: 1 },
+  screenContent: { paddingTop: spacing.sm, paddingBottom: spacing.xl, gap: spacing.md },
+  titleRow: { minHeight: 67, justifyContent: 'center', paddingHorizontal: spacing.xs },
   screenTitle: { fontSize: typography.size.lg + 1, fontWeight: typography.weight.extraBold, letterSpacing: -0.45 },
   did: { marginTop: spacing.xs - 1, fontSize: typography.size.sm, fontWeight: typography.weight.medium },
-  notification: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: border.thin,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  notificationDot: {
-    position: 'absolute',
-    top: 11,
-    right: 11,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: palette.red[500],
-    borderWidth: border.thick,
-    borderColor: palette.white,
-  },
   walletCard: {
     height: 170,
     borderRadius: radius.lg + 2,
