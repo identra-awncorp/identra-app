@@ -2,7 +2,7 @@ import { Stack, usePathname, useRouter } from 'expo-router';
 import * as SystemUI from 'expo-system-ui';
 import { X } from 'lucide-react-native';
 import { useEffect, useRef } from 'react';
-import { ActivityIndicator, Animated, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, Easing, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -16,6 +16,7 @@ import {
   shouldShowBottomNavForScreen,
   shouldUseFloatingBottomNav,
   sideMenuItems,
+  type BottomNavScreenConfig,
   type ScreenKey,
   type TabKey,
 } from '../navigation/navigationConfig';
@@ -26,6 +27,9 @@ import { border, layout, lightColors, palette, radius, shadows, spacing, touchTa
 import { useAppRouterState } from './AppRouterContext';
 
 const authPathnames = new Set(['/onboarding', '/login', '/register']);
+const bottomNavIconSize = 28;
+const scanNavLineWidth = 34;
+const scanNavLineHeight = 1.5;
 
 export function AppShell() {
   const store = useAppStore();
@@ -175,28 +179,201 @@ function BottomNavigation({
       ]}
     >
       {bottomNavItems.map((tab) => {
-        const Icon = tab.icon;
         const active = tab.key === activeTab;
         return (
-          <Pressable
+          <BottomNavButton
             key={tab.key}
-            accessibilityRole="tab"
-            accessibilityLabel={t(tab.labelKey)}
-            accessibilityState={{ selected: active }}
-            onPress={() => onSelect(tab.key)}
-            style={({ pressed }) => [styles.bottomNavItem, { opacity: pressed ? 0.55 : 1 }]}
-          >
-            <View style={[styles.bottomNavIcon, !active && styles.bottomNavIconInactive]}>
-              <Icon
-                color={active ? colors.primaryDark : colors.text}
-                backgroundColor={colors.surface}
-                size={28}
-              />
-            </View>
-          </Pressable>
+            active={active}
+            colors={colors}
+            label={t(tab.labelKey)}
+            tab={tab}
+            onSelect={() => onSelect(tab.key)}
+          />
         );
       })}
     </Animated.View>
+  );
+}
+
+function BottomNavButton({
+  active,
+  colors,
+  label,
+  onSelect,
+  tab,
+}: {
+  active: boolean;
+  colors: typeof lightColors;
+  label: string;
+  onSelect: () => void;
+  tab: BottomNavScreenConfig;
+}) {
+  if (tab.key === 'scan') {
+    return (
+      <ScanQrBottomNavButton
+        active={active}
+        colors={colors}
+        label={label}
+        tab={tab}
+        onSelect={onSelect}
+      />
+    );
+  }
+
+  const Icon = tab.icon;
+
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: active }}
+      onPress={onSelect}
+      style={({ pressed }) => [styles.bottomNavItem, { opacity: pressed ? 0.55 : 1 }]}
+    >
+      <View style={[styles.bottomNavIcon, !active && styles.bottomNavIconInactive]}>
+        <Icon
+          color={active ? colors.primaryDark : colors.text}
+          backgroundColor={colors.surface}
+          size={bottomNavIconSize}
+        />
+      </View>
+    </Pressable>
+  );
+}
+
+function ScanQrBottomNavButton({
+  active,
+  colors,
+  label,
+  onSelect,
+  tab,
+}: {
+  active: boolean;
+  colors: typeof lightColors;
+  label: string;
+  onSelect: () => void;
+  tab: BottomNavScreenConfig;
+}) {
+  const scanProgress = useRef(new Animated.Value(0)).current;
+  const scanLineOpacity = useRef(new Animated.Value(0)).current;
+  const iconBlinkOpacity = useRef(new Animated.Value(1)).current;
+  const Icon = tab.icon;
+  const scanForegroundColor = active ? colors.primaryDark : palette.white;
+  const scanBackgroundColor = active ? palette.white : colors.primaryDark;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.delay(520),
+        Animated.timing(scanLineOpacity, {
+          toValue: 1,
+          duration: 90,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: false,
+        }),
+        Animated.timing(scanProgress, {
+          toValue: 1,
+          duration: 760,
+          easing: Easing.inOut(Easing.cubic),
+          useNativeDriver: false,
+        }),
+        Animated.timing(scanLineOpacity, {
+          toValue: 0,
+          duration: 90,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: false,
+        }),
+        Animated.delay(300),
+        Animated.timing(scanLineOpacity, {
+          toValue: 1,
+          duration: 90,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: false,
+        }),
+        Animated.timing(scanProgress, {
+          toValue: 0,
+          duration: 760,
+          easing: Easing.inOut(Easing.cubic),
+          useNativeDriver: false,
+        }),
+        Animated.timing(scanLineOpacity, {
+          toValue: 0,
+          duration: 90,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: false,
+        }),
+        Animated.delay(120),
+        Animated.timing(iconBlinkOpacity, {
+          toValue: 0.25,
+          duration: 80,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: false,
+        }),
+        Animated.timing(iconBlinkOpacity, {
+          toValue: 1,
+          duration: 110,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: false,
+        }),
+        Animated.timing(iconBlinkOpacity, {
+          toValue: 0.25,
+          duration: 80,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: false,
+        }),
+        Animated.timing(iconBlinkOpacity, {
+          toValue: 1,
+          duration: 110,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: false,
+        }),
+      ]),
+    );
+
+    animation.start();
+
+    return () => {
+      animation.stop();
+    };
+  }, [iconBlinkOpacity, scanLineOpacity, scanProgress]);
+
+  const clippedIconHeight = scanProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [bottomNavIconSize, 0],
+  });
+  const scanLineTranslateY = scanProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [bottomNavIconSize, -scanNavLineHeight],
+  });
+
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: active }}
+      onPress={onSelect}
+      style={({ pressed }) => [styles.bottomNavItem, { opacity: pressed ? 0.7 : 1 }]}
+    >
+      <View style={[styles.scanNavButton, { backgroundColor: scanBackgroundColor, borderColor: colors.primaryDark, borderWidth: active ? border.thin : 0 }]}>
+        <View style={styles.scanNavViewport}>
+          <Animated.View style={[styles.scanNavIconClip, { height: clippedIconHeight, opacity: iconBlinkOpacity }]}>
+            <View style={styles.scanNavIconFull}>
+              <Icon color={scanForegroundColor} backgroundColor={scanBackgroundColor} size={bottomNavIconSize} />
+            </View>
+          </Animated.View>
+          <Animated.View
+            style={[
+              styles.scanNavLine,
+              {
+                backgroundColor: scanForegroundColor,
+                opacity: scanLineOpacity,
+                transform: [{ translateY: scanLineTranslateY }],
+              },
+            ]}
+          />
+        </View>
+      </View>
+    </Pressable>
   );
 }
 
@@ -308,6 +485,38 @@ const styles = StyleSheet.create({
   bottomNavItem: { flex: 1, minHeight: touchTarget.large, alignItems: 'center', justifyContent: 'center' },
   bottomNavIcon: { width: touchTarget.minimum, height: touchTarget.minimum, alignItems: 'center', justifyContent: 'center' },
   bottomNavIconInactive: { opacity: 0.8 },
+  scanNavButton: {
+    minWidth: touchTarget.minimum,
+    height: touchTarget.minimum,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  scanNavViewport: {
+    width: scanNavLineWidth,
+    height: bottomNavIconSize + scanNavLineHeight * 2,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    overflow: 'hidden',
+  },
+  scanNavIconClip: {
+    position: 'absolute',
+    top: scanNavLineHeight,
+    width: bottomNavIconSize,
+    overflow: 'hidden',
+  },
+  scanNavIconFull: {
+    width: bottomNavIconSize,
+    height: bottomNavIconSize,
+  },
+  scanNavLine: {
+    position: 'absolute',
+    top: scanNavLineHeight,
+    width: scanNavLineWidth,
+    height: scanNavLineHeight,
+    borderRadius: radius.round,
+  },
   sideMenuLayer: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 20 },
   sideMenuBackdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   sideMenuPanel: {
