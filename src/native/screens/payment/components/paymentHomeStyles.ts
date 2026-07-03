@@ -380,8 +380,11 @@ export const paymentHomeStyles = StyleSheet.create({
     borderWidth: border.hairline,
     overflow: 'hidden',
   },
-  demoBannerScroll: {
-    flex: 1,
+  demoBannerTrack: {},
+  demoBannerSlide: {
+    flexShrink: 0,
+    overflow: 'hidden',
+    backfaceVisibility: 'hidden',
   },
   demoBannerImage: {
     flexShrink: 0,

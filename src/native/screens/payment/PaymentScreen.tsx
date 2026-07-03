@@ -52,7 +52,7 @@ export function PaymentScreen({
   const screenWidth = Math.max(layout.minWidth, width);
   const contentWidth = screenWidth - layout.screenPadding * 2;
   const cardPageWidth = contentWidth + spacing.md;
-  const heroHeight = Math.max(286, Math.min(318, contentWidth * 0.82));
+  const heroHeight = Math.round(contentWidth / 1.2);
   const quickItemWidth = Math.max(70, (contentWidth - spacing.sm * 3) / 4);
   const quickColumnCount = Math.ceil(quickActions.length / 2);
   const quickTrackWidth = quickItemWidth * quickColumnCount + spacing.sm * Math.max(0, quickColumnCount - 1);
