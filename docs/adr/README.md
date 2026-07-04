@@ -22,7 +22,7 @@ Examples:
 - `Proposed`: under discussion.
 - `Accepted`: approved and should be followed.
 - `Superseded`: replaced by a newer ADR.
-- `Deprecated`: no longer recommended, but kept for history.
+- `Deprecated`: kept for history and avoided for new decisions.
 
 ## Template
 

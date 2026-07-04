@@ -39,8 +39,6 @@ The bottom navigation has five main tabs:
 - Payment
 - Mini App
 
-Identity is no longer a main tab. Identity wallet, Credentials, Profile, Security, Settings, Activity, and related secondary surfaces are opened from the side menu or direct routes.
-
 ## Project Structure
 
 ### Route Layer
@@ -109,7 +107,10 @@ Feature and domain docs live next to the code they explain:
 - `src/native/screens/mini-app/README.md`
 - `src/native/screens/payment/README.md`
 - `src/native/screens/identity/README.md`
+- `src/native/screens/scan/README.md`
 - `src/native/screens/settings/README.md`
+- `src/native/domain/app-store/README.md`
+- `src/native/domain/auth/README.md`
 - `src/native/domain/chat/README.md`
 - `src/native/domain/payment/README.md`
 - `src/native/domain/credentials/README.md`

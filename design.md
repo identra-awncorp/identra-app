@@ -5,7 +5,6 @@ status: review-only
 source-of-truth:
   token-reference: "src/native/theme.ts"
   current-development-rules: "codex.md"
-  proposed-development-rules: "codex-new.md"
 tokens:
   color-light:
     background: "#F7F8FC"

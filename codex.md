@@ -16,7 +16,7 @@ Before coding or changing UI, read the required documents in this order:
 
 1. Read `codex.md`.
 2. Read `design.md`.
-3. If the target feature or domain has a nearby `README.md` or `FEATURE_RULES.md`, read it before editing that feature.
+3. If the target feature or domain has a nearby `README.md`, read it before editing that feature.
 
 For example, read `src/native/screens/news-feed/README.md` before changing News Feed UI, and read `src/native/domain/payment/README.md` before changing payment business logic. If a requirement is unclear or would require changing architecture, ask before implementing.
 
@@ -26,7 +26,7 @@ Document boundary:
 - `codex.md` owns development behavior: stack decisions, project structure, routing, store/domain boundaries, i18n enforcement, asset import rules, test/lint expectations, security implementation constraints, and worktree safety.
 - `design.md` owns product design: visual direction, tokens, typography, spacing, radius, shadows, layout rhythm, component appearance, motion, and platform design constraints.
 - `codex.md` may reference design rules only as implementation obligations. It should not become a second design system.
-- `codex.md` should not contain detailed business rules for individual features. Put those rules in the relevant feature/domain `README.md` or `FEATURE_RULES.md`.
+- `codex.md` should not contain detailed business rules for individual features. Put those rules in the relevant feature/domain `README.md`.
 - `design.md` may mention architecture only when needed to explain product-level UI surfaces. It should not define file placement, route ownership, store/domain implementation, lint commands, test commands, or git workflow.
 
 ## 2. Product And Stack
@@ -95,13 +95,13 @@ Document boundary:
   - `src/native/screens/settings/details`
 - Shared UI components used across multiple features belong in `src/native/components`.
 - Shared styles or helpers used only by a screen family can remain inside that feature folder.
-- Feature-specific `README.md` or `FEATURE_RULES.md` files live beside feature code and document scope, important files, business rules, state boundaries, i18n rules, and required tests.
+- Feature-specific `README.md` files live beside feature code and document scope, important files, business rules, state boundaries, i18n rules, and required tests.
 - Keep feature documentation files short and update them when changing feature boundaries or behavior that future contributors must know.
 
 ### Feature And Domain Documentation
 
-- `src/native/screens/<feature>/README.md` or `FEATURE_RULES.md` owns screen-level responsibilities, UI flows, state boundaries, and local testing expectations.
-- `src/native/domain/<domain>/README.md` or `FEATURE_RULES.md` owns domain-level invariants, pure logic boundaries, and domain testing expectations.
+- `src/native/screens/<feature>/README.md` owns screen-level responsibilities, UI flows, state boundaries, and local testing expectations.
+- `src/native/domain/<domain>/README.md` owns domain-level invariants, pure logic boundaries, and domain testing expectations.
 - `docs/adr` owns long-lived architecture decisions.
 - `docs/runbooks` owns operational procedures and troubleshooting checklists.
 - `CODEOWNERS` maps areas to maintainers once real repository owners or teams exist.
@@ -119,7 +119,7 @@ Document boundary:
 - Active bottom nav item uses the primary color for the icon only; do not add a rounded active background unless approved.
 - Bottom nav icons are React Native SVG components under `src/native/components/icons/bottom-nav`.
 - Bottom navigation visibility is controlled by `navigationLogic.ts`; do not hardcode it in screens.
-- Identity wallet, Credentials, Profile, Security, Notifications, Settings, Activity, and related secondary screens are reached through side menu or route flows, not as bottom nav tabs.
+- Side menu and route flows handle Identity wallet, Credentials, Profile, Security, Notifications, Settings, Activity, and related secondary screens.
 - The Mini App main tab uses `/mini-app`, `ScreenKey` `mini-app`, and `TabKey` `miniApp`; keep navigation docs and tests in sync when this mapping changes.
 
 ## 7. State, Store, And Domain Services
@@ -131,7 +131,7 @@ Document boundary:
 - Pure state transformations belong in `src/native/domain/app-store/appStoreStateService.ts`.
 - Do not bury important state mutation logic inside UI components when it can be expressed as a pure function.
 - New important store/domain behavior should have tests.
-- Demo data removal must remain supported. Lists backed by demo data must show valid empty states after demo data is removed.
+- Demo data must remain safely removable. Lists backed by demo data must show valid empty states when demo data is absent.
 
 ## 8. Data And Demo Data
 
@@ -210,7 +210,7 @@ Document boundary:
 - Do not refactor unrelated files just because they are nearby.
 - Keep code comments short. Add comments only for hard-to-understand logic, important constraints, platform workarounds, security caveats, or non-obvious business reasons.
 - Do not add comments that merely restate the code or turn source files into long-form documentation.
-- When changing code logic, update the corresponding documentation in the relevant `README.md`, `FEATURE_RULES.md`, ADR, runbook, or root documentation file.
+- When changing code logic, update the corresponding documentation in the relevant `README.md`, ADR, runbook, or root documentation file.
 - Keep file and folder names explicit and feature-oriented.
 - Avoid generic catch-all files such as `SecondaryScreens.tsx`, `SearchScreen.tsx`, or `utils.ts` when a clearer domain name exists.
 
@@ -236,7 +236,7 @@ Document boundary:
 ## 18. Pre-Completion Checklist
 
 - [ ] `codex.md` was read before `design.md`.
-- [ ] Relevant feature/domain `README.md` or `FEATURE_RULES.md` files were read when touching documented areas.
+- [ ] Relevant feature/domain `README.md` files were read when touching documented areas.
 - [ ] No fake device UI was implemented.
 - [ ] Android and iOS compatibility was preserved.
 - [ ] Routes remain thin and screen logic lives under `src/native/screens`.

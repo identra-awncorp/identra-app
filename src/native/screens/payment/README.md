@@ -4,7 +4,7 @@ This folder owns the Payment/IDPay product surface.
 
 ## Scope
 
-- Payment tab entry screen and Payment Home composition.
+- Payment primary screen and Payment Home composition.
 - Card/account detail, card management, CVV reveal sheet, and persisted balance visibility.
 - Money transfer flow: recipient, amount, confirmation, result, and receipt.
 - Receive money flow: QR receive screen, amount/note setup, and share/copy actions.
@@ -17,7 +17,7 @@ Payment-related sheets launched from Chat still live in `src/native/screens/chat
 
 ## Important Files
 
-- `PaymentScreen.tsx`: Payment tab landing screen.
+- `PaymentScreen.tsx`: Payment primary screen.
 - `components/*`: Payment Home UI pieces such as header, card carousel, quick access, vertical image banner, suggestions, and offers.
 - `PaymentInteractionScreens.tsx`: search, notifications, card/account, card management, and generic placeholder flow screens.
 - `TransferFlowScreens.tsx`: transfer recipient, amount, confirmation, result, and receipt screens.

@@ -4,7 +4,7 @@ This folder owns the Mini App discovery surface and related catalog entry points
 
 ## Scope
 
-- Mini App main-tab entry screen.
+- Mini App primary screen.
 - Frequently used mini app shortcuts.
 - Hero discovery banner.
 - Popular category shortcuts.
@@ -16,7 +16,7 @@ Mini App owns discovery and catalog browsing. The actual native or web mini app 
 
 ## Important Files
 
-- `MiniAppScreen.tsx`: Mini App tab landing screen and section composition.
+- `MiniAppScreen.tsx`: Mini App landing screen and section composition.
 - `index.ts`: public screen export.
 - `src/native/data/demo/miniAppDemoData.ts`: replaceable catalog, recommendation, category, and collection demo data.
 - `src/native/assets/assetManifest.ts`: Mini App banner and icon manifest.
@@ -32,7 +32,6 @@ Mini App owns discovery and catalog browsing. The actual native or web mini app 
 - `TabKey` is `miniApp`.
 - `ScreenKey` is `mini-app`.
 - Mini App is one of the five main bottom tabs: Chat, News Feed, Scan QR, Payment, and Mini App.
-- Identity is not a main tab. Identity wallet starts from the side menu or direct identity-related routes.
 - `app/mini-app.tsx` stays thin because the keep-alive tab host renders `MiniAppScreen`.
 - Search and notifications can stay as placeholders while the real Mini App catalog, search, and notification APIs are not connected.
 
