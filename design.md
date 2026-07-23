@@ -1,7 +1,7 @@
 ---
-name: Identra Mobile Design System Draft
-version: 0.3.0-draft
-status: review-only
+name: Identra Mobile Design System
+version: 0.3.0
+status: active
 source-of-truth:
   token-reference: "src/native/theme.ts"
   current-development-rules: "codex.md"
@@ -104,7 +104,7 @@ tokens:
 
 ## 1. Purpose
 
-This file is a proposed replacement for `design.md`. It is not official until reviewed and approved.
+This file defines the current mobile visual and interaction system for Identra. It is the design source referenced by `codex.md` and should be applied together with the implementation tokens in `src/native/theme.ts`.
 
 Identra is now a mobile super app, not only an SSI wallet. The design system must support chat, news feed, payment, QR scanning, Mini App discovery, identity, credentials, settings, live content, notifications, and smart contracts.
 
@@ -123,7 +123,7 @@ When visual rules conflict, follow this order:
 
 1. The latest approved user-provided design for the current screen.
 2. The product-specific rules in the approved development rule file.
-3. This design system after approval.
+3. This design system.
 4. `src/native/theme.ts`.
 5. Existing local screen patterns.
 
