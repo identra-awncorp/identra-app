@@ -44,6 +44,7 @@ export type SideMenuSettingItemConfig =
       titleKey: I18nKey;
       descriptionKey: I18nKey;
       icon: LucideIcon;
+      locked?: boolean;
     }
   | {
       type: 'choice' | 'dropdown' | 'group' | 'action';
@@ -240,9 +241,7 @@ export const sideMenuSettingsByFlow: Record<AppFlowKey, SideMenuFlowConfig> = {
         titleKey: 'app.sideMenu.identitySettings.sharingSection',
         items: [
           { type: 'toggle', id: 'askBeforeShareAttributes', settingId: 'askBeforeShareAttributes', titleKey: 'app.sideMenu.identitySettings.askShareTitle', descriptionKey: 'app.sideMenu.identitySettings.askShareDescription', icon: ShieldCheck },
-          { type: 'toggle', id: 'expiringShareQr', settingId: 'expiringShareQr', titleKey: 'app.sideMenu.identitySettings.expiringQrTitle', descriptionKey: 'app.sideMenu.identitySettings.expiringQrDescription', icon: History },
-          { type: 'toggle', id: 'credentialExpiryWarnings', settingId: 'credentialExpiryWarnings', titleKey: 'app.sideMenu.identitySettings.expiryWarningTitle', descriptionKey: 'app.sideMenu.identitySettings.expiryWarningDescription', icon: BadgeAlert },
-          { type: 'toggle', id: 'verificationFailureWarnings', settingId: 'verificationFailureWarnings', titleKey: 'app.sideMenu.identitySettings.failureWarningTitle', descriptionKey: 'app.sideMenu.identitySettings.failureWarningDescription', icon: ShieldAlert },
+          { type: 'toggle', id: 'expiringShareQr', settingId: 'expiringShareQr', titleKey: 'app.sideMenu.identitySettings.expiringQrTitle', descriptionKey: 'app.sideMenu.identitySettings.expiringQrDescription', icon: History, locked: true },
           { type: 'toggle', id: 'activityLogging', settingId: 'activityLogging', titleKey: 'app.sideMenu.identitySettings.activityLogTitle', descriptionKey: 'app.sideMenu.identitySettings.activityLogDescription', icon: History },
         ],
       },

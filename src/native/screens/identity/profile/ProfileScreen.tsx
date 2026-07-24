@@ -11,6 +11,7 @@ import type { AppColors } from '../../../theme';
 import { palette } from '../../../theme';
 import type { PersonalInfo } from '../../../types';
 import { useI18n } from '../../../i18n';
+import { formatDidForDisplay } from '../../../domain/credentials/credentialDisplay';
 
 
 import {
@@ -23,11 +24,13 @@ import { styles } from '../../shared/DetailScreenSharedStyles';
 
 export function ProfileScreen({
   colors,
+  compactDid = false,
   profile,
   onBack,
   onSave,
 }: {
   colors: AppColors;
+  compactDid?: boolean;
   profile: PersonalInfo;
   onBack: () => void;
   onSave: (profile: PersonalInfo) => void;
@@ -51,7 +54,7 @@ export function ProfileScreen({
           <UserRound color={palette.white} size={38} />
         </View>
         <Text style={[styles.profileName, { color: colors.text }]}>{draft.fullName}</Text>
-        <Text style={[styles.profileDid, { color: colors.textSecondary }]}>{draft.did}</Text>
+        <Text style={[styles.profileDid, { color: colors.textSecondary }]}>{formatDidForDisplay(draft.did, compactDid)}</Text>
       </View>
       <Card colors={colors} style={styles.formCard}>
         {fields.map(({ key, label, icon: Icon, keyboard }) => (

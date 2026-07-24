@@ -705,6 +705,8 @@ function SideMenuSettingRow({
       </View>
       <Switch
         accessibilityLabel={t(item.titleKey)}
+        accessibilityState={{ disabled: item.locked }}
+        disabled={item.locked}
         value={value}
         onValueChange={onValueChange}
         trackColor={{ false: colors.border, true: colors.primary }}

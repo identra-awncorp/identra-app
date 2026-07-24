@@ -34,6 +34,7 @@ export function SettingsScreen({
   onOpenHelp,
   onOpenAbout,
   onOpenChat,
+  onOpenMenu,
   onLogout,
 }: {
   colors: AppColors;
@@ -48,6 +49,7 @@ export function SettingsScreen({
   onOpenHelp: () => void;
   onOpenAbout: () => void;
   onOpenChat: () => void;
+  onOpenMenu: () => void;
   onLogout: () => Promise<void> | void;
 }) {
   const { t } = useI18n();
@@ -66,7 +68,7 @@ export function SettingsScreen({
   return (
     <ScreenScroll id="screen-settings-main" colors={colors} contentStyle={styles.settingsScreenContent}>
       <View style={styles.settingsBrandHeader}>
-        <Pressable accessibilityRole="button" accessibilityLabel={t('settings.main.openMenu')} style={styles.settingsHeaderButton}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('settings.main.openMenu')} onPress={onOpenMenu} style={styles.settingsHeaderButton}>
           <Menu color={colors.text} size={26} strokeWidth={1.8} />
         </Pressable>
         <AppBrandLogo colors={colors} style={styles.settingsBrandLogo} />

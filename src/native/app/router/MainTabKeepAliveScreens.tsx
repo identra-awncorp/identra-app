@@ -1,6 +1,6 @@
 import { useRouter, type Href } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, InteractionManager, StyleSheet, View } from 'react-native';
 
 import { ChatListScreen } from '../../screens/chat-list';
 import { MiniAppScreen } from '../../screens/mini-app';
@@ -10,6 +10,7 @@ import { QrScannerScreen } from '../../screens/scan';
 import { useI18n } from '../../i18n';
 import { useAppStore } from '../../store';
 import type { ScreenKey } from '../../types';
+import { TEMPORARY_QR_TTL_MS } from '../../domain/credentials/credentialSharing';
 import { useAppRouterState } from './AppRouterContext';
 
 export type KeepAliveMainScreen = Extract<ScreenKey, 'chat-list' | 'news-feed' | 'scan' | 'payment' | 'mini-app'>;
@@ -61,18 +62,33 @@ export function MainTabKeepAliveScreens({ activeScreen }: { activeScreen: KeepAl
   useEffect(() => {
     if (!activeScreen) return undefined;
 
-    const timers = stagedWarmScreens
-      .filter((screen) => screen !== activeScreen)
-      .map((screen, index) =>
-        setTimeout(() => {
-          setMountedScreens((current) => (
-            current[screen] ? current : { ...current, [screen]: true }
-          ));
-        }, 700 + index * 650),
-      );
+    let cancelled = false;
+    let animationFrame: number | null = null;
+    let interactionTask: ReturnType<typeof InteractionManager.runAfterInteractions> | null = null;
+    const pendingScreens = stagedWarmScreens.filter((screen) => screen !== activeScreen);
+
+    const warmNextScreen = () => {
+      interactionTask = InteractionManager.runAfterInteractions(() => {
+        if (cancelled) return;
+
+        const screen = pendingScreens.shift();
+        if (!screen) return;
+
+        setMountedScreens((current) => (
+          current[screen] ? current : { ...current, [screen]: true }
+        ));
+        animationFrame = requestAnimationFrame(warmNextScreen);
+      });
+    };
+
+    warmNextScreen();
 
     return () => {
-      timers.forEach(clearTimeout);
+      cancelled = true;
+      interactionTask?.cancel();
+      if (animationFrame !== null) {
+        cancelAnimationFrame(animationFrame);
+      }
     };
   }, [activeScreen]);
 
@@ -119,15 +135,9 @@ export function MainTabKeepAliveScreens({ activeScreen }: { activeScreen: KeepAl
             router.replace('/chat-list');
           }}
           onOpenMyQr={() => {
-            const activeInvitation = connectionInvitation
-              ? store.logs.find(
-                  (log) =>
-                    log.id === connectionInvitation.id &&
-                    log.status === 'pending' &&
-                    Boolean(log.expiresAt) &&
-                    new Date(log.expiresAt!).getTime() > Date.now(),
-                )
-              : null;
+            const activeInvitation =
+              connectionInvitation &&
+              connectionInvitation.createdAt + TEMPORARY_QR_TTL_MS > Date.now();
 
             if (activeInvitation) {
               router.push('/connection-qr');
@@ -139,7 +149,7 @@ export function MainTabKeepAliveScreens({ activeScreen }: { activeScreen: KeepAl
             store.addActivityLog({
               id,
               timestamp: new Date(createdAt).toISOString(),
-              expiresAt: new Date(createdAt + 180000).toISOString(),
+              expiresAt: new Date(createdAt + TEMPORARY_QR_TTL_MS).toISOString(),
               type: 'share',
               status: 'pending',
               title: t('activityLogs.connectionInvitationTitle'),

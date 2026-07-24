@@ -14,11 +14,14 @@
     "src/native/i18n/**/*.tsx",
     "src/native/app/navigation/navigationLogic.ts",
     "src/native/screens/auth/authLogic.ts",
+    "src/native/domain/auth/authPolicy.ts",
     "src/native/screens/chat/paymentUtils.ts",
+    "src/native/domain/credentials/**/*.ts",
     "src/native/domain/payment/**/*.ts",
     "src/native/screens/chat-list/chatListLogic.ts",
     "src/native/screens/chat-list/chatSearchLogic.ts",
     "src/native/domain/app-store/appStoreStateService.ts",
+    "src/native/domain/app-store/appStatePersistence.ts",
     "src/native/screens/settings/activity/activityLogLogic.ts",
     "src/native/screens/news-feed/search/newsFeedSearchLogic.ts"
   ]

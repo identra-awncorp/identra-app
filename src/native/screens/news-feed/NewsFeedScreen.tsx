@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react-native';
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Animated, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -19,7 +19,7 @@ import {
   SmartContractFeedPostCard,
 } from './feed/NewsFeedListItems';
 import { NewsFeedHeader } from './feed/NewsFeedHeader';
-import { NewsFeedTabs } from './feed/NewsFeedTabs';
+import { NewsFeedTabs, type NewsFeedTab } from './feed/NewsFeedTabs';
 import { NEWS_FEED_HEADER_HEIGHT, NEWS_FEED_OVERLAY_HEIGHT } from './feed/newsFeedLayout';
 import { newsFeedStyles as styles } from './feed/newsFeedStyles';
 
@@ -37,6 +37,13 @@ const newsFeedItems: NewsFeedListItem[] = [
   ...demoSmartContractPosts.map((post) => ({ id: `smart-contract-${post.id}`, type: 'smart-contract' as const, post })),
   { id: 'linh-tran-da-lat', type: 'linh' },
 ];
+
+const followingNewsFeedItems = newsFeedItems.filter(
+  (item) =>
+    item.type === 'identra' ||
+    item.type === 'linh' ||
+    (item.type === 'smart-contract' && item.post.authorKind === 'person'),
+);
 
 const keyExtractor = (item: NewsFeedListItem) => item.id;
 
@@ -64,7 +71,9 @@ export function NewsFeedScreen({
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const internalScrollY = useRef(new Animated.Value(0)).current;
+  const [activeTab, setActiveTab] = useState<NewsFeedTab>('for-you');
   const drivenScrollY = scrollY ?? internalScrollY;
+  const visibleFeedItems = activeTab === 'following' ? followingNewsFeedItems : newsFeedItems;
   const internalOverlayProgress = useMemo(
     () =>
       Animated.diffClamp(internalScrollY, 0, NEWS_FEED_OVERLAY_HEIGHT).interpolate({
@@ -102,6 +111,10 @@ export function NewsFeedScreen({
     outputRange: [0, -(NEWS_FEED_HEADER_HEIGHT + 30)],
     extrapolate: 'clamp',
   });
+  const changeTab = useCallback((tab: NewsFeedTab) => {
+    setActiveTab(tab);
+    drivenScrollY.setValue(0);
+  }, [drivenScrollY]);
   const fabScale = chromeProgress.interpolate({
     inputRange: [0, 1],
     outputRange: [1, 0],
@@ -188,7 +201,7 @@ export function NewsFeedScreen({
           },
         ]}
       >
-        <NewsFeedTabs colors={colors} />
+        <NewsFeedTabs activeTab={activeTab} colors={colors} onChange={changeTab} />
       </Animated.View>
 
       <Animated.FlatList
@@ -199,7 +212,7 @@ export function NewsFeedScreen({
             paddingBottom: 108 + insets.bottom,
           },
         ]}
-        data={newsFeedItems}
+        data={visibleFeedItems}
         initialNumToRender={3}
         keyExtractor={keyExtractor}
         keyboardShouldPersistTaps="handled"

@@ -100,7 +100,13 @@ export function ChatConversation({
         <View style={[styles.headerShield, { backgroundColor: colors.surfaceMuted }]}>
           <ShieldCheck color={colors.primaryDark} size={25} />
         </View>
-        <IconButton label={t('chat.conversation.options')} colors={colors}>
+        <IconButton
+          accessibilityState={{ disabled: true }}
+          disabled
+          label={t('chat.conversation.options')}
+          colors={colors}
+          style={{ opacity: 0.42 }}
+        >
           <MoreVertical color={colors.text} size={24} />
         </IconButton>
       </View>
@@ -136,9 +142,9 @@ export function ChatConversation({
           style={[styles.quickActionsClip, quickActionsKeyboardStyle]}
         >
           <View style={[styles.quickActions, { backgroundColor: colors.surfaceMuted }]}>
-            <QuickChatAction colors={colors} icon={ShieldCheck} label={t('chat.conversation.quickCredential')} />
-            <QuickChatAction colors={colors} icon={FileCheck2} label={t('chat.conversation.quickContract')} />
-            <QuickChatAction colors={colors} icon={CircleDollarSign} label={t('chat.conversation.quickPayment')} success />
+            <QuickChatAction colors={colors} icon={ShieldCheck} label={t('chat.conversation.quickCredential')} onPress={onOpenActionSheet} />
+            <QuickChatAction colors={colors} icon={FileCheck2} label={t('chat.conversation.quickContract')} onPress={onOpenActionSheet} />
+            <QuickChatAction colors={colors} icon={CircleDollarSign} label={t('chat.conversation.quickPayment')} onPress={onOpenActionSheet} success />
           </View>
         </Reanimated.View>
         <View style={styles.composerRow}>
@@ -157,7 +163,7 @@ export function ChatConversation({
             />
             <Smile color={colors.primaryDark} size={24} />
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel={t('chat.conversation.sendImage')} style={[styles.roundButton, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('chat.conversation.sendImage')} onPress={onOpenActionSheet} style={[styles.roundButton, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <ImageIcon color={colors.primaryDark} size={23} />
           </Pressable>
         </View>
@@ -461,8 +467,8 @@ function ContractMessage({ colors, contract }: { colors: AppColors; contract: Co
       </View>
       <View style={styles.contractInfo}><Info color={colors.primaryDark} size={15} /><Text style={[styles.contractInfoText, { color: colors.textSecondary }]}>{t('chat.common.contractExecutionNotice')}</Text></View>
       <View style={styles.contractActions}>
-        <Pressable style={[styles.contractSecondary, { borderColor: colors.primaryDark }]}><Text style={[styles.contractButtonText, { color: colors.primaryDark }]}>{t('chat.common.reject')}</Text></Pressable>
-        <Pressable style={[styles.contractPrimary, { backgroundColor: colors.primaryDark }]}><Text style={styles.contractPrimaryText}>{t('chat.common.exchange')}</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityState={{ disabled: true }} disabled style={[styles.contractSecondary, { borderColor: colors.primaryDark, opacity: 0.45 }]}><Text style={[styles.contractButtonText, { color: colors.primaryDark }]}>{t('chat.common.reject')}</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityState={{ disabled: true }} disabled style={[styles.contractPrimary, { backgroundColor: colors.primaryDark, opacity: 0.45 }]}><Text style={styles.contractPrimaryText}>{t('chat.common.exchange')}</Text></Pressable>
       </View>
     </View>
   );
@@ -472,9 +478,21 @@ function DetailRow({ colors, icon: Icon, label, value }: { colors: AppColors; ic
   return <View style={styles.detailRow}><Icon color={colors.primaryDark} size={17} /><Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{label}</Text><Text style={[styles.detailValue, { color: colors.text }]}>{value}</Text></View>;
 }
 
-function QuickChatAction({ colors, icon: Icon, label, success }: { colors: AppColors; icon: typeof ShieldCheck; label: string; success?: boolean }) {
+function QuickChatAction({
+  colors,
+  icon: Icon,
+  label,
+  onPress,
+  success,
+}: {
+  colors: AppColors;
+  icon: typeof ShieldCheck;
+  label: string;
+  onPress: () => void;
+  success?: boolean;
+}) {
   return (
-    <Pressable style={[styles.quickAction, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={[styles.quickAction, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <Icon color={success ? colors.success : colors.primaryDark} size={18} />
       <Text style={[styles.quickActionText, { color: colors.text }]}>{label}</Text>
     </Pressable>

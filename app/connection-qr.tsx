@@ -4,6 +4,7 @@ import { ConnectionQrScreen } from '@/screens/identity';
 import { useAppStore } from '@/store';
 import { useAppRouterState } from '@/app/router/AppRouterContext';
 import { useI18n } from '@/i18n';
+import { TEMPORARY_QR_TTL_MS } from '@/domain/credentials/credentialSharing';
 
 export default function ConnectionQrRoute() {
   const router = useRouter();
@@ -28,7 +29,7 @@ export default function ConnectionQrRoute() {
         setConnectionInvitation((current) => (current ? { ...current, createdAt } : current));
         store.updateActivityLog(connectionInvitation.id, {
           timestamp: new Date(createdAt).toISOString(),
-          expiresAt: new Date(createdAt + 180000).toISOString(),
+          expiresAt: new Date(createdAt + TEMPORARY_QR_TTL_MS).toISOString(),
           status: 'pending',
           description: t('activityLogs.pending'),
         });

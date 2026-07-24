@@ -16,6 +16,7 @@ import { border, palette, radius, shadows, spacing, typography } from '../../the
 import type { Credential } from '../../types';
 import { MainTopHeader } from '../../components/MainTopHeader';
 import { useI18n } from '../../i18n';
+import { formatDidForDisplay } from '../../domain/credentials/credentialDisplay';
 import {
   Card,
   CredentialIcon,
@@ -26,6 +27,7 @@ import {
 
 interface Props {
   colors: AppColors;
+  compactDid?: boolean;
   credentials: Credential[];
   did: string;
   onOpenCredential: (credential: Credential) => void;
@@ -42,6 +44,7 @@ interface Props {
 
 export function WalletScreen({
   colors,
+  compactDid = false,
   credentials,
   did,
   onOpenCredential,
@@ -109,7 +112,7 @@ export function WalletScreen({
       <View style={styles.titleRow}>
         <View>
           <Text style={[styles.screenTitle, { color: colors.text }]}>{t('identity.wallet.title')}</Text>
-          <Text style={[styles.did, { color: colors.textSecondary }]}>{did}</Text>
+          <Text style={[styles.did, { color: colors.textSecondary }]}>{formatDidForDisplay(did, compactDid)}</Text>
         </View>
       </View>
 

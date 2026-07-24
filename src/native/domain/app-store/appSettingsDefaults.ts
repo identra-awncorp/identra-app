@@ -70,8 +70,6 @@ export const defaultFlowSettings: AppFlowSettings = {
     autoLockSharing: true,
     askBeforeShareAttributes: true,
     expiringShareQr: true,
-    credentialExpiryWarnings: true,
-    verificationFailureWarnings: true,
     activityLogging: true,
   },
 };
@@ -85,13 +83,19 @@ function normalizeTheme(value: unknown): ThemeMode {
 }
 
 export function normalizeFlowSettings(settings?: Partial<AppFlowSettings>): AppFlowSettings {
+  const identitySettings = {
+    ...defaultFlowSettings.identity,
+    ...(settings?.identity ?? {}),
+    expiringShareQr: true,
+  };
+
   return {
     chat: { ...defaultFlowSettings.chat, ...(settings?.chat ?? {}) },
     feed: { ...defaultFlowSettings.feed, ...(settings?.feed ?? {}) },
     scan: { ...defaultFlowSettings.scan, ...(settings?.scan ?? {}) },
     payment: { ...defaultFlowSettings.payment, ...(settings?.payment ?? {}) },
     miniApp: { ...defaultFlowSettings.miniApp, ...(settings?.miniApp ?? {}) },
-    identity: { ...defaultFlowSettings.identity, ...(settings?.identity ?? {}) },
+    identity: identitySettings,
   };
 }
 

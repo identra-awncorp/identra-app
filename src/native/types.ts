@@ -19,6 +19,7 @@ export type CredentialIconName =
   | 'briefcase';
 
 export interface CredentialAttribute {
+  key: string;
   label: string;
   value: string;
   sensitive?: boolean;

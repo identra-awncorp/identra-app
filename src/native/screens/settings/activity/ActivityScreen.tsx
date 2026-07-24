@@ -37,7 +37,17 @@ import {
   type ActivityTypeFilter,
 } from './activityLogLogic';
 
-export function ActivityScreen({ colors, logs, onOpenChat }: { colors: AppColors; logs: ActivityLog[]; onOpenChat: () => void }) {
+export function ActivityScreen({
+  colors,
+  logs,
+  onOpenChat,
+  onOpenMenu,
+}: {
+  colors: AppColors;
+  logs: ActivityLog[];
+  onOpenChat: () => void;
+  onOpenMenu: () => void;
+}) {
   const { t } = useI18n();
   const [filters, setFilters] = useState(defaultActivityFilters);
   const [draftFilters, setDraftFilters] = useState(defaultActivityFilters);
@@ -65,7 +75,7 @@ export function ActivityScreen({ colors, logs, onOpenChat }: { colors: AppColors
     <>
       <ScreenScroll id="screen-activity" colors={colors} contentStyle={styles.activityScreenContent}>
         <View style={styles.activityBrandHeader}>
-          <Pressable accessibilityRole="button" accessibilityLabel={t('settings.main.openMenu')} style={styles.activityHeaderButton}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('settings.main.openMenu')} onPress={onOpenMenu} style={styles.activityHeaderButton}>
             <Menu color={colors.text} size={26} />
           </Pressable>
           <AppBrandLogo colors={colors} style={styles.activityBrandLogo} />

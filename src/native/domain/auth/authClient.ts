@@ -8,6 +8,7 @@ import {
   saveStoredDeviceId,
   type StoredAuthSession,
 } from './authSessionStorage';
+import { isProductionApiUrlSecure, summarizeAuthPayload } from './authPolicy';
 
 export interface AuthDevice {
   appVersion?: string;
@@ -208,6 +209,8 @@ export async function logoutAuthSession(stored: StoredAuthSession | null): Promi
       body: { refreshToken: stored.refreshToken },
       method: 'POST',
     });
+  } catch (error) {
+    logAuthLogoutFailure(error);
   } finally {
     await clearStoredAuthSession();
   }
@@ -329,7 +332,7 @@ function logAuthRequest(
   if (!__DEV__) return;
 
   console.info('[Identra API request]', {
-    body: redactSensitiveAuthData(options.body),
+    body: summarizeAuthPayload(options.body),
     method: options.method,
     url,
   });
@@ -339,29 +342,20 @@ function logAuthResponse(url: string, status: number, body: unknown) {
   if (!__DEV__) return;
 
   console.info('[Identra API response]', {
-    body: redactSensitiveAuthData(body),
+    body: summarizeAuthPayload(body),
     status,
     url,
   });
 }
 
-function redactSensitiveAuthData(value: unknown): unknown {
-  if (!value || typeof value !== 'object') return value;
+function logAuthLogoutFailure(error: unknown) {
+  if (!__DEV__) return;
 
-  if (Array.isArray(value)) {
-    return value.map(redactSensitiveAuthData);
-  }
-
-  return Object.fromEntries(
-    Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
-      key,
-      isSensitiveAuthKey(key) ? '[REDACTED]' : redactSensitiveAuthData(entry),
-    ]),
-  );
-}
-
-function isSensitiveAuthKey(key: string): boolean {
-  return /password|token|authorization/i.test(key);
+  const failure = error as { code?: unknown; status?: unknown };
+  console.warn('[Identra API logout] Remote session revocation failed; local logout will continue.', {
+    code: typeof failure?.code === 'string' ? failure.code : 'UNKNOWN',
+    status: typeof failure?.status === 'number' ? failure.status : undefined,
+  });
 }
 
 function isAbortError(error: unknown): boolean {
@@ -413,6 +407,13 @@ function validateProductionApiUrl(rawUrl: string): string {
 
   try {
     const url = new URL(urlWithScheme);
+
+    if (!isProductionApiUrlSecure(rawUrl)) {
+      throw new IdentraAuthError(
+        'Production API URL must use HTTPS.',
+        'API_URL_NOT_PRODUCTION_SAFE',
+      );
+    }
 
     if (isLoopbackOrEmulatorHost(url.hostname)) {
       throw new IdentraAuthError(

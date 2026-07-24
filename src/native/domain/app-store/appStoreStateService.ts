@@ -15,7 +15,7 @@ export interface CreateActivityLogInput {
   type?: ActivityLog['type'];
 }
 
-const FULL_NAME_ATTRIBUTE_LABEL = 'Họ và tên';
+const FULL_NAME_ATTRIBUTE_KEY = 'subject.fullName';
 
 export function upsertCredentialInAppState(
   state: PersistedAppState,
@@ -47,6 +47,10 @@ export function addActivityLogToAppState(
   state: PersistedAppState,
   log: ActivityLog,
 ): PersistedAppState {
+  if (!state.settings.flowSettings.identity.activityLogging) {
+    return state;
+  }
+
   return {
     ...state,
     logs: [{ ...log, unread: true, isNew: true }, ...state.logs.filter((item) => item.id !== log.id)],
@@ -131,7 +135,7 @@ export function updateProfileInAppState(
     credentials: state.credentials.map((credential) => ({
       ...credential,
       attributes: credential.attributes.map((attribute) =>
-        attribute.label === FULL_NAME_ATTRIBUTE_LABEL
+        attribute.key === FULL_NAME_ATTRIBUTE_KEY
           ? { ...attribute, value: profile.fullName }
           : attribute,
       ),

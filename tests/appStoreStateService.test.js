@@ -30,6 +30,11 @@ function makeState(overrides = {}) {
       theme: 'system',
       notificationsEnabled: true,
       hideSensitiveData: true,
+      flowSettings: {
+        identity: {
+          activityLogging: true,
+        },
+      },
     },
     ...overrides,
   };
@@ -70,6 +75,22 @@ describe('appStoreStateService', () => {
     assert.equal(next.logs[0].id, log.id);
     assert.equal(next.logs[0].unread, true);
     assert.equal(next.logs[0].isNew, true);
+  });
+
+  it('does not retain new activity when identity activity logging is disabled', () => {
+    const state = makeState();
+    state.settings.flowSettings.identity.activityLogging = false;
+    const log = createActivityLog({
+      title: 'Private action',
+      description: 'Must not persist',
+      partner: 'Verifier',
+      type: 'share',
+    });
+
+    const next = addActivityLogToAppState(state, log);
+
+    assert.equal(next, state);
+    assert.deepEqual(next.logs, []);
   });
 
   it('expires only pending activity logs whose deadline has passed', () => {
@@ -122,8 +143,8 @@ describe('appStoreStateService', () => {
         {
           id: 'cred-degree',
           attributes: [
-            { label: 'Họ và tên', value: 'Tên cũ' },
-            { label: 'Ngành học', value: 'Công nghệ thông tin' },
+            { key: 'subject.fullName', label: 'Full Name', value: 'Tên cũ' },
+            { key: 'degree.major', label: 'Ngành học', value: 'Công nghệ thông tin' },
           ],
         },
       ],

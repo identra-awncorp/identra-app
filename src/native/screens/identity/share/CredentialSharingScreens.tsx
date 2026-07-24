@@ -30,6 +30,13 @@ import type { AppColors } from '../../../theme';
 import { palette } from '../../../theme';
 import type { Credential } from '../../../types';
 import { useI18n } from '../../../i18n';
+import {
+  createTemporaryQrReference,
+  getTemporaryQrRemainingSeconds,
+  selectApprovedCredentialAttributes,
+  serializeTemporaryQrReference,
+} from '../../../domain/credentials/credentialSharing';
+import { formatDidForDisplay } from '../../../domain/credentials/credentialDisplay';
 
 
 import {
@@ -40,49 +47,70 @@ import {
 } from '../../../components/AppUiPrimitives';
 import { styles } from '../../shared/DetailScreenSharedStyles';
 
+const SHARING_AUTO_LOCK_MS = 60 * 1000;
+
 export function ShareScreen({
   colors,
   credential,
+  autoLockEnabled = false,
+  confirmBeforeShare = true,
   onBack,
+  onAutoLock,
   onShared,
 }: {
   colors: AppColors;
   credential: Credential;
+  autoLockEnabled?: boolean;
+  confirmBeforeShare?: boolean;
   onBack: () => void;
+  onAutoLock?: () => void;
   onShared: (selected: Credential['attributes']) => void;
 }) {
   const { t } = useI18n();
-  const credentialId = credential.icon === 'graduation' ? 'did:identra:vc:9876abcdef123456' : `did:identra:vc:${credential.id}`;
+  const credentialId = `did:identra:vc:${credential.id}`;
   const fields = useMemo(
     () =>
-      credential.icon === 'graduation'
-        ? [
-            { label: 'Họ và tên', value: 'Nguyễn Văn A', icon: UserRound },
-            { label: 'Ngày sinh', value: '01/01/2000', icon: CalendarDays },
-            { label: 'Chương trình đào tạo', value: 'Khoa học máy tính', icon: GraduationCap },
-            { label: 'Ngành học', value: 'Công nghệ thông tin', icon: Building2 },
-            { label: 'Bậc đào tạo', value: 'Đại học', icon: Award },
-            { label: 'Loại hình đào tạo', value: 'Chính quy', icon: BookOpen },
-            { label: 'Xếp loại tốt nghiệp', value: 'Giỏi', icon: Medal, highlight: true },
-            { label: 'Số hiệu bằng', value: 'CN-2024-123456', icon: IdCard },
-          ]
-        : credential.attributes.map((attribute, index) => ({
-            ...attribute,
-            icon: [UserRound, CalendarDays, GraduationCap, Building2, Award, BookOpen, Medal, IdCard][index % 8],
-            highlight: false,
-          })),
+      credential.attributes.map((attribute, index) => ({
+        ...attribute,
+        icon: [UserRound, CalendarDays, GraduationCap, Building2, Award, BookOpen, Medal, IdCard][index % 8],
+        highlight: attribute.key === 'degree.classification',
+      })),
     [credential],
   );
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const submit = () => {
-    if (!selected.length) return;
+  useEffect(() => {
+    if (!autoLockEnabled || loading || !onAutoLock) return undefined;
+
+    const timer = setTimeout(onAutoLock, SHARING_AUTO_LOCK_MS);
+    return () => clearTimeout(timer);
+  }, [autoLockEnabled, loading, onAutoLock, selected]);
+
+  const completeShare = () => {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      onShared(fields.filter((field) => selected.includes(field.label)).map(({ label, value }) => ({ label, value })));
+      onShared(selectApprovedCredentialAttributes(credential.attributes, selected));
     }, 650);
+  };
+
+  const submit = () => {
+    if (!selected.length) return;
+
+    if (!confirmBeforeShare) {
+      completeShare();
+      return;
+    }
+
+    Alert.alert(
+      t('identity.share.confirmTitle'),
+      t('identity.share.confirmDescription', { count: selected.length }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.share'), onPress: completeShare },
+      ],
+    );
   };
 
   const copyCredentialId = async () => {
@@ -153,17 +181,17 @@ export function ShareScreen({
 
       <View style={[styles.shareFieldList, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         {fields.map((field, index) => {
-          const checked = selected.includes(field.label);
+          const checked = selected.includes(field.key);
           const Icon = field.icon;
           return (
             <Pressable
-              key={field.label}
+              key={field.key}
               accessibilityRole="checkbox"
               accessibilityState={{ checked }}
               accessibilityLabel={field.label}
               onPress={() =>
                 setSelected((current) =>
-                  checked ? current.filter((label) => label !== field.label) : [...current, field.label],
+                  checked ? current.filter((key) => key !== field.key) : [...current, field.key],
                 )
               }
               style={({ pressed }) => [
@@ -265,42 +293,56 @@ export function ShareQrScreen({
   colors,
   credential,
   attributes,
+  autoLockEnabled = false,
+  compactDid = false,
   onBack,
+  onAutoLock,
   onCancel,
 }: {
   colors: AppColors;
   credential: Credential;
   attributes: Credential['attributes'];
+  autoLockEnabled?: boolean;
+  compactDid?: boolean;
   onBack: () => void;
+  onAutoLock?: () => void;
   onCancel: () => void;
 }) {
   const { t } = useI18n();
   const [createdAt, setCreatedAt] = useState(Date.now());
-  const [remaining, setRemaining] = useState(180);
+  const [remaining, setRemaining] = useState(() => getTemporaryQrRemainingSeconds(createdAt, Date.now()));
   const did = credential.didHolder;
-  const qrValue = useMemo(
-    () =>
-      JSON.stringify({
-        type: 'identra-credential-share',
-        credentialId: credential.id,
-        holder: did,
-        attributes,
-        issuedAt: new Date(createdAt).toISOString(),
-        expiresAt: new Date(createdAt + 180000).toISOString(),
+  const presentationRequest = useMemo(
+    () => ({
+      approvedAttributeKeys: attributes.map((attribute) => attribute.key),
+      credentialId: credential.id,
+      reference: createTemporaryQrReference({
+        createdAt,
+        purpose: 'credential-presentation',
       }),
-    [attributes, createdAt, credential.id, did],
+    }),
+    [attributes, createdAt, credential.id],
   );
+  const qrValue = serializeTemporaryQrReference(presentationRequest.reference);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setRemaining(Math.max(0, Math.ceil((createdAt + 180000 - Date.now()) / 1000)));
+      setRemaining(getTemporaryQrRemainingSeconds(createdAt, Date.now()));
     }, 1000);
     return () => clearInterval(timer);
   }, [createdAt]);
 
+  useEffect(() => {
+    if (!autoLockEnabled || !onAutoLock) return undefined;
+
+    const timer = setTimeout(onAutoLock, SHARING_AUTO_LOCK_MS);
+    return () => clearTimeout(timer);
+  }, [autoLockEnabled, createdAt, onAutoLock]);
+
   const refresh = () => {
-    setCreatedAt(Date.now());
-    setRemaining(180);
+    const nextCreatedAt = Date.now();
+    setCreatedAt(nextCreatedAt);
+    setRemaining(getTemporaryQrRemainingSeconds(nextCreatedAt, nextCreatedAt));
   };
 
   const copyDid = async () => {
@@ -333,15 +375,25 @@ export function ShareQrScreen({
         <Text style={[styles.shareQrCredentialTitle, { color: colors.text }]}>{credential.title}</Text>
         <Text style={[styles.shareQrIssuer, { color: colors.textSecondary }]}>{credential.issuer}</Text>
         <Pressable accessibilityRole="button" accessibilityLabel={t('identity.share.qr.copyDid')} onPress={copyDid} style={styles.shareQrDidRow}>
-          <Text numberOfLines={1} style={[styles.shareQrDid, { color: colors.textSecondary }]}>DID: {did}</Text>
+          <Text numberOfLines={1} style={[styles.shareQrDid, { color: colors.textSecondary }]}>DID: {formatDidForDisplay(did, compactDid)}</Text>
           <ClipboardCopy color={colors.textSecondary} size={16} />
         </Pressable>
 
         <View style={styles.shareQrCodeFrame}>
-          <QRCode value={qrValue} size={238} backgroundColor={palette.white} color="#050505" ecl="H" />
-          <View style={styles.shareQrLogo}>
-            <ShieldCheck color={palette.white} size={25} />
-          </View>
+          {remaining > 0 ? (
+            <>
+              <QRCode value={qrValue} size={238} backgroundColor={palette.white} color="#050505" ecl="H" />
+              <View style={styles.shareQrLogo}>
+                <ShieldCheck color={palette.white} size={25} />
+              </View>
+            </>
+          ) : (
+            <View style={styles.shareQrExpired}>
+              <RefreshCw color={colors.danger} size={42} />
+              <Text style={[styles.shareQrExpiredTitle, { color: colors.danger }]}>{t('identity.share.qr.expiredTitle')}</Text>
+              <Text style={[styles.shareQrExpiredText, { color: colors.textSecondary }]}>{t('identity.share.qr.expiredDescription')}</Text>
+            </View>
+          )}
         </View>
 
         <View style={[styles.shareQrExpiry, { backgroundColor: colors.surfaceMuted }]}>
@@ -359,6 +411,7 @@ export function ShareQrScreen({
           icon={Share2}
           title={t('identity.share.qr.shareTitle')}
           description={t('identity.share.qr.shareDescription')}
+          disabled={remaining === 0}
           onPress={() => Alert.alert(t('identity.share.qr.shareAlertTitle'), t('identity.share.qr.shareAlertDescription'))}
         />
         <QrAction
@@ -366,6 +419,7 @@ export function ShareQrScreen({
           icon={Download}
           title={t('identity.share.qr.downloadTitle')}
           description={t('identity.share.qr.downloadDescription')}
+          disabled={remaining === 0}
           onPress={() => Alert.alert(t('identity.share.qr.downloadAlertTitle'), t('identity.share.qr.downloadAlertDescription'))}
         />
         <QrAction colors={colors} icon={RefreshCw} title={t('identity.share.qr.refreshTitle')} description={t('identity.share.qr.refreshDescription')} onPress={refresh} />
@@ -427,22 +481,22 @@ export function ConnectionQrScreen({
 }) {
   const { t } = useI18n();
   const [createdAt, setCreatedAt] = useState(initialCreatedAt);
-  const [remaining, setRemaining] = useState(180);
-  const qrValue = useMemo(
-    () =>
-      JSON.stringify({
-        type: 'identra-ssi-connection-invitation',
-        inviter: did,
-        invitationId: `invite-${createdAt}`,
-        issuedAt: new Date(createdAt).toISOString(),
-        expiresAt: new Date(createdAt + 180000).toISOString(),
+  const [remaining, setRemaining] = useState(() => getTemporaryQrRemainingSeconds(initialCreatedAt, Date.now()));
+  const connectionRequest = useMemo(
+    () => ({
+      inviter: did,
+      reference: createTemporaryQrReference({
+        createdAt,
+        purpose: 'connection-invitation',
       }),
+    }),
     [createdAt, did],
   );
+  const qrValue = serializeTemporaryQrReference(connectionRequest.reference);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setRemaining(Math.max(0, Math.ceil((createdAt + 180000 - Date.now()) / 1000)));
+      setRemaining(getTemporaryQrRemainingSeconds(createdAt, Date.now()));
     }, 1000);
     return () => clearInterval(timer);
   }, [createdAt]);
@@ -450,7 +504,7 @@ export function ConnectionQrScreen({
   const refresh = () => {
     const nextCreatedAt = Date.now();
     setCreatedAt(nextCreatedAt);
-    setRemaining(180);
+    setRemaining(getTemporaryQrRemainingSeconds(nextCreatedAt, nextCreatedAt));
     onRefresh(nextCreatedAt);
   };
 
@@ -480,10 +534,20 @@ export function ConnectionQrScreen({
 
       <View style={[styles.shareQrCard, styles.connectionQrCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <View style={styles.shareQrCodeFrame}>
-          <QRCode value={qrValue} size={238} backgroundColor={palette.white} color="#050505" ecl="H" />
-          <View style={styles.shareQrLogo}>
-            <ShieldCheck color={palette.white} size={25} />
-          </View>
+          {remaining > 0 ? (
+            <>
+              <QRCode value={qrValue} size={238} backgroundColor={palette.white} color="#050505" ecl="H" />
+              <View style={styles.shareQrLogo}>
+                <ShieldCheck color={palette.white} size={25} />
+              </View>
+            </>
+          ) : (
+            <View style={styles.shareQrExpired}>
+              <RefreshCw color={colors.danger} size={42} />
+              <Text style={[styles.shareQrExpiredTitle, { color: colors.danger }]}>{t('identity.share.qr.expiredTitle')}</Text>
+              <Text style={[styles.shareQrExpiredText, { color: colors.textSecondary }]}>{t('identity.share.qr.expiredDescription')}</Text>
+            </View>
+          )}
         </View>
 
         <View style={[styles.shareQrExpiry, { backgroundColor: colors.surfaceMuted }]}>
@@ -501,6 +565,7 @@ export function ConnectionQrScreen({
           icon={Share2}
           title={t('identity.share.qr.shareTitle')}
           description={t('identity.share.qr.shareDescription')}
+          disabled={remaining === 0}
           onPress={() => Alert.alert(t('identity.share.qr.connectionShareAlertTitle'), t('identity.share.qr.connectionShareAlertDescription'))}
         />
         <QrAction
@@ -508,6 +573,7 @@ export function ConnectionQrScreen({
           icon={Download}
           title={t('identity.share.qr.downloadTitle')}
           description={t('identity.share.qr.downloadDescription')}
+          disabled={remaining === 0}
           onPress={() => Alert.alert(t('identity.share.qr.downloadAlertTitle'), t('identity.share.qr.downloadAlertDescription'))}
         />
         <QrAction colors={colors} icon={RefreshCw} title={t('identity.share.qr.refreshTitle')} description={t('identity.share.qr.refreshDescription')} onPress={refresh} />
@@ -557,20 +623,24 @@ function QrAction({
   icon: Icon,
   title,
   description,
+  disabled = false,
   onPress,
 }: {
   colors: AppColors;
   icon: LucideIcon;
   title: string;
   description: string;
+  disabled?: boolean;
   onPress: () => void;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={title}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [styles.shareQrAction, { opacity: pressed ? 0.65 : 1 }]}
+      style={({ pressed }) => [styles.shareQrAction, { opacity: disabled ? 0.4 : pressed ? 0.65 : 1 }]}
     >
       <View style={[styles.shareQrActionIcon, { backgroundColor: colors.surfaceMuted }]}>
         <Icon color={colors.primaryDark} size={25} strokeWidth={1.8} />

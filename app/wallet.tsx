@@ -12,6 +12,7 @@ export default function WalletRoute() {
   return (
     <WalletScreen
       colors={colors}
+      compactDid={store.settings.flowSettings.identity.compactDid}
       credentials={store.credentials}
       did={store.profile.did}
       onOpenActivity={() => router.push('/activity')}

@@ -10,7 +10,8 @@ import {
   type PropsWithChildren,
   type SetStateAction,
 } from 'react';
-import { Animated, useColorScheme } from 'react-native';
+import { Animated, AppState, useColorScheme } from 'react-native';
+import * as LocalAuthentication from 'expo-local-authentication';
 
 import { NEWS_FEED_OVERLAY_HEIGHT } from '../../screens/news-feed';
 import { darkColors, lightColors, type AppColors } from '../../theme';
@@ -23,6 +24,7 @@ import {
   logoutAuthSession,
   persistAuthSuccess,
   refreshAuthSession,
+  shouldInvalidateStoredAuthSession,
   type StoredAuthSession,
 } from '../../domain/auth';
 
@@ -36,7 +38,14 @@ interface ConnectionInvitation {
   createdAt: number;
 }
 
+export interface CredentialAccessPrompt {
+  cancelLabel: string;
+  fallbackLabel: string;
+  promptMessage: string;
+}
+
 interface AppRouterContextValue {
+  authenticateCredentialAccess: (prompt: CredentialAccessPrompt) => Promise<boolean>;
   authCompleted: boolean;
   authHydrated: boolean;
   authSession: StoredAuthSession | null;
@@ -47,6 +56,7 @@ interface AppRouterContextValue {
   closeSideMenu: () => void;
   isDark: boolean;
   logout: () => Promise<void>;
+  lockCredentialAccess: () => void;
   newsFeedChromeProgress: Animated.AnimatedInterpolation<number>;
   newsFeedScrollY: Animated.Value;
   openSideMenu: () => void;
@@ -76,6 +86,8 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
   const [selectedChatId, setSelectedChatId] = useState('minh-anh');
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
   const newsFeedScrollY = useRef(new Animated.Value(0)).current;
+  const credentialAccessExpiresAt = useRef(0);
+  const credentialAccessRequest = useRef<Promise<boolean> | null>(null);
 
   const isDark = store.settings.theme === 'dark' || (store.settings.theme === 'system' && systemScheme === 'dark');
   const colors = isDark ? darkColors : lightColors;
@@ -99,9 +111,13 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
         try {
           const refreshed = await refreshAuthSession(saved);
           return persistAuthSuccess(refreshed);
-        } catch {
-          await clearStoredAuthSession();
-          return null;
+        } catch (error) {
+          if (shouldInvalidateStoredAuthSession(error)) {
+            await clearStoredAuthSession();
+            return null;
+          }
+
+          return saved;
         }
       })
       .then((session) => {
@@ -123,16 +139,74 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
     setAuthCompleted(true);
   }, []);
 
+  const authenticateCredentialAccess = useCallback(async (prompt: CredentialAccessPrompt) => {
+    if (credentialAccessExpiresAt.current > Date.now()) {
+      return true;
+    }
+
+    if (credentialAccessRequest.current) {
+      return credentialAccessRequest.current;
+    }
+
+    const request = (async () => {
+      try {
+        const securityLevel = await LocalAuthentication.getEnrolledLevelAsync();
+        if (securityLevel === LocalAuthentication.SecurityLevel.NONE) {
+          return false;
+        }
+
+        const result = await LocalAuthentication.authenticateAsync({
+          cancelLabel: prompt.cancelLabel,
+          disableDeviceFallback: false,
+          fallbackLabel: prompt.fallbackLabel,
+          promptMessage: prompt.promptMessage,
+        });
+
+        if (result.success) {
+          credentialAccessExpiresAt.current = Date.now() + 2 * 60 * 1000;
+        }
+
+        return result.success;
+      } catch {
+        return false;
+      } finally {
+        credentialAccessRequest.current = null;
+      }
+    })();
+
+    credentialAccessRequest.current = request;
+    return request;
+  }, []);
+
+  const lockCredentialAccess = useCallback(() => {
+    credentialAccessExpiresAt.current = 0;
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState !== 'active') {
+        lockCredentialAccess();
+      }
+    });
+
+    return () => subscription.remove();
+  }, [lockCredentialAccess]);
+
   const logout = useCallback(async () => {
     const session = authSession ?? (await loadStoredAuthSession());
 
-    await logoutAuthSession(session);
-    setAuthSession(null);
-    setAuthCompleted(false);
-  }, [authSession]);
+    try {
+      await logoutAuthSession(session);
+    } finally {
+      lockCredentialAccess();
+      setAuthSession(null);
+      setAuthCompleted(false);
+    }
+  }, [authSession, lockCredentialAccess]);
 
   const value = useMemo<AppRouterContextValue>(
     () => ({
+      authenticateCredentialAccess,
       authCompleted,
       authHydrated,
       authSession,
@@ -143,6 +217,7 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
       connectionInvitation,
       isDark,
       logout,
+      lockCredentialAccess,
       newsFeedChromeProgress,
       newsFeedScrollY,
       openSideMenu: () => setSideMenuOpen(true),
@@ -160,12 +235,14 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
       authCompleted,
       authHydrated,
       authSession,
+      authenticateCredentialAccess,
       chatReturnScreen,
       colors,
       completeAuth,
       connectionInvitation,
       isDark,
       logout,
+      lockCredentialAccess,
       newsFeedChromeProgress,
       newsFeedScrollY,
       returnScreen,

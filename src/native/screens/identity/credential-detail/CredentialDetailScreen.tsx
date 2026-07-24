@@ -41,20 +41,11 @@ export function CredentialDetailScreen({
   onShare: () => void;
 }) {
   const { t } = useI18n();
-  const credentialId = credential.icon === 'graduation' ? 'did:identra:vc:9876abcdef123456' : `did:identra:vc:${credential.id}`;
-  const isDegree = credential.icon === 'graduation';
-  const detailAttributes = isDegree
-    ? [
-        { label: 'Họ và tên', value: 'Nguyễn Văn A', sensitive: true },
-        { label: 'Ngày sinh', value: '01/01/2000', sensitive: true },
-        { label: 'Chương trình đào tạo', value: 'Khoa học máy tính' },
-        { label: 'Ngành học', value: 'Công nghệ thông tin' },
-        { label: 'Bậc đào tạo', value: 'Đại học' },
-        { label: 'Loại hình đào tạo', value: 'Chính quy' },
-        { label: 'Xếp loại tốt nghiệp', value: 'Giỏi', highlight: true },
-        { label: 'Số hiệu bằng', value: 'CN-2024-123456', sensitive: true },
-      ]
-    : credential.attributes.map((attribute) => ({ ...attribute, highlight: false }));
+  const credentialId = `did:identra:vc:${credential.id}`;
+  const detailAttributes = credential.attributes.map((attribute) => ({
+    ...attribute,
+    highlight: attribute.key === 'degree.classification',
+  }));
   const statusContent = {
     verified: { label: t('identity.detail.statuses.verified.label'), description: t('identity.detail.statuses.verified.description'), color: colors.success, background: palette.green[100] },
     pending: { label: t('identity.detail.statuses.pending.label'), description: t('identity.detail.statuses.pending.description'), color: colors.warning, background: '#FFF3E8' },

@@ -44,11 +44,15 @@ export const INITIAL_CREDENTIALS: Credential[] = [
     icon: 'graduation',
     didIssuer: 'did:identra:uet-academic',
     attributes: [
-      { label: 'Họ và tên', value: 'Nguyễn Văn An' },
-      { label: 'Trạng thái bằng cấp', value: 'Đã tốt nghiệp' },
-      { label: 'Ngành đào tạo', value: 'Kỹ thuật Phần mềm' },
-      { label: 'Xếp loại tốt nghiệp', value: 'Xuất sắc' },
-      { label: 'GPA', value: '3.85 / 4.0' },
+      { key: 'subject.fullName', label: 'Họ và tên', value: 'Nguyễn Văn An', sensitive: true },
+      { key: 'subject.birthDate', label: 'Ngày sinh', value: '15/10/2002', sensitive: true },
+      { key: 'degree.program', label: 'Chương trình đào tạo', value: 'Khoa học máy tính' },
+      { key: 'degree.major', label: 'Ngành học', value: 'Kỹ thuật Phần mềm' },
+      { key: 'degree.level', label: 'Bậc đào tạo', value: 'Đại học' },
+      { key: 'degree.mode', label: 'Loại hình đào tạo', value: 'Chính quy' },
+      { key: 'degree.classification', label: 'Xếp loại tốt nghiệp', value: 'Xuất sắc' },
+      { key: 'degree.number', label: 'Số hiệu bằng', value: 'CN-2024-123456', sensitive: true },
+      { key: 'degree.gpa', label: 'GPA', value: '3.85 / 4.0' },
     ],
   },
   {
@@ -63,12 +67,12 @@ export const INITIAL_CREDENTIALS: Credential[] = [
     icon: 'languages',
     didIssuer: 'did:identra:ielts-official',
     attributes: [
-      { label: 'Full Name', value: 'Nguyen Van An' },
-      { label: 'Overall Band Score', value: '8.0' },
-      { label: 'Listening', value: '8.5' },
-      { label: 'Reading', value: '8.5' },
-      { label: 'Writing', value: '7.0' },
-      { label: 'Speaking', value: '7.5' },
+      { key: 'subject.fullName', label: 'Full Name', value: 'Nguyen Van An', sensitive: true },
+      { key: 'language.overallScore', label: 'Overall Band Score', value: '8.0' },
+      { key: 'language.listeningScore', label: 'Listening', value: '8.5' },
+      { key: 'language.readingScore', label: 'Reading', value: '8.5' },
+      { key: 'language.writingScore', label: 'Writing', value: '7.0' },
+      { key: 'language.speakingScore', label: 'Speaking', value: '7.5' },
     ],
   },
   {
@@ -82,10 +86,10 @@ export const INITIAL_CREDENTIALS: Credential[] = [
     icon: 'shield',
     didIssuer: 'did:identra:ssi-kyc',
     attributes: [
-      { label: 'Phương thức', value: 'CCCD gắn chip & sinh trắc học' },
-      { label: 'Mã số KYC', value: 'KYC-992110-SSI', sensitive: true },
-      { label: 'Cấp độ KYC', value: 'Level 2' },
-      { label: 'Trạng thái', value: 'Đã thông qua xác minh' },
+      { key: 'kyc.method', label: 'Phương thức', value: 'CCCD gắn chip & sinh trắc học' },
+      { key: 'kyc.reference', label: 'Mã số KYC', value: 'KYC-992110-SSI', sensitive: true },
+      { key: 'kyc.level', label: 'Cấp độ KYC', value: 'Level 2' },
+      { key: 'credential.status', label: 'Trạng thái', value: 'Đã thông qua xác minh' },
     ],
   },
   {
@@ -99,9 +103,9 @@ export const INITIAL_CREDENTIALS: Credential[] = [
     icon: 'bank',
     didIssuer: 'did:identra:abc-bank',
     attributes: [
-      { label: 'Chủ tài khoản', value: 'Nguyễn Văn An' },
-      { label: 'Số tài khoản', value: '0123456789', sensitive: true },
-      { label: 'Trạng thái', value: 'Đã xác nhận' },
+      { key: 'subject.fullName', label: 'Chủ tài khoản', value: 'Nguyễn Văn An', sensitive: true },
+      { key: 'bank.accountNumber', label: 'Số tài khoản', value: '0123456789', sensitive: true },
+      { key: 'credential.status', label: 'Trạng thái', value: 'Đã xác nhận' },
     ],
   },
   {
@@ -114,7 +118,7 @@ export const INITIAL_CREDENTIALS: Credential[] = [
     status: 'pending',
     icon: 'clock',
     didIssuer: 'did:identra:xyz-company',
-    attributes: [{ label: 'Trạng thái', value: 'Đang chờ xác nhận' }],
+    attributes: [{ key: 'credential.status', label: 'Trạng thái', value: 'Đang chờ xác nhận' }],
   },
   {
     ...common,
@@ -126,7 +130,7 @@ export const INITIAL_CREDENTIALS: Credential[] = [
     status: 'expired',
     icon: 'security',
     didIssuer: 'did:identra:cybersec',
-    attributes: [{ label: 'Trạng thái', value: 'Đã hết hạn' }],
+    attributes: [{ key: 'credential.status', label: 'Trạng thái', value: 'Đã hết hạn' }],
   },
 ];
 

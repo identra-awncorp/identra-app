@@ -5,7 +5,7 @@ import { useAppRouterState } from '@/app/router/AppRouterContext';
 
 export default function SettingsRoute() {
   const router = useRouter();
-  const { colors, logout, setChatReturnScreen, setReturnScreen } = useAppRouterState();
+  const { colors, logout, openSideMenu, setChatReturnScreen, setReturnScreen } = useAppRouterState();
 
   return (
     <SettingsScreen
@@ -21,6 +21,7 @@ export default function SettingsRoute() {
       onOpenDisplay={() => router.push('/settings-display')}
       onOpenGovernance={() => router.push('/settings-governance')}
       onOpenHelp={() => router.push('/settings-help')}
+      onOpenMenu={openSideMenu}
       onOpenNotifications={() => {
         setReturnScreen('settings');
         router.push('/settings-notifications');
