@@ -1,4 +1,6 @@
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
+import * as Haptics from 'expo-haptics';
+import * as Linking from 'expo-linking';
 import {
   Flashlight,
   History,
@@ -17,6 +19,16 @@ import { ScreenScroll } from '../../components/AppUiPrimitives';
 import { useI18n } from '../../i18n';
 import type { AppColors } from '../../theme';
 import { border, palette, radius, spacing, typography } from '../../theme';
+import { parseQrScanValue, type QrScanResult } from '../../domain/scan/qrScan';
+
+interface ScanSettings {
+  confirmBeforeOpenLink: boolean;
+  resetZoomAfterScan: boolean;
+  riskyQrWarnings: boolean;
+  saveScanHistory: boolean;
+  verifiedLinksOnly: boolean;
+  vibrateOnSuccess: boolean;
+}
 
 export function QrScannerScreen({
   active = true,
@@ -25,6 +37,8 @@ export function QrScannerScreen({
   onOpenMyQr,
   onOpenChat,
   onOpenMenu,
+  onRecordScan,
+  scanSettings,
 }: {
   active?: boolean;
   colors: AppColors;
@@ -32,11 +46,14 @@ export function QrScannerScreen({
   onOpenMyQr: () => void;
   onOpenChat: () => void;
   onOpenMenu: () => void;
+  onRecordScan: (result: QrScanResult) => void;
+  scanSettings: ScanSettings;
 }) {
   const { t } = useI18n();
   const [permission, requestPermission] = useCameraPermissions();
   const [torchEnabled, setTorchEnabled] = useState(false);
   const [zoom, setZoom] = useState(0);
+  const [scanLocked, setScanLocked] = useState(false);
   const requestedPermission = useRef(false);
 
   useEffect(() => {
@@ -46,8 +63,102 @@ export function QrScannerScreen({
     }
   }, [active, permission, requestPermission]);
 
+  useEffect(() => {
+    if (!active) {
+      setScanLocked(false);
+      setTorchEnabled(false);
+    }
+  }, [active]);
+
   const showPendingMessage = (title: string) => {
     Alert.alert(title, t('scan.pendingDescription'));
+  };
+
+  const releaseScanner = () => setScanLocked(false);
+  const showScanAlert = (title: string, description: string) => {
+    Alert.alert(
+      title,
+      description,
+      [{ text: t('common.close'), onPress: releaseScanner }],
+      { cancelable: false },
+    );
+  };
+  const openScannedUrl = async (url: string) => {
+    try {
+      if (!(await Linking.canOpenURL(url))) {
+        showScanAlert(t('scan.result.cannotOpenTitle'), t('scan.result.cannotOpenDescription'));
+        return;
+      }
+
+      await Linking.openURL(url);
+      releaseScanner();
+    } catch {
+      showScanAlert(t('scan.result.cannotOpenTitle'), t('scan.result.cannotOpenDescription'));
+    }
+  };
+  const confirmOpenUrl = (url: string, risky: boolean) => {
+    Alert.alert(
+      risky ? t('scan.result.riskyLinkTitle') : t('scan.result.linkTitle'),
+      risky ? t('scan.result.riskyLinkDescription', { url }) : t('scan.result.linkDescription', { url }),
+      [
+        { text: t('common.cancel'), style: 'cancel', onPress: releaseScanner },
+        { text: t('common.open'), onPress: () => void openScannedUrl(url) },
+      ],
+      { cancelable: false },
+    );
+  };
+  const handleBarcodeScanned = async ({ data }: BarcodeScanningResult) => {
+    if (scanLocked) return;
+    setScanLocked(true);
+
+    if (scanSettings.resetZoomAfterScan) setZoom(0);
+    if (scanSettings.vibrateOnSuccess) {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+    }
+
+    const result = parseQrScanValue(data);
+    if (scanSettings.saveScanHistory) onRecordScan(result);
+
+    if (result.kind === 'identra') {
+      showScanAlert(
+        t('scan.result.identraTitle'),
+        result.purpose === 'connection-invitation'
+          ? t('scan.result.connectionDescription')
+          : t('scan.result.credentialDescription'),
+      );
+      return;
+    }
+
+    if (result.kind === 'expired-identra') {
+      showScanAlert(t('scan.result.expiredTitle'), t('scan.result.expiredDescription'));
+      return;
+    }
+
+    if (result.kind === 'invalid-identra') {
+      showScanAlert(t('scan.result.invalidTitle'), t('scan.result.invalidDescription'));
+      return;
+    }
+
+    if (result.kind === 'url') {
+      if (scanSettings.verifiedLinksOnly) {
+        showScanAlert(t('scan.result.unverifiedTitle'), t('scan.result.unverifiedDescription'));
+        return;
+      }
+
+      const risky = !result.secure && scanSettings.riskyQrWarnings;
+      if (risky || scanSettings.confirmBeforeOpenLink) {
+        confirmOpenUrl(result.url, risky);
+        return;
+      }
+
+      await openScannedUrl(result.url);
+      return;
+    }
+
+    showScanAlert(
+      t('scan.result.textTitle'),
+      result.value.slice(0, 300) || t('scan.result.emptyDescription'),
+    );
   };
 
   return (
@@ -82,7 +193,13 @@ export function QrScannerScreen({
 
         <View style={styles.cameraCard}>
           {active && permission?.granted ? (
-            <CameraView style={StyleSheet.absoluteFill} enableTorch={torchEnabled} zoom={zoom} />
+            <CameraView
+              barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+              enableTorch={torchEnabled}
+              onBarcodeScanned={scanLocked ? undefined : handleBarcodeScanned}
+              style={StyleSheet.absoluteFill}
+              zoom={zoom}
+            />
           ) : (
             <View style={styles.permissionFallback}>
               <ScanLine color={palette.white} size={48} strokeWidth={1.6} />

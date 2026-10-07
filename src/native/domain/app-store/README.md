@@ -25,6 +25,7 @@ This folder owns pure app-state transformations that are shared by the React sto
 - Domain functions should not mutate the input state.
 - Credential upsert must replace duplicate IDs and keep the newest credential first.
 - Activity log IDs must remain stable once created.
+- Newly created activity log IDs must remain unique even when several events share the same timestamp.
 - Expired pending logs must become failed, unread, and highlighted.
 - Settings must always pass through normalization before being stored.
 - Global `hideSensitiveData` must stay synchronized with the identity flow setting.
@@ -34,6 +35,7 @@ This folder owns pure app-state transformations that are shared by the React sto
 
 - This folder should not import React, React Native components, Expo Router, UI theme, or i18n hooks.
 - Storage belongs in `src/native/store/appStoreStorage.ts`, not this domain folder.
+- Storage writes are serialized so an older write cannot finish after and overwrite newer state; load/save failures remain visible and retryable in the app shell.
 - UI-specific labels and translated strings belong in screens or i18n, not domain functions.
 - Feature-specific domain logic should move to a dedicated feature domain when it grows beyond shared app-state transformation.
 

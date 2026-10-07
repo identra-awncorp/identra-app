@@ -17,6 +17,13 @@ export interface CreateActivityLogInput {
 
 const FULL_NAME_ATTRIBUTE_KEY = 'subject.fullName';
 
+function createActivityLogId(createdAt: Date): string {
+  const uuid = globalThis.crypto?.randomUUID?.();
+  if (uuid) return `activity-${uuid}`;
+
+  return `activity-${createdAt.getTime()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export function upsertCredentialInAppState(
   state: PersistedAppState,
   credential: Credential,
@@ -32,7 +39,7 @@ export function createActivityLog(
   createdAt: Date = new Date(),
 ): ActivityLog {
   return {
-    id: `activity-${createdAt.getTime()}`,
+    id: createActivityLogId(createdAt),
     timestamp: createdAt.toISOString(),
     title: input.title,
     description: input.description,

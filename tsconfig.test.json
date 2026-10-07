@@ -17,6 +17,7 @@
     "src/native/domain/auth/authPolicy.ts",
     "src/native/screens/chat/paymentUtils.ts",
     "src/native/domain/credentials/**/*.ts",
+    "src/native/domain/scan/**/*.ts",
     "src/native/domain/payment/**/*.ts",
     "src/native/screens/chat-list/chatListLogic.ts",
     "src/native/screens/chat-list/chatSearchLogic.ts",

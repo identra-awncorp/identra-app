@@ -9,7 +9,12 @@ export default function CredentialDetailRoute() {
   const router = useRouter();
   const { credentialId } = useLocalSearchParams<{ credentialId?: string | string[] }>();
   const store = useAppStore();
-  const { authenticateCredentialAccess, colors } = useAppRouterState();
+  const {
+    appActive,
+    authenticateCredentialAccess,
+    colors,
+    credentialAccessRevision,
+  } = useAppRouterState();
   const requestedCredentialId = Array.isArray(credentialId) ? credentialId[0] : credentialId;
   const credential = store.credentials.find((item) => item.id === requestedCredentialId);
   const denyAccess = useCallback(() => router.replace('/credentials'), [router]);
@@ -18,6 +23,8 @@ export default function CredentialDetailRoute() {
 
   return (
     <CredentialAccessGate
+      accessRevision={credentialAccessRevision}
+      appActive={appActive}
       authenticate={authenticateCredentialAccess}
       colors={colors}
       enabled={store.settings.flowSettings.identity.requireAuthForCredential}

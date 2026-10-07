@@ -29,6 +29,7 @@ import { loadPersistedAppState, savePersistedAppState } from './appStoreStorage'
 
 export interface AppStore extends PersistedAppState {
   hydrated: boolean;
+  storageError: 'load' | 'save' | null;
   addCredential: (credential: Credential) => void;
   addLog: (title: string, description: string, partner: string, type?: ActivityLog['type']) => void;
   addActivityLog: (log: ActivityLog) => void;
@@ -40,6 +41,7 @@ export interface AppStore extends PersistedAppState {
   updateSettings: (settings: Partial<AppSettings>) => void;
   clearDemoData: () => void;
   resetDemoData: () => void;
+  retryStorage: () => void;
 }
 
 const StoreContext = createContext<AppStore | null>(null);
@@ -47,27 +49,48 @@ const StoreContext = createContext<AppStore | null>(null);
 export function AppStoreProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<PersistedAppState>(initialAppStoreState);
   const [hydrated, setHydrated] = useState(false);
+  const [storageError, setStorageError] = useState<'load' | 'save' | null>(null);
+  const [hydrationAttempt, setHydrationAttempt] = useState(0);
+  const [saveAttempt, setSaveAttempt] = useState(0);
 
   useEffect(() => {
     let mounted = true;
 
+    setStorageError(null);
     loadPersistedAppState()
       .then((saved) => {
-        if (mounted && saved) setState(saved);
+        if (!mounted) return;
+        if (saved) setState(saved);
+        setHydrated(true);
       })
-      .finally(() => {
-        if (mounted) setHydrated(true);
+      .catch(() => {
+        if (!mounted) return;
+        setHydrated(false);
+        setStorageError('load');
       });
 
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [hydrationAttempt]);
 
   useEffect(() => {
     if (!hydrated) return;
-    void savePersistedAppState(state).catch(() => undefined);
-  }, [hydrated, state]);
+
+    let current = true;
+    void savePersistedAppState(state).then(
+      () => {
+        if (current) setStorageError((error) => error === 'save' ? null : error);
+      },
+      () => {
+        if (current) setStorageError('save');
+      },
+    );
+
+    return () => {
+      current = false;
+    };
+  }, [hydrated, saveAttempt, state]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -135,11 +158,20 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
   }, []);
 
   const resetDemoData = useCallback(() => setState(initialAppStoreState), []);
+  const retryStorage = useCallback(() => {
+    if (storageError === 'load') {
+      setHydrationAttempt((attempt) => attempt + 1);
+      return;
+    }
+
+    setSaveAttempt((attempt) => attempt + 1);
+  }, [storageError]);
 
   const value = useMemo(
     () => ({
       ...state,
       hydrated,
+      storageError,
       addCredential,
       addLog,
       addActivityLog,
@@ -151,10 +183,12 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       updateSettings,
       clearDemoData,
       resetDemoData,
+      retryStorage,
     }),
     [
       state,
       hydrated,
+      storageError,
       addCredential,
       addLog,
       addActivityLog,
@@ -166,6 +200,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       updateSettings,
       clearDemoData,
       resetDemoData,
+      retryStorage,
     ],
   );
 

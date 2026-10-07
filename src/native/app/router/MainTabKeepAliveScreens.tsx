@@ -128,6 +128,23 @@ export function MainTabKeepAliveScreens({ activeScreen }: { activeScreen: KeepAl
         <QrScannerScreen
           active={activeScreen === 'scan'}
           colors={colors}
+          scanSettings={{
+            confirmBeforeOpenLink: store.settings.flowSettings.scan.confirmBeforeOpenLink,
+            resetZoomAfterScan: store.settings.flowSettings.scan.resetZoomAfterScan,
+            riskyQrWarnings: store.settings.flowSettings.scan.riskyQrWarnings,
+            saveScanHistory: store.settings.flowSettings.scan.saveScanHistory,
+            verifiedLinksOnly: store.settings.flowSettings.scan.verifiedLinksOnly,
+            vibrateOnSuccess: store.settings.flowSettings.scan.vibrateOnSuccess,
+          }}
+          onRecordScan={(result) => {
+            const kind = t(`activityLogs.scanQrKinds.${result.kind}`);
+            store.addLog(
+              t('activityLogs.scanQrTitle'),
+              t('activityLogs.scanQrDescription', { kind }),
+              t('activityLogs.scanQrPartner'),
+              'scan',
+            );
+          }}
           onOpenActivity={() => router.push('/activity')}
           onOpenMenu={openSideMenu}
           onOpenChat={() => {

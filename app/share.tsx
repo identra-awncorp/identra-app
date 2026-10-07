@@ -12,8 +12,10 @@ export default function ShareRoute() {
   const store = useAppStore();
   const { t } = useI18n();
   const {
+    appActive,
     authenticateCredentialAccess,
     colors,
+    credentialAccessRevision,
     lockCredentialAccess,
     setSharePayload,
   } = useAppRouterState();
@@ -43,6 +45,8 @@ export default function ShareRoute() {
 
   return (
     <CredentialAccessGate
+      accessRevision={credentialAccessRevision}
+      appActive={appActive}
       authenticate={authenticateCredentialAccess}
       colors={colors}
       enabled={identitySettings.requireAuthForCredential}

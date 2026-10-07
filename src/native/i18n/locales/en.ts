@@ -34,6 +34,12 @@ export const en = {
   },
   app: {
     loadingWallet: 'Opening Identra wallet...',
+    storage: {
+      loadErrorTitle: 'Unable to open wallet data',
+      loadErrorDescription: 'Identra has not overwritten the device data. Try reading secure storage again.',
+      saveErrorDescription: 'Recent changes have not been saved securely on this device.',
+      retry: 'Try again',
+    },
     logo: {
       accessibility: 'Identra logo',
       brandAccessibility: 'Identra',
@@ -694,6 +700,16 @@ export const en = {
     shareDataTitle: 'Data shared',
     shareDataDescription: 'Shared {{count}} data fields from {{credentialTitle}} with your consent.',
     verifiedReceiver: 'Verified receiver',
+    scanQrTitle: 'QR code scanned',
+    scanQrDescription: 'Identra classified this QR code as {{kind}} without storing its raw contents.',
+    scanQrPartner: 'Identra scanner',
+    scanQrKinds: {
+      identra: 'valid Identra',
+      'expired-identra': 'expired Identra',
+      'invalid-identra': 'invalid Identra',
+      url: 'web link',
+      text: 'plain text',
+    },
   },
   auth: {
     login: {
@@ -811,6 +827,25 @@ export const en = {
     },
     securityTitle: 'Safety & security',
     securityDescription: 'Identra only scans QR codes for verification. We do not store or share your data.',
+    result: {
+      identraTitle: 'Valid Identra code',
+      connectionDescription: 'An active connection invitation was recognized. Server synchronization will be available when the connection service is integrated.',
+      credentialDescription: 'An active credential presentation request was recognized. Further processing requires the verification service.',
+      expiredTitle: 'Identra code expired',
+      expiredDescription: 'This request is no longer active. Ask the sender to create a new code.',
+      invalidTitle: 'Invalid Identra code',
+      invalidDescription: 'The code is missing required information or uses an unsupported request type.',
+      linkTitle: 'Open link?',
+      linkDescription: 'This QR code points to {{url}}. Open it only if you trust the sender.',
+      riskyLinkTitle: 'Insecure link',
+      riskyLinkDescription: '{{url}} does not use HTTPS. Opening it may expose data.',
+      unverifiedTitle: 'Unverified link',
+      unverifiedDescription: 'Your current setting only allows links verified by Identra.',
+      cannotOpenTitle: 'Unable to open link',
+      cannotOpenDescription: 'This link is unsupported on the device or the target app is unavailable.',
+      textTitle: 'QR contents',
+      emptyDescription: 'The QR code does not contain readable content.',
+    },
   },
   identity: {
     wallet: {

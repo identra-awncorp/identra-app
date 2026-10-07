@@ -38,6 +38,11 @@ interface ConnectionInvitation {
   createdAt: number;
 }
 
+interface CredentialAccessRequest {
+  generation: number;
+  promise: Promise<boolean>;
+}
+
 export interface CredentialAccessPrompt {
   cancelLabel: string;
   fallbackLabel: string;
@@ -45,6 +50,7 @@ export interface CredentialAccessPrompt {
 }
 
 interface AppRouterContextValue {
+  appActive: boolean;
   authenticateCredentialAccess: (prompt: CredentialAccessPrompt) => Promise<boolean>;
   authCompleted: boolean;
   authHydrated: boolean;
@@ -53,6 +59,7 @@ interface AppRouterContextValue {
   colors: AppColors;
   completeAuth: (session?: StoredAuthSession) => void;
   connectionInvitation: ConnectionInvitation | null;
+  credentialAccessRevision: number;
   closeSideMenu: () => void;
   isDark: boolean;
   logout: () => Promise<void>;
@@ -76,6 +83,7 @@ const AppRouterContext = createContext<AppRouterContextValue | null>(null);
 export function AppRouterProvider({ children }: PropsWithChildren) {
   const store = useAppStore();
   const systemScheme = useColorScheme();
+  const [appActive, setAppActive] = useState(AppState.currentState === 'active');
   const [authCompleted, setAuthCompleted] = useState(false);
   const [authHydrated, setAuthHydrated] = useState(false);
   const [authSession, setAuthSession] = useState<StoredAuthSession | null>(null);
@@ -85,9 +93,11 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
   const [chatReturnScreen, setChatReturnScreen] = useState<ScreenKey>(initialScreen);
   const [selectedChatId, setSelectedChatId] = useState('minh-anh');
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
+  const [credentialAccessRevision, setCredentialAccessRevision] = useState(0);
   const newsFeedScrollY = useRef(new Animated.Value(0)).current;
+  const credentialAccessGeneration = useRef(0);
   const credentialAccessExpiresAt = useRef(0);
-  const credentialAccessRequest = useRef<Promise<boolean> | null>(null);
+  const credentialAccessRequest = useRef<CredentialAccessRequest | null>(null);
 
   const isDark = store.settings.theme === 'dark' || (store.settings.theme === 'system' && systemScheme === 'dark');
   const colors = isDark ? darkColors : lightColors;
@@ -140,14 +150,37 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
   }, []);
 
   const authenticateCredentialAccess = useCallback(async (prompt: CredentialAccessPrompt) => {
+    if (AppState.currentState !== 'active') {
+      return false;
+    }
+
+    const generation = credentialAccessGeneration.current;
     if (credentialAccessExpiresAt.current > Date.now()) {
       return true;
     }
 
-    if (credentialAccessRequest.current) {
-      return credentialAccessRequest.current;
+    const pendingRequest = credentialAccessRequest.current;
+    if (pendingRequest?.generation === generation) {
+      return pendingRequest.promise;
     }
 
+    if (pendingRequest) {
+      await pendingRequest.promise.catch(() => false);
+      if (
+        AppState.currentState !== 'active' ||
+        credentialAccessGeneration.current !== generation
+      ) {
+        return false;
+      }
+
+      const newerRequest = credentialAccessRequest.current;
+      if (newerRequest) return newerRequest.promise;
+    }
+
+    const requestRecord: CredentialAccessRequest = {
+      generation,
+      promise: Promise.resolve(false),
+    };
     const request = (async () => {
       try {
         const securityLevel = await LocalAuthentication.getEnrolledLevelAsync();
@@ -162,29 +195,42 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
           promptMessage: prompt.promptMessage,
         });
 
-        if (result.success) {
+        const accessStillValid =
+          result.success &&
+          AppState.currentState === 'active' &&
+          credentialAccessGeneration.current === generation;
+
+        if (accessStillValid) {
           credentialAccessExpiresAt.current = Date.now() + 2 * 60 * 1000;
         }
 
-        return result.success;
+        return accessStillValid;
       } catch {
         return false;
       } finally {
-        credentialAccessRequest.current = null;
+        if (credentialAccessRequest.current === requestRecord) {
+          credentialAccessRequest.current = null;
+        }
       }
     })();
 
-    credentialAccessRequest.current = request;
+    requestRecord.promise = request;
+    credentialAccessRequest.current = requestRecord;
     return request;
   }, []);
 
   const lockCredentialAccess = useCallback(() => {
+    credentialAccessGeneration.current += 1;
     credentialAccessExpiresAt.current = 0;
+    void LocalAuthentication.cancelAuthenticate().catch(() => undefined);
+    setCredentialAccessRevision((revision) => revision + 1);
   }, []);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextState) => {
-      if (nextState !== 'active') {
+      const active = nextState === 'active';
+      setAppActive(active);
+      if (!active) {
         lockCredentialAccess();
       }
     });
@@ -206,6 +252,7 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
 
   const value = useMemo<AppRouterContextValue>(
     () => ({
+      appActive,
       authenticateCredentialAccess,
       authCompleted,
       authHydrated,
@@ -215,6 +262,7 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
       colors,
       completeAuth,
       connectionInvitation,
+      credentialAccessRevision,
       isDark,
       logout,
       lockCredentialAccess,
@@ -235,11 +283,13 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
       authCompleted,
       authHydrated,
       authSession,
+      appActive,
       authenticateCredentialAccess,
       chatReturnScreen,
       colors,
       completeAuth,
       connectionInvitation,
+      credentialAccessRevision,
       isDark,
       logout,
       lockCredentialAccess,

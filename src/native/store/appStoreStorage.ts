@@ -24,6 +24,8 @@ const secureStoreOptions: SecureStore.SecureStoreOptions = {
   keychainService: IDENTITY_KEYCHAIN_SERVICE,
 };
 
+let saveQueue: Promise<void> = Promise.resolve();
+
 interface IdentityManifest {
   chunks: number;
   generation: string;
@@ -31,12 +33,12 @@ interface IdentityManifest {
 }
 
 function parseJson(value: string | null): unknown {
-  if (!value) return null;
+  if (value === null) return null;
 
   try {
     return JSON.parse(value) as unknown;
   } catch {
-    return null;
+    throw new Error('Stored app data is not valid JSON.');
   }
 }
 
@@ -67,10 +69,14 @@ async function loadSecureIdentityEnvelope(): Promise<unknown> {
     return null;
   }
 
-  const manifest = parseIdentityManifest(
-    parseJson(await SecureStore.getItemAsync(IDENTITY_MANIFEST_KEY, secureStoreOptions)),
+  const manifestValue = await SecureStore.getItemAsync(
+    IDENTITY_MANIFEST_KEY,
+    secureStoreOptions,
   );
-  if (!manifest) return null;
+  if (manifestValue === null) return null;
+
+  const manifest = parseIdentityManifest(parseJson(manifestValue));
+  if (!manifest) throw new Error('Stored identity manifest is invalid.');
 
   const chunks = await Promise.all(
     Array.from({ length: manifest.chunks }, (_, index) =>
@@ -82,10 +88,12 @@ async function loadSecureIdentityEnvelope(): Promise<unknown> {
   );
 
   if (chunks.some((chunk) => chunk === null)) {
-    return null;
+    throw new Error('Stored identity data is incomplete.');
   }
 
-  return parseJson(chunks.join(''));
+  const envelope = parseJson(chunks.join(''));
+  if (envelope === null) throw new Error('Stored identity data is invalid.');
+  return envelope;
 }
 
 async function removeIdentityGeneration(manifest: IdentityManifest | null): Promise<void> {
@@ -145,46 +153,51 @@ async function saveSecureIdentityEnvelope(state: PersistedAppState): Promise<voi
 }
 
 export async function loadPersistedAppState(): Promise<PersistedAppState | null> {
-  try {
-    const [settingsValue, identityValue, legacyValue] = await Promise.all([
-      AsyncStorage.getItem(SETTINGS_STORAGE_KEY),
-      loadSecureIdentityEnvelope(),
-      AsyncStorage.getItem(LEGACY_APP_STATE_STORAGE_KEY),
-    ]);
-    const legacyState = migrateLegacyAppState(
-      parseJson(legacyValue),
-      initialAppStoreState,
-    );
-    const settings = parsePersistedSettingsEnvelope(parseJson(settingsValue));
-    const identity = parsePersistedIdentityEnvelope(identityValue);
-    const foundPersistedState = Boolean(legacyState || settings || identity);
+  const [settingsValue, identityValue, legacyValue] = await Promise.all([
+    AsyncStorage.getItem(SETTINGS_STORAGE_KEY),
+    loadSecureIdentityEnvelope(),
+    AsyncStorage.getItem(LEGACY_APP_STATE_STORAGE_KEY),
+  ]);
+  const legacyState = migrateLegacyAppState(parseJson(legacyValue), initialAppStoreState);
+  const parsedSettingsValue = parseJson(settingsValue);
+  const settings = parsePersistedSettingsEnvelope(parsedSettingsValue);
+  const identity = parsePersistedIdentityEnvelope(identityValue);
 
-    if (!foundPersistedState) {
-      if (legacyValue) {
-        await AsyncStorage.removeItem(LEGACY_APP_STATE_STORAGE_KEY);
-      }
-      return null;
-    }
+  if (legacyValue !== null && !legacyState) {
+    throw new Error('Stored legacy app data is invalid.');
+  }
+  if (settingsValue !== null && !settings) {
+    throw new Error('Stored app settings are invalid.');
+  }
+  if (identityValue !== null && !identity) {
+    throw new Error('Stored identity data is invalid.');
+  }
 
-    const base = legacyState ?? initialAppStoreState;
-    const state: PersistedAppState = {
-      credentials: identity?.credentials ?? base.credentials,
-      logs: identity?.logs ?? base.logs,
-      profile: identity?.profile ?? base.profile,
-      settings: settings ?? base.settings,
-    };
+  const foundPersistedState = Boolean(legacyState || settings || identity);
 
+  if (!foundPersistedState) {
     if (legacyValue) {
-      await savePersistedAppState(state);
+      await AsyncStorage.removeItem(LEGACY_APP_STATE_STORAGE_KEY);
     }
-
-    return state;
-  } catch {
     return null;
   }
+
+  const base = legacyState ?? initialAppStoreState;
+  const state: PersistedAppState = {
+    credentials: identity?.credentials ?? base.credentials,
+    logs: identity?.logs ?? base.logs,
+    profile: identity?.profile ?? base.profile,
+    settings: settings ?? base.settings,
+  };
+
+  if (legacyValue) {
+    await savePersistedAppState(state);
+  }
+
+  return state;
 }
 
-export async function savePersistedAppState(state: PersistedAppState): Promise<void> {
+async function persistAppState(state: PersistedAppState): Promise<void> {
   await Promise.all([
     AsyncStorage.setItem(
       SETTINGS_STORAGE_KEY,
@@ -193,4 +206,13 @@ export async function savePersistedAppState(state: PersistedAppState): Promise<v
     saveSecureIdentityEnvelope(state),
   ]);
   await AsyncStorage.removeItem(LEGACY_APP_STATE_STORAGE_KEY);
+}
+
+export function savePersistedAppState(state: PersistedAppState): Promise<void> {
+  const operation = saveQueue
+    .catch(() => undefined)
+    .then(() => persistAppState(state));
+
+  saveQueue = operation;
+  return operation;
 }

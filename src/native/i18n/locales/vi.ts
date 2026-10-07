@@ -26,6 +26,12 @@ export const vi = {
   },
   app: {
     loadingWallet: 'Đang mở ví Identra...',
+    storage: {
+      loadErrorTitle: 'Không thể mở dữ liệu ví',
+      loadErrorDescription: 'Identra chưa ghi đè dữ liệu trên thiết bị. Hãy thử đọc lại bộ nhớ an toàn.',
+      saveErrorDescription: 'Thay đổi mới chưa được lưu an toàn trên thiết bị.',
+      retry: 'Thử lại',
+    },
     logo: {
       accessibility: 'Logo Identra',
       brandAccessibility: 'Identra',
@@ -686,6 +692,16 @@ export const vi = {
     shareDataTitle: 'Chia sẻ dữ liệu',
     shareDataDescription: 'Đã chia sẻ {{count}} trường dữ liệu từ {{credentialTitle}} theo sự đồng ý của bạn.',
     verifiedReceiver: 'Bên nhận được xác minh',
+    scanQrTitle: 'Đã quét mã QR',
+    scanQrDescription: 'Identra phân loại mã QR này là {{kind}} mà không lưu nội dung thô.',
+    scanQrPartner: 'Trình quét Identra',
+    scanQrKinds: {
+      identra: 'Identra hợp lệ',
+      'expired-identra': 'Identra hết hạn',
+      'invalid-identra': 'Identra không hợp lệ',
+      url: 'liên kết web',
+      text: 'văn bản',
+    },
   },
   auth: {
     login: {
@@ -803,6 +819,25 @@ export const vi = {
     },
     securityTitle: 'An toàn & bảo mật',
     securityDescription: 'Identra chỉ quét mã QR để xác minh. Chúng tôi không lưu trữ hay chia sẻ dữ liệu của bạn.',
+    result: {
+      identraTitle: 'Mã Identra hợp lệ',
+      connectionDescription: 'Đã nhận diện lời mời kết nối còn hiệu lực. Việc đồng bộ với máy chủ sẽ được thực hiện khi dịch vụ kết nối được tích hợp.',
+      credentialDescription: 'Đã nhận diện yêu cầu trình thực chứng còn hiệu lực. Việc xử lý tiếp theo cần dịch vụ xác minh.',
+      expiredTitle: 'Mã Identra đã hết hạn',
+      expiredDescription: 'Yêu cầu này không còn hiệu lực. Hãy đề nghị bên gửi tạo mã mới.',
+      invalidTitle: 'Mã Identra không hợp lệ',
+      invalidDescription: 'Mã thiếu thông tin bắt buộc hoặc sử dụng loại yêu cầu không được hỗ trợ.',
+      linkTitle: 'Mở liên kết?',
+      linkDescription: 'Mã QR dẫn đến {{url}}. Chỉ mở khi bạn tin tưởng nguồn gửi.',
+      riskyLinkTitle: 'Liên kết không an toàn',
+      riskyLinkDescription: '{{url}} không sử dụng HTTPS. Việc mở liên kết có thể làm lộ dữ liệu.',
+      unverifiedTitle: 'Liên kết chưa được xác minh',
+      unverifiedDescription: 'Cài đặt hiện tại chỉ cho phép liên kết đã được Identra xác minh.',
+      cannotOpenTitle: 'Không thể mở liên kết',
+      cannotOpenDescription: 'Thiết bị không hỗ trợ liên kết này hoặc ứng dụng đích không khả dụng.',
+      textTitle: 'Nội dung QR',
+      emptyDescription: 'Mã QR không chứa nội dung có thể đọc.',
+    },
   },
   identity: {
     wallet: {

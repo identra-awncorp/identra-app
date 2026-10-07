@@ -7,11 +7,15 @@ import type { AppColors } from '../../../theme';
 
 export function CredentialAccessGate({
   authenticate,
+  accessRevision,
+  appActive,
   children,
   colors,
   enabled,
   onDenied,
 }: {
+  accessRevision: number;
+  appActive: boolean;
   authenticate: (prompt: {
     cancelLabel: string;
     fallbackLabel: string;
@@ -36,6 +40,12 @@ export function CredentialAccessGate({
     }
 
     setGranted(false);
+    if (!appActive) {
+      return () => {
+        mounted = false;
+      };
+    }
+
     void authenticate({
       cancelLabel: t('identity.access.cancel'),
       fallbackLabel: t('identity.access.fallback'),
@@ -59,7 +69,7 @@ export function CredentialAccessGate({
     return () => {
       mounted = false;
     };
-  }, [authenticate, enabled, onDenied, t]);
+  }, [accessRevision, appActive, authenticate, enabled, onDenied, t]);
 
   if (granted) {
     return children;

@@ -69,12 +69,19 @@ describe('appStoreStateService', () => {
 
     const next = addActivityLogToAppState(makeState({ logs: [{ id: 'old', title: 'Old' }] }), log);
 
-    assert.equal(log.id, `activity-${createdAt.getTime()}`);
+    assert.match(log.id, /^activity-/);
     assert.equal(log.timestamp, createdAt.toISOString());
     assert.equal(log.type, 'scan');
     assert.equal(next.logs[0].id, log.id);
     assert.equal(next.logs[0].unread, true);
     assert.equal(next.logs[0].isNew, true);
+  });
+
+  it('creates unique activity IDs even for the same timestamp', () => {
+    const createdAt = new Date('2026-06-28T00:00:00.000Z');
+    const input = { title: 'Scan', description: '', partner: 'QR', type: 'scan' };
+
+    assert.notEqual(createActivityLog(input, createdAt).id, createActivityLog(input, createdAt).id);
   });
 
   it('does not retain new activity when identity activity logging is disabled', () => {

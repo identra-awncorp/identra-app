@@ -16,6 +16,7 @@ QR sharing and credential sharing screens live under `src/native/screens/identit
 ## Important Files
 
 - `QrScannerScreen.tsx`: scanner screen, camera preview, permission fallback, and quick actions.
+- `src/native/domain/scan/qrScan.ts`: pure QR parser and risk classification for Identra requests, web links, and text.
 - `index.ts`: public screen export.
 - `src/native/app/router/MainTabKeepAliveScreens.tsx`: passes the active tab state to the scanner.
 - `src/native/app/navigation/sideMenuSettingsConfig.ts`: Scan settings exposed through the side menu.
@@ -27,6 +28,9 @@ QR sharing and credential sharing screens live under `src/native/screens/identit
 - Camera preview should not stay active when another keep-alive tab is visible.
 - Permission fallback must provide a clear action to request camera access.
 - Torch, zoom, and scanner controls must remain usable on Android and iOS.
+- Accept only supported, unexpired Identra connection and credential-presentation requests.
+- Plain web links must respect confirmation, risky-link warning, and verified-links-only settings before opening.
+- Scan history records only the classified result kind; raw QR contents must not be persisted.
 - Placeholder actions such as picking an image must show a clear pending state until implemented.
 - QR safety copy must not imply a scanned QR is trusted without validation.
 
@@ -35,7 +39,7 @@ QR sharing and credential sharing screens live under `src/native/screens/identit
 - Torch, zoom, and permission-request guard state are local to `QrScannerScreen`.
 - Active/inactive lifecycle comes from the app router keep-alive layer.
 - Scan settings live under `flowSettings.scan` in app settings.
-- Reusable QR parsing, risk classification, verified-link checks, or scan-history derivation should move into a future scan domain service.
+- Reusable QR parsing and risk classification live in `src/native/domain/scan`; camera and alert state remain local to the screen.
 
 ## i18n And Content
 
@@ -47,6 +51,7 @@ QR sharing and credential sharing screens live under `src/native/screens/identit
 When changing Scan route, tab, settings, or active keep-alive behavior, update and run:
 
 - `tests/navigationLogic.test.js`
+- `tests/qrScan.test.js`
 
 Also run:
 

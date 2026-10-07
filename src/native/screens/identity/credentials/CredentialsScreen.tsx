@@ -5,6 +5,7 @@ import type { AppColors } from '../../../theme';
 import { border, componentSize, palette, radius, spacing, typography } from '../../../theme';
 import type { Credential, CredentialStatus } from '../../../types';
 import { useI18n } from '../../../i18n';
+import { getCredentialStats } from '../../../domain/credentials/credentialStats';
 import {
   AppHeader,
   Card,
@@ -36,6 +37,7 @@ export function CredentialsScreen({
   const [filter, setFilter] = useState<FilterKey>('all');
   const [draftFilter, setDraftFilter] = useState<FilterKey>('all');
   const [filterOpen, setFilterOpen] = useState(false);
+  const stats = useMemo(() => getCredentialStats(credentials), [credentials]);
 
   const rows = useMemo(
     () =>
@@ -122,10 +124,10 @@ export function CredentialsScreen({
           </Card>
 
           <Card colors={colors} style={styles.stats}>
-            <Stat colors={colors} label={t('identity.credentials.stats.verified')} value="18" color={colors.success} background={palette.green[100]} icon={ShieldCheck} />
-            <Stat colors={colors} label={t('identity.credentials.stats.pending')} value="3" color={colors.warning} background={palette.orange[100]} icon={Clock3} divider />
-            <Stat colors={colors} label={t('identity.credentials.stats.expired')} value="1" color={colors.purple} background={palette.purple[100]} icon={CircleX} divider />
-            <Stat colors={colors} label={t('identity.credentials.stats.total')} value="22" color={colors.primaryDark} background={palette.blue[100]} icon={Box} divider />
+            <Stat colors={colors} label={t('identity.credentials.stats.verified')} value={String(stats.verified)} color={colors.success} background={palette.green[100]} icon={ShieldCheck} />
+            <Stat colors={colors} label={t('identity.credentials.stats.pending')} value={String(stats.pending)} color={colors.warning} background={palette.orange[100]} icon={Clock3} divider />
+            <Stat colors={colors} label={t('identity.credentials.stats.expired')} value={String(stats.expired)} color={colors.purple} background={palette.purple[100]} icon={CircleX} divider />
+            <Stat colors={colors} label={t('identity.credentials.stats.total')} value={String(stats.total)} color={colors.primaryDark} background={palette.blue[100]} icon={Box} divider />
           </Card>
 
           <Card colors={colors} style={styles.list}>

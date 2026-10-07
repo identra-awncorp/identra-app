@@ -53,6 +53,7 @@ export function AppShell() {
   const previousScreen = useRef<ScreenKey>(initialScreen);
   const { t } = useI18n();
   const {
+    appActive,
     authCompleted,
     authHydrated,
     closeSideMenu,
@@ -67,6 +68,9 @@ export function AppShell() {
   const authRoute = authPathnames.has(pathname);
   const unreadActivityCount = store.logs.filter((log) => log.unread).length;
   const systemBarBackground = colors.background;
+  const redirecting = store.hydrated && authHydrated && (
+    (!authCompleted && !authRoute) || (authCompleted && authRoute)
+  );
 
   useEffect(() => {
     if (!store.hydrated || !authHydrated) return;
@@ -92,7 +96,30 @@ export function AppShell() {
     SystemUI.setBackgroundColorAsync(systemBarBackground).catch(() => undefined);
   }, [systemBarBackground]);
 
-  if (!store.hydrated || !authHydrated) {
+  if (store.storageError === 'load') {
+    return (
+      <View style={[styles.loading, styles.storageErrorScreen, { backgroundColor: colors.background }]}>
+        <Text accessibilityRole="header" style={[styles.storageErrorTitle, { color: colors.text }]}>
+          {t('app.storage.loadErrorTitle')}
+        </Text>
+        <Text style={[styles.storageErrorDescription, { color: colors.textSecondary }]}>
+          {t('app.storage.loadErrorDescription')}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={store.retryStorage}
+          style={({ pressed }) => [
+            styles.storageRetryButton,
+            { backgroundColor: colors.primaryDark, opacity: pressed ? 0.75 : 1 },
+          ]}
+        >
+          <Text style={styles.storageRetryText}>{t('app.storage.retry')}</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  if (!store.hydrated || !authHydrated || redirecting) {
     return (
       <View style={[styles.loading, { backgroundColor: colors.background }]}>
         <ActivityIndicator color={colors.primaryDark} size="large" />
@@ -160,6 +187,26 @@ export function AppShell() {
           onOpenSettings={openSettings}
           onUpdateSettings={store.updateSettings}
         />
+        {store.storageError === 'save' ? (
+          <View style={[styles.storageWarning, { backgroundColor: colors.surface, borderColor: colors.danger }]}>
+            <Text style={[styles.storageWarningText, { color: colors.text }]}>
+              {t('app.storage.saveErrorDescription')}
+            </Text>
+            <Pressable accessibilityRole="button" onPress={store.retryStorage} hitSlop={8}>
+              <Text style={[styles.storageWarningAction, { color: colors.primaryDark }]}>
+                {t('app.storage.retry')}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+        {!appActive ? (
+          <View
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            pointerEvents="auto"
+            style={[StyleSheet.absoluteFill, styles.privacyOverlay, { backgroundColor: colors.background }]}
+          />
+        ) : null}
       </View>
     </View>
   );
@@ -789,6 +836,15 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md + spacing.xxs },
   loadingText: { fontSize: typography.size.xs + 1, fontWeight: typography.weight.semibold },
+  storageErrorScreen: { paddingHorizontal: spacing.xl },
+  storageErrorTitle: { fontSize: typography.size.lg, fontWeight: typography.weight.bold, textAlign: 'center' },
+  storageErrorDescription: { fontSize: typography.size.sm, lineHeight: typography.lineHeight.sm, textAlign: 'center' },
+  storageRetryButton: { minHeight: touchTarget.minimum, borderRadius: radius.md, paddingHorizontal: spacing.xl, alignItems: 'center', justifyContent: 'center' },
+  storageRetryText: { color: palette.white, fontSize: typography.size.sm, fontWeight: typography.weight.bold },
+  storageWarning: { position: 'absolute', top: spacing.lg, right: spacing.lg, left: spacing.lg, zIndex: 20, minHeight: touchTarget.large, borderWidth: border.thin, borderRadius: radius.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.md, ...shadows.floating },
+  storageWarningText: { flex: 1, fontSize: typography.size.xs, lineHeight: typography.lineHeight.xs, fontWeight: typography.weight.medium },
+  storageWarningAction: { fontSize: typography.size.sm, fontWeight: typography.weight.bold },
+  privacyOverlay: { zIndex: 100 },
   bottomNav: {
     minHeight: layout.bottomNavHeight,
     borderTopWidth: border.thin,
