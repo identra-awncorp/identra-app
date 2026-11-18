@@ -24,7 +24,16 @@ export interface PersistedIdentityEnvelope {
   version: typeof APP_STATE_STORAGE_VERSION;
 }
 
-const credentialStatuses = new Set<CredentialStatus>(['verified', 'pending', 'expired']);
+// A Record so a new CredentialStatus fails to compile until it is accepted here.
+const credentialStatusMembers: Record<CredentialStatus, true> = {
+  verified: true,
+  pending: true,
+  expired: true,
+  revoked: true,
+  suspended: true,
+  unknown: true,
+};
+const credentialStatuses = new Set(Object.keys(credentialStatusMembers) as CredentialStatus[]);
 const credentialIcons = new Set<CredentialIconName>([
   'graduation',
   'languages',

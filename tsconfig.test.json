@@ -2,8 +2,8 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "jsx": "react-jsx",
-    "module": "Node16",
-    "moduleResolution": "Node16",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "noEmit": false,
     "outDir": ".tmp-test",
     "rootDir": ".",
@@ -24,6 +24,10 @@
     "src/native/domain/app-store/appStoreStateService.ts",
     "src/native/domain/app-store/appStatePersistence.ts",
     "src/native/screens/settings/activity/activityLogLogic.ts",
-    "src/native/screens/news-feed/search/newsFeedSearchLogic.ts"
+    "src/native/screens/news-feed/search/newsFeedSearchLogic.ts",
+    "src/native/platform/runtimeGlobals.ts",
+    "src/native/data/wallet/**/*.ts",
+    "src/native/domain/wallet/walletContainer.ts",
+    "src/native/domain/wallet/credentialPresentation.ts"
   ]
 }

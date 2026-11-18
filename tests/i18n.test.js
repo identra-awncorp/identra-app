@@ -94,5 +94,18 @@ describe('i18n translate', () => {
     assert.equal(translate('en', 'common.status.verified'), 'Verified');
     assert.equal(translate('en', 'common.status.pending'), 'Pending confirmation');
     assert.equal(translate('en', 'common.status.expired'), 'Expired');
+    assert.equal(translate('vi', 'common.status.revoked'), 'Đã bị thu hồi');
+    assert.equal(translate('vi', 'common.status.suspended'), 'Đang tạm ngưng');
+    assert.equal(translate('vi', 'common.status.unknown'), 'Chưa kiểm được trạng thái');
+    assert.equal(translate('en', 'common.status.unknown'), 'Status not checked yet');
+  });
+
+  it('labels every QR scan kind used by the scan history', () => {
+    for (const kind of ['identra', 'expired-identra', 'invalid-identra', 'credential-offer', 'presentation-request', 'invalid-wallet-request', 'url', 'text']) {
+      for (const locale of ['vi', 'en']) {
+        const key = `activityLogs.scanQrKinds.${kind}`;
+        assert.notEqual(translate(locale, key), key, `${locale} ${kind}`);
+      }
+    }
   });
 });

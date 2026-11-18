@@ -8,7 +8,9 @@ The app is built around real mobile surfaces for Android and iOS. It uses Expo R
 
 - Node.js compatible with Expo SDK 56.
 - Expo Go compatible with SDK 56, or Android Studio/Xcode for emulator or simulator testing.
+- A built checkout of `identra-sdk` next to this folder (`../identra-sdk`, `npm install && npm run build` there): the wallet consumes `@identra/sdk-app` and `@identra/sdk-core` as `file:` dependencies (ADR-0005), and `metro.config.js` watches that folder.
 - Run `npm install` before starting the project for the first time.
+- Wallet keys use SecureStore with biometrics, which Expo Go does not support on devices with Face ID; use a development build for wallet work.
 
 ## Run The App
 
@@ -114,6 +116,7 @@ Feature and domain docs live next to the code they explain:
 - `src/native/domain/chat/README.md`
 - `src/native/domain/payment/README.md`
 - `src/native/domain/credentials/README.md`
+- `src/native/domain/wallet/README.md`
 
 ## Working On A Feature
 

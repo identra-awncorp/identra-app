@@ -23,6 +23,7 @@ Move credential-specific logic here when it becomes shared across Identity, shar
 ## Invariants
 
 - Verified, pending, expired, failed, and unavailable states must be semantically distinct.
+- `CredentialStatus` is `verified | pending | expired | revoked | suspended | unknown` (`unknown` = the status could not be checked). Every mapping over it is a `Record<CredentialStatus, …>` (`credentialStatus.ts` tones, `StatusPill`, `CredentialDetailScreen`, persistence validation) so a new status fails to compile until handled.
 - Expiry logic must be based on explicit dates and not only display labels.
 - Sharing must include exactly the approved attributes, not the whole credential by default.
 - Masking rules must be applied before sensitive values reach presentation when required.

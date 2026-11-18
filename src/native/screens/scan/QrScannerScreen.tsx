@@ -20,6 +20,7 @@ import { useI18n } from '../../i18n';
 import type { AppColors } from '../../theme';
 import { border, palette, radius, spacing, typography } from '../../theme';
 import { parseQrScanValue, type QrScanResult } from '../../domain/scan/qrScan';
+import { handOffWalletRequest } from '../../domain/wallet/walletRuntime';
 
 interface ScanSettings {
   confirmBeforeOpenLink: boolean;
@@ -126,6 +127,26 @@ export function QrScannerScreen({
           ? t('scan.result.connectionDescription')
           : t('scan.result.credentialDescription'),
       );
+      return;
+    }
+
+    if (result.kind === 'credential-offer' || result.kind === 'presentation-request') {
+      const outcome = await handOffWalletRequest(result);
+      if (outcome.kind === 'device-unsupported') {
+        showScanAlert(t('scan.result.walletRequestTitle'), t('scan.result.deviceUnsupported'));
+        return;
+      }
+      showScanAlert(
+        t('scan.result.walletRequestTitle'),
+        outcome.request === 'credential-offer'
+          ? t('scan.result.credentialOfferUnavailable')
+          : t('scan.result.presentationRequestUnavailable'),
+      );
+      return;
+    }
+
+    if (result.kind === 'invalid-wallet-request') {
+      showScanAlert(t('scan.result.invalidWalletRequestTitle'), t('scan.result.invalidWalletRequestDescription'));
       return;
     }
 

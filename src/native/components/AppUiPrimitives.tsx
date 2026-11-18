@@ -16,6 +16,7 @@ import {
   BriefcaseBusiness,
   Check,
   ChevronRight,
+  CircleHelp,
   Clock3,
   CreditCard,
   GraduationCap,
@@ -233,6 +234,9 @@ const statusStyle: Record<CredentialStatus, { color: string; background: string;
   verified: { color: palette.green[600], background: palette.green[100], icon: Check },
   pending: { color: palette.orange[500], background: palette.orange[100], icon: Clock3 },
   expired: { color: palette.red[500], background: palette.red[100], icon: ShieldX },
+  revoked: { color: palette.red[500], background: palette.red[100], icon: ShieldX },
+  suspended: { color: palette.orange[500], background: palette.orange[100], icon: Clock3 },
+  unknown: { color: palette.orange[500], background: palette.orange[100], icon: CircleHelp },
 };
 
 export function StatusPill({ status, compact = false }: { status: CredentialStatus; compact?: boolean }) {

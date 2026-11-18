@@ -5,6 +5,7 @@ import { AppStoreProvider, useAppStore } from '@/store';
 import { AppRouterProvider } from '@/app/router/AppRouterContext';
 import { AppShell } from '@/app/router/AppShell';
 import { I18nProvider } from '@/i18n';
+import { UnsupportedDeviceOverlay } from '@/screens/system/UnsupportedDeviceOverlay';
 
 export default function RootLayout() {
   return (
@@ -13,6 +14,7 @@ export default function RootLayout() {
         <LocalizedApp>
           <AppRouterProvider>
             <AppShell />
+            <UnsupportedDeviceOverlay />
           </AppRouterProvider>
         </LocalizedApp>
       </AppStoreProvider>

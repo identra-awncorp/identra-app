@@ -15,7 +15,8 @@ import {
 import { Alert, Pressable, Text, View } from 'react-native';
 import type { AppColors } from '../../../theme';
 import { palette } from '../../../theme';
-import type { Credential } from '../../../types';
+import type { Credential, CredentialStatus } from '../../../types';
+import { credentialStatusTones, type CredentialStatusTone } from '../../../domain/credentials/credentialStatus';
 import { useI18n } from '../../../i18n';
 
 
@@ -46,11 +47,20 @@ export function CredentialDetailScreen({
     ...attribute,
     highlight: attribute.key === 'degree.classification',
   }));
-  const statusContent = {
-    verified: { label: t('identity.detail.statuses.verified.label'), description: t('identity.detail.statuses.verified.description'), color: colors.success, background: palette.green[100] },
-    pending: { label: t('identity.detail.statuses.pending.label'), description: t('identity.detail.statuses.pending.description'), color: colors.warning, background: '#FFF3E8' },
-    expired: { label: t('identity.detail.statuses.expired.label'), description: t('identity.detail.statuses.expired.description'), color: colors.danger, background: palette.red[100] },
-  }[credential.status];
+  const toneStyle: Record<CredentialStatusTone, { color: string; background: string }> = {
+    positive: { color: colors.success, background: palette.green[100] },
+    caution: { color: colors.warning, background: '#FFF3E8' },
+    negative: { color: colors.danger, background: palette.red[100] },
+  };
+  const statusText: Record<CredentialStatus, { label: string; description: string }> = {
+    verified: { label: t('identity.detail.statuses.verified.label'), description: t('identity.detail.statuses.verified.description') },
+    pending: { label: t('identity.detail.statuses.pending.label'), description: t('identity.detail.statuses.pending.description') },
+    expired: { label: t('identity.detail.statuses.expired.label'), description: t('identity.detail.statuses.expired.description') },
+    revoked: { label: t('identity.detail.statuses.revoked.label'), description: t('identity.detail.statuses.revoked.description') },
+    suspended: { label: t('identity.detail.statuses.suspended.label'), description: t('identity.detail.statuses.suspended.description') },
+    unknown: { label: t('identity.detail.statuses.unknown.label'), description: t('identity.detail.statuses.unknown.description') },
+  };
+  const statusContent = { ...statusText[credential.status], ...toneStyle[credentialStatusTones[credential.status]] };
 
   const copyDid = async () => {
     await Clipboard.setStringAsync(credentialId);

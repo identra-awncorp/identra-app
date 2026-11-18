@@ -8,6 +8,7 @@ Runbooks should be short, step-by-step, and safe to follow under pressure.
 
 - `mobile-quality-gate.md`: checks before handing off code changes.
 - `mobile-incident-triage.md`: first-response checklist for app incidents or severe regressions.
+- `wallet-device-verification.md`: what the wallet platform layer still needs a physical device to prove.
 
 ## Runbook Format
 

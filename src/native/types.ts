@@ -5,7 +5,8 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 export type AppFlowKey = 'chat' | 'feed' | 'scan' | 'payment' | 'miniApp' | 'identity';
 export type FlowSettingValues = Record<string, boolean>;
 export type AppFlowSettings = Record<AppFlowKey, FlowSettingValues>;
-export type CredentialStatus = 'verified' | 'pending' | 'expired';
+// `verified` = valid; `unknown` = the status could not be checked (ADR-0013 fail-closed 'unavailable').
+export type CredentialStatus = 'verified' | 'pending' | 'expired' | 'revoked' | 'suspended' | 'unknown';
 export type SmartContractAvailability = 'available' | 'soldOut';
 
 export type CredentialIconName =

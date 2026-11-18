@@ -64,6 +64,17 @@ describe('appStatePersistence', () => {
     });
   });
 
+  it('accepts every real credential status and rejects anything else', () => {
+    for (const status of ['verified', 'pending', 'expired', 'revoked', 'suspended', 'unknown']) {
+      const envelope = createPersistedIdentityEnvelope({ ...state, credentials: [{ ...credential, status }] });
+      assert.equal(parsePersistedIdentityEnvelope(envelope)?.credentials[0].status, status);
+    }
+    for (const status of ['valid', 'unavailable', 'VERIFIED', '', undefined]) {
+      const envelope = createPersistedIdentityEnvelope({ ...state, credentials: [{ ...credential, status }] });
+      assert.equal(parsePersistedIdentityEnvelope(envelope), null, String(status));
+    }
+  });
+
   it('keeps short-lived QR expiration as a mandatory security invariant', () => {
     const settingsEnvelope = createPersistedSettingsEnvelope({
       ...state.settings,

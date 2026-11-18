@@ -6,6 +6,7 @@ import { border, componentSize, palette, radius, spacing, typography } from '../
 import type { Credential, CredentialStatus } from '../../../types';
 import { useI18n } from '../../../i18n';
 import { getCredentialStats } from '../../../domain/credentials/credentialStats';
+import { credentialStatusTones, type CredentialStatusTone } from '../../../domain/credentials/credentialStatus';
 import {
   AppHeader,
   Card,
@@ -48,6 +49,12 @@ export function CredentialsScreen({
       }),
     [credentials, filter, locale, query],
   );
+
+  const toneColors: Record<CredentialStatusTone, { color: string; background: string }> = {
+    positive: { color: colors.primaryDark, background: palette.blue[100] },
+    caution: { color: colors.warning, background: palette.orange[100] },
+    negative: { color: colors.danger, background: palette.red[100] },
+  };
 
   const filters: { key: FilterKey; label: string }[] = [
     { key: 'all', label: t('identity.credentials.tabs.all') },
@@ -145,16 +152,8 @@ export function CredentialsScreen({
                 >
                   <CredentialIcon
                     icon={credential.icon}
-                    color={
-                      credential.status === 'pending'
-                        ? colors.warning
-                        : credential.status === 'expired'
-                          ? colors.danger
-                          : colors.primaryDark
-                    }
-                    background={
-                      credential.status === 'pending' ? palette.orange[100] : credential.status === 'expired' ? palette.red[100] : palette.blue[100]
-                    }
+                    color={toneColors[credentialStatusTones[credential.status]].color}
+                    background={toneColors[credentialStatusTones[credential.status]].background}
                     boxSize={48}
                   />
                   <View style={styles.rowMain}>

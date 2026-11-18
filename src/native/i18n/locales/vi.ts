@@ -22,6 +22,9 @@ export const vi = {
       verified: 'Đã xác minh',
       pending: 'Đang chờ xác nhận',
       expired: 'Đã hết hạn',
+      revoked: 'Đã bị thu hồi',
+      suspended: 'Đang tạm ngưng',
+      unknown: 'Chưa kiểm được trạng thái',
     },
   },
   app: {
@@ -701,6 +704,9 @@ export const vi = {
       'invalid-identra': 'Identra không hợp lệ',
       url: 'liên kết web',
       text: 'văn bản',
+      'credential-offer': 'lời mời nhận thực chứng',
+      'presentation-request': 'yêu cầu xuất trình thực chứng',
+      'invalid-wallet-request': 'mã thực chứng không hợp lệ',
     },
   },
   auth: {
@@ -837,6 +843,12 @@ export const vi = {
       cannotOpenDescription: 'Thiết bị không hỗ trợ liên kết này hoặc ứng dụng đích không khả dụng.',
       textTitle: 'Nội dung QR',
       emptyDescription: 'Mã QR không chứa nội dung có thể đọc.',
+      walletRequestTitle: 'Chưa mở được mã này',
+      credentialOfferUnavailable: 'Đây là lời mời nhận thực chứng. Phiên bản ứng dụng này chưa nhận được thực chứng qua mã QR, nên chưa có gì được lưu vào ví.',
+      presentationRequestUnavailable: 'Đây là yêu cầu xuất trình thực chứng. Phiên bản ứng dụng này chưa xuất trình được thực chứng qua mã QR, nên chưa có thông tin nào được gửi đi.',
+      deviceUnsupported: 'Thiết bị này thiếu thành phần bảo mật mà ví cần, nên ví không mở được mã này.',
+      invalidWalletRequestTitle: 'Mã thực chứng không hợp lệ',
+      invalidWalletRequestDescription: 'Mã thiếu thông tin bắt buộc, có thông tin lạ hoặc dẫn tới địa chỉ không an toàn. Ví không mở mã này.',
     },
   },
   identity: {
@@ -917,6 +929,18 @@ export const vi = {
         expired: {
           label: 'Đã hết hạn',
           description: 'Thực chứng này đã hết hạn sử dụng.',
+        },
+        revoked: {
+          label: 'Đã bị thu hồi',
+          description: 'Đơn vị cấp đã thu hồi thực chứng này. Bạn không thể dùng nó để chứng minh thông tin nữa.',
+        },
+        suspended: {
+          label: 'Đang tạm ngưng',
+          description: 'Đơn vị cấp đang tạm ngưng thực chứng này. Hãy liên hệ đơn vị cấp nếu bạn cần dùng.',
+        },
+        unknown: {
+          label: 'Chưa kiểm được trạng thái',
+          description: 'Ví chưa kiểm tra được thực chứng này còn hiệu lực hay không. Hãy kết nối mạng rồi thử lại.',
         },
       },
       actions: {
@@ -1909,6 +1933,27 @@ export const vi = {
       open: 'Mở',
       options: 'Tùy chọn {{name}}',
       approved: 'Đã kiểm duyệt',
+    },
+  },
+  wallet: {
+    biometricPrompt: 'Xác thực để dùng khóa của thực chứng',
+    documentTypes: {
+      diploma: 'Bằng tốt nghiệp',
+      productEvent: 'Sự kiện vòng đời sản phẩm',
+      unknown: 'Loại thực chứng khác',
+    },
+    claims: {
+      ho_ten: 'Họ và tên',
+      ngay_sinh: 'Ngày sinh',
+      ma_sinh_vien: 'Mã sinh viên',
+      nganh: 'Ngành',
+      hang_tot_nghiep: 'Hạng tốt nghiệp',
+      nam_tot_nghiep: 'Năm tốt nghiệp',
+      so_hieu_bang: 'Số hiệu bằng',
+    },
+    unsupportedDevice: {
+      title: 'Thiết bị chưa được hỗ trợ',
+      description: 'Thiết bị hoặc phiên bản hệ điều hành này thiếu thành phần bảo mật mà ví Identra cần để giữ thực chứng an toàn. Hãy cập nhật hệ điều hành hoặc dùng thiết bị khác.',
     },
   },
 } as const;

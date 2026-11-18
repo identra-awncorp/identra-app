@@ -30,6 +30,9 @@ export const en = {
       verified: 'Verified',
       pending: 'Pending confirmation',
       expired: 'Expired',
+      revoked: 'Revoked',
+      suspended: 'Suspended',
+      unknown: 'Status not checked yet',
     },
   },
   app: {
@@ -709,6 +712,9 @@ export const en = {
       'invalid-identra': 'invalid Identra',
       url: 'web link',
       text: 'plain text',
+      'credential-offer': 'credential offer',
+      'presentation-request': 'credential presentation request',
+      'invalid-wallet-request': 'invalid credential code',
     },
   },
   auth: {
@@ -845,6 +851,12 @@ export const en = {
       cannotOpenDescription: 'This link is unsupported on the device or the target app is unavailable.',
       textTitle: 'QR contents',
       emptyDescription: 'The QR code does not contain readable content.',
+      walletRequestTitle: 'This code cannot be opened yet',
+      credentialOfferUnavailable: 'This is an offer to receive a credential. This version of the app cannot receive credentials from a QR code yet, so nothing was saved to your wallet.',
+      presentationRequestUnavailable: 'This is a request to present a credential. This version of the app cannot present credentials from a QR code yet, so no information was sent.',
+      deviceUnsupported: 'This device lacks a security component the wallet needs, so the wallet cannot open this code.',
+      invalidWalletRequestTitle: 'Invalid credential code',
+      invalidWalletRequestDescription: 'The code is missing required information, contains unexpected information or points to an insecure address. The wallet will not open it.',
     },
   },
   identity: {
@@ -925,6 +937,18 @@ export const en = {
         expired: {
           label: 'Expired',
           description: 'This credential has expired.',
+        },
+        revoked: {
+          label: 'Revoked',
+          description: 'The issuer has revoked this credential. You can no longer use it to prove this information.',
+        },
+        suspended: {
+          label: 'Suspended',
+          description: 'The issuer has suspended this credential. Contact the issuer if you need to use it.',
+        },
+        unknown: {
+          label: 'Status not checked yet',
+          description: 'The wallet could not check whether this credential is still valid. Connect to the internet and try again.',
         },
       },
       actions: {
@@ -1917,6 +1941,27 @@ export const en = {
       open: 'Open',
       options: '{{name}} options',
       approved: 'Approved',
+    },
+  },
+  wallet: {
+    biometricPrompt: 'Authenticate to use this credential key',
+    documentTypes: {
+      diploma: 'University diploma',
+      productEvent: 'Product lifecycle event',
+      unknown: 'Other credential type',
+    },
+    claims: {
+      ho_ten: 'Full name',
+      ngay_sinh: 'Date of birth',
+      ma_sinh_vien: 'Student ID',
+      nganh: 'Major',
+      hang_tot_nghiep: 'Degree classification',
+      nam_tot_nghiep: 'Graduation year',
+      so_hieu_bang: 'Diploma number',
+    },
+    unsupportedDevice: {
+      title: 'This device is not supported',
+      description: 'This device or operating system version lacks a security component the Identra wallet needs to keep credentials safe. Update the operating system or use another device.',
     },
   },
 } as const satisfies LocaleShape<typeof vi>;
