@@ -1,27 +1,24 @@
 import { useRouter } from 'expo-router';
 
-import { WalletScreen } from '@/screens/identity';
-import { useAppStore } from '@/store';
+import { useWalletList, WalletScreen } from '@/screens/identity';
 import { useAppRouterState } from '@/app/router/AppRouterContext';
 
 export default function WalletRoute() {
   const router = useRouter();
-  const store = useAppStore();
   const { colors, openSideMenu, setChatReturnScreen, setReturnScreen } = useAppRouterState();
+  const { state } = useWalletList();
 
   return (
     <WalletScreen
       colors={colors}
-      compactDid={store.settings.flowSettings.identity.compactDid}
-      credentials={store.credentials}
-      did={store.profile.did}
+      documents={state.phase === 'ready' ? state.items : state.phase === 'failed' ? [] : null}
       onOpenActivity={() => router.push('/activity')}
       onOpenChat={() => {
         setChatReturnScreen('wallet');
         router.replace('/chat-list');
       }}
-      onOpenCredential={(credential) => {
-        router.push({ pathname: '/credentials/[credentialId]', params: { credentialId: credential.id } });
+      onOpenCredential={(credentialId) => {
+        router.push({ pathname: '/credentials/[credentialId]', params: { credentialId } });
       }}
       onOpenCredentials={() => {
         setReturnScreen('wallet');

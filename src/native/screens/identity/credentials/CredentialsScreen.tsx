@@ -1,331 +1,129 @@
-import { useMemo, useState } from 'react';
-import { BadgeHelp, Box, Check, CircleX, Clock3, Filter, Info, Search, ShieldCheck, X } from 'lucide-react-native';
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import type { AppColors } from '../../../theme';
-import { border, componentSize, palette, radius, spacing, typography } from '../../../theme';
-import type { Credential, CredentialStatus } from '../../../types';
+import { History, ScanLine } from 'lucide-react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { AppHeader, CredentialIcon, ListChevron, PrimaryButton, ScreenScroll, StatusPill } from '../../../components/AppUiPrimitives';
+import type { CredentialListItem } from '../../../domain/wallet/walletViews';
+import type { FailureView } from '../../../domain/wallet/walletMessages';
 import { useI18n } from '../../../i18n';
-import { getCredentialStats } from '../../../domain/credentials/credentialStats';
-import { credentialStatusTones, type CredentialStatusTone } from '../../../domain/credentials/credentialStatus';
-import {
-  AppHeader,
-  Card,
-  CredentialIcon,
-  EmptyState,
-  IconButton,
-  ListChevron,
-  ScreenScroll,
-  StatusPill,
-} from '../../../components/AppUiPrimitives';
+import type { AppColors } from '../../../theme';
+import { spacing } from '../../../theme';
+import { FailureNotice, Panel, TextAction, walletStyles } from '../wallet/WalletParts';
 
-type FilterKey = 'all' | CredentialStatus;
+export type CredentialsListState =
+  | { phase: 'loading' }
+  | { phase: 'failed'; failure: FailureView }
+  | { phase: 'ready'; items: CredentialListItem[]; restoreNeeded: boolean; toRequestCount: number };
 
+/**
+ * The documents held in the wallet (from the vault, never demo data). ponytail: a plain list in
+ * the scroll view; a wallet holds a handful of documents. Virtualise if that ever changes.
+ */
 export function CredentialsScreen({
   colors,
-  credentials,
+  state,
   onBack,
   onOpenCredential,
   onScan,
+  onOpenRestore,
+  onRetry,
 }: {
   colors: AppColors;
-  credentials: Credential[];
+  state: CredentialsListState;
   onBack: () => void;
-  onOpenCredential: (credential: Credential) => void;
+  onOpenCredential: (id: string) => void;
   onScan: () => void;
+  onOpenRestore: () => void;
+  onRetry: () => void;
 }) {
-  const { locale, t } = useI18n();
-  const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<FilterKey>('all');
-  const [draftFilter, setDraftFilter] = useState<FilterKey>('all');
-  const [filterOpen, setFilterOpen] = useState(false);
-  const stats = useMemo(() => getCredentialStats(credentials), [credentials]);
-
-  const rows = useMemo(
-    () =>
-      credentials.filter((credential) => {
-        const matchesFilter = filter === 'all' || credential.status === filter;
-        const search = query.trim().toLocaleLowerCase(locale);
-        return matchesFilter && (!search || `${credential.title} ${credential.issuer}`.toLocaleLowerCase(locale).includes(search));
-      }),
-    [credentials, filter, locale, query],
-  );
-
-  const toneColors: Record<CredentialStatusTone, { color: string; background: string }> = {
-    positive: { color: colors.primaryDark, background: palette.blue[100] },
-    caution: { color: colors.warning, background: palette.orange[100] },
-    negative: { color: colors.danger, background: palette.red[100] },
-  };
-
-  const filters: { key: FilterKey; label: string }[] = [
-    { key: 'all', label: t('identity.credentials.tabs.all') },
-    { key: 'verified', label: t('identity.credentials.tabs.verified') },
-    { key: 'pending', label: t('identity.credentials.tabs.pending') },
-    { key: 'expired', label: t('identity.credentials.tabs.expired') },
-  ];
+  const { t } = useI18n();
 
   return (
-    <ScreenScroll id="screen-credentials-library" colors={colors}>
-      <AppHeader
-        colors={colors}
-        title={t('identity.credentials.title')}
-        onBack={onBack}
-        right={
-          <IconButton label={t('identity.credentials.help')} colors={colors} style={{ backgroundColor: colors.surfaceMuted }}>
-            <BadgeHelp color={colors.text} size={24} />
-          </IconButton>
-        }
-      />
+    <ScreenScroll id={state.phase === 'ready' && state.items.length === 0 ? 'screen-credentials-empty' : 'screen-credentials-library'} colors={colors} contentStyle={walletStyles.content}>
+      <AppHeader colors={colors} title={t('wallet.list.title')} onBack={onBack} />
 
-      <Text style={[styles.intro, { color: colors.textSecondary }]}>
-        {t('identity.credentials.intro')}
-      </Text>
-
-      <View style={styles.searchRow}>
-        <View style={[styles.searchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Search color={colors.textSecondary} size={21} />
-          <TextInput
-            accessibilityLabel={t('identity.credentials.searchAccessibility')}
-            value={query}
-            onChangeText={setQuery}
-            placeholder={t('identity.credentials.searchPlaceholder')}
-            placeholderTextColor={colors.textSecondary}
-            style={[styles.searchInput, { color: colors.text }]}
-          />
+      {state.phase === 'loading' ? (
+        <View style={walletStyles.center}>
+          <ActivityIndicator color={colors.primaryDark} />
+          <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.list.loading')}</Text>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('identity.credentials.filterAccessibility')}
-          onPress={() => {
-            setDraftFilter(filter);
-            setFilterOpen(true);
-          }}
-          style={({ pressed }) => [
-            styles.filterButton,
-            { backgroundColor: colors.surface, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
-          ]}
-        >
-          <Filter color={colors.textSecondary} size={21} />
-          <Text style={[styles.filterText, { color: colors.textSecondary }]}>{t('identity.credentials.filter')}</Text>
-        </Pressable>
-      </View>
+      ) : null}
 
-      {credentials.length ? (
+      {state.phase === 'failed' ? (
         <>
-          <Card colors={colors} style={styles.tabs}>
-            {filters.map((item, index) => (
-              <Pressable
-                key={item.key}
-                onPress={() => setFilter(item.key)}
-                style={({ pressed }) => [
-                  styles.tab,
-                  index > 0 && { borderLeftWidth: 1, borderLeftColor: colors.border },
-                  { opacity: pressed ? 0.65 : 1 },
-                ]}
-              >
-                <Text style={[styles.tabText, { color: filter === item.key ? colors.primaryDark : colors.textSecondary }]}>
-                  {item.label}
-                </Text>
-                {filter === item.key ? <View style={[styles.tabActive, { backgroundColor: colors.primaryDark }]} /> : null}
-              </Pressable>
-            ))}
-          </Card>
-
-          <Card colors={colors} style={styles.stats}>
-            <Stat colors={colors} label={t('identity.credentials.stats.verified')} value={String(stats.verified)} color={colors.success} background={palette.green[100]} icon={ShieldCheck} />
-            <Stat colors={colors} label={t('identity.credentials.stats.pending')} value={String(stats.pending)} color={colors.warning} background={palette.orange[100]} icon={Clock3} divider />
-            <Stat colors={colors} label={t('identity.credentials.stats.expired')} value={String(stats.expired)} color={colors.purple} background={palette.purple[100]} icon={CircleX} divider />
-            <Stat colors={colors} label={t('identity.credentials.stats.total')} value={String(stats.total)} color={colors.primaryDark} background={palette.blue[100]} icon={Box} divider />
-          </Card>
-
-          <Card colors={colors} style={styles.list}>
-            {rows.length ? (
-              rows.map((credential, index) => (
-                <Pressable
-                  key={credential.id}
-                  accessibilityRole="button"
-                  onPress={() => onOpenCredential(credential)}
-                  style={({ pressed }) => [
-                    styles.row,
-                    index < rows.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border },
-                    { opacity: pressed ? 0.65 : 1 },
-                  ]}
-                >
-                  <CredentialIcon
-                    icon={credential.icon}
-                    color={toneColors[credentialStatusTones[credential.status]].color}
-                    background={toneColors[credentialStatusTones[credential.status]].background}
-                    boxSize={48}
-                  />
-                  <View style={styles.rowMain}>
-                    <Text numberOfLines={1} style={[styles.rowTitle, { color: colors.text }]}>
-                      {credential.title}
-                    </Text>
-                    <Text numberOfLines={1} style={[styles.rowIssuer, { color: colors.textSecondary }]}>
-                      {credential.issuer}
-                    </Text>
-                    <StatusPill status={credential.status} compact />
-                  </View>
-                  <View style={styles.dateBox}>
-                    <Text style={[styles.dateText, { color: colors.textSecondary }]}>{credential.issueDate}</Text>
-                    <Text style={[styles.dateText, { color: colors.textSecondary }]}>{credential.time}</Text>
-                  </View>
-                  <ListChevron colors={colors} />
-                </Pressable>
-              ))
-            ) : (
-              <Text style={[styles.noResult, { color: colors.textSecondary }]}>{t('identity.credentials.noResult')}</Text>
-            )}
-          </Card>
+          <FailureNotice colors={colors} failure={state.failure} />
+          <TextAction colors={colors} label={t('wallet.actions.tryAgain')} onPress={onRetry} />
         </>
-      ) : (
-        <EmptyState
-          colors={colors}
-          icon={Box}
-          title={t('identity.credentials.emptyTitle')}
-          description={t('identity.credentials.emptyDescription')}
-          action={t('identity.credentials.emptyAction')}
-          onAction={onScan}
-        />
-      )}
+      ) : null}
 
-      <View style={[styles.infoCard, { backgroundColor: colors.surfaceMuted }]}>
-        <View style={styles.infoIcon}>
-          <Info color={colors.primaryDark} size={24} />
-        </View>
-        <View style={styles.infoMain}>
-          <Text style={[styles.infoTitle, { color: colors.text }]}>{t('identity.credentials.infoTitle')}</Text>
-          <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-            {t('identity.credentials.infoDescription')}
-          </Text>
-        </View>
-        <ListChevron colors={colors} />
-      </View>
+      {state.phase === 'ready' ? (
+        <>
+          {state.restoreNeeded || state.toRequestCount > 0 ? (
+            <Pressable accessibilityRole="button" onPress={onOpenRestore} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+              <View style={[styles.restoreCard, { backgroundColor: colors.surfaceMuted }]}>
+                <History color={colors.primaryDark} size={22} strokeWidth={1.9} />
+                <View style={styles.flex}>
+                  <Text style={[walletStyles.label, { color: colors.text }]}>
+                    {state.restoreNeeded ? t('wallet.list.restoreTitle') : t('wallet.list.toRequestTitle', { count: state.toRequestCount })}
+                  </Text>
+                  <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.list.restoreHint')}</Text>
+                </View>
+                <ListChevron colors={colors} />
+              </View>
+            </Pressable>
+          ) : null}
 
-      <Modal visible={filterOpen} transparent animationType="slide" onRequestClose={() => setFilterOpen(false)}>
-        <View nativeID="screen-credentials-filter" testID="screen-credentials-filter" style={styles.filterOverlay}>
-          <Pressable accessibilityLabel={t('identity.credentials.closeFilterAccessibility')} style={styles.filterBackdrop} onPress={() => setFilterOpen(false)} />
-          <View style={[styles.filterSheet, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View style={styles.filterSheetHeader}>
-              <Text style={[styles.filterSheetTitle, { color: colors.text }]}>{t('identity.credentials.filterTitle')}</Text>
-              <Pressable accessibilityRole="button" accessibilityLabel={t('identity.credentials.closeFilter')} onPress={() => setFilterOpen(false)} style={styles.filterClose}>
-                <X color={colors.textSecondary} size={22} />
-              </Pressable>
-            </View>
-            <Text style={[styles.filterSheetLabel, { color: colors.textSecondary }]}>{t('identity.credentials.status')}</Text>
-            <View style={styles.filterOptions}>
-              {filters.map((item) => {
-                const active = draftFilter === item.key;
-                return (
+          {state.items.length ? (
+            <>
+              <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.list.count', { count: state.items.length })}</Text>
+              <Panel colors={colors} style={styles.listPanel}>
+                {state.items.map((item, index) => (
                   <Pressable
-                    key={item.key}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: active }}
-                    onPress={() => setDraftFilter(item.key)}
-                    style={[
-                      styles.filterOption,
-                      {
-                        backgroundColor: active ? colors.surfaceMuted : colors.surface,
-                        borderColor: active ? colors.primaryDark : colors.border,
-                      },
+                    key={item.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${t(item.nameKey)}, ${item.issuerName}, ${t(`common.status.${item.status}`)}`}
+                    onPress={() => onOpenCredential(item.id)}
+                    style={({ pressed }) => [
+                      styles.itemRow,
+                      index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+                      { opacity: pressed ? 0.65 : 1 },
                     ]}
                   >
-                    <Text style={[styles.filterOptionText, { color: active ? colors.primaryDark : colors.textSecondary }]}>{item.label}</Text>
-                    {active ? <Check color={colors.primaryDark} size={16} strokeWidth={2.5} /> : null}
+                    <CredentialIcon icon="graduation" boxSize={44} size={24} />
+                    <View style={styles.flex}>
+                      <Text numberOfLines={1} style={[walletStyles.value, { color: colors.text }]}>{t(item.nameKey)}</Text>
+                      <Text numberOfLines={1} style={[walletStyles.meta, { color: colors.textSecondary }]}>{item.issuerName}</Text>
+                      <Text numberOfLines={1} style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.list.receivedOn', { date: item.receivedDate })}</Text>
+                      <View style={styles.pill}>
+                        <StatusPill status={item.status} compact />
+                      </View>
+                    </View>
+                    <ListChevron colors={colors} />
                   </Pressable>
-                );
-              })}
+                ))}
+              </Panel>
+              <TextAction colors={colors} label={t('wallet.list.receiveAnother')} onPress={onScan} />
+            </>
+          ) : state.restoreNeeded ? null : (
+            <View style={styles.empty}>
+              <ScanLine color={colors.primaryDark} size={40} strokeWidth={1.6} />
+              <Text style={[walletStyles.sectionTitle, styles.centerText, { color: colors.text }]}>{t('wallet.list.emptyTitle')}</Text>
+              <Text style={[walletStyles.lead, styles.centerText, { color: colors.textSecondary }]}>{t('wallet.list.emptyLead')}</Text>
+              <PrimaryButton colors={colors} title={t('wallet.list.scan')} onPress={onScan} style={styles.emptyButton} />
             </View>
-            <View style={styles.filterActions}>
-              <Pressable onPress={() => setDraftFilter('all')} style={[styles.filterReset, { borderColor: colors.primaryDark }]}>
-                <Text style={[styles.filterResetText, { color: colors.primaryDark }]}>{t('common.reset')}</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  setFilter(draftFilter);
-                  setFilterOpen(false);
-                }}
-                style={[styles.filterApply, { backgroundColor: colors.primaryDark }]}
-              >
-                <Text style={styles.filterApplyText}>{t('common.apply')}</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+          )}
+        </>
+      ) : null}
     </ScreenScroll>
   );
 }
 
-function Stat({
-  colors,
-  label,
-  value,
-  color,
-  background,
-  icon: Icon,
-  divider,
-}: {
-  colors: AppColors;
-  label: string;
-  value: string;
-  color: string;
-  background: string;
-  icon: typeof ShieldCheck;
-  divider?: boolean;
-}) {
-  return (
-    <View style={[styles.stat, divider && { borderLeftWidth: 1, borderLeftColor: colors.border }]}>
-      <View style={[styles.statIcon, { backgroundColor: background }]}>
-        <Icon color={color} size={18} />
-      </View>
-      <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{label}</Text>
-      <Text style={[styles.statValue, { color }]}>{value}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  intro: { fontSize: typography.size.sm, lineHeight: typography.lineHeight.md - 1, paddingHorizontal: spacing.xxs, marginBottom: spacing.xs - 1 },
-  searchRow: { flexDirection: 'row', gap: spacing.sm + spacing.xxs },
-  searchBox: { height: 50, flex: 1, borderRadius: radius.md + 2, borderWidth: border.thin, paddingHorizontal: spacing.md + spacing.xxs, flexDirection: 'row', alignItems: 'center', gap: spacing.sm + spacing.xxs },
-  searchInput: { flex: 1, minWidth: 0, height: componentSize.inputHeight, fontSize: typography.size.md },
-  filterButton: { height: 50, borderRadius: radius.md + 2, borderWidth: border.thin, paddingHorizontal: spacing.md + 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm - 1 },
-  filterText: { fontSize: 13, fontWeight: typography.weight.semibold },
-  tabs: { height: 52, padding: spacing.none, flexDirection: 'row', overflow: 'hidden', elevation: 1, shadowOpacity: 0.035, shadowRadius: 8 },
-  tab: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  tabText: { fontSize: 11, fontWeight: typography.weight.bold, textAlign: 'center' },
-  tabActive: { position: 'absolute', bottom: spacing.none, left: spacing.none, right: spacing.none, height: border.thick },
-  stats: { paddingHorizontal: 8, paddingVertical: 14, flexDirection: 'row', elevation: 1, shadowOpacity: 0.035, shadowRadius: 8 },
-  stat: { flex: 1, alignItems: 'center', gap: spacing.xs },
-  statIcon: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  statLabel: { fontSize: 10, fontWeight: typography.weight.semibold, textAlign: 'center' },
-  statValue: { fontSize: typography.size.lg + 1, lineHeight: spacing.xl, fontWeight: typography.weight.extraBold },
-  list: { paddingHorizontal: 14, paddingVertical: 0, overflow: 'hidden', elevation: 1, shadowOpacity: 0.035, shadowRadius: 8 },
-  row: { minHeight: 93, flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 12 },
-  rowMain: { flex: 1, minWidth: 0, gap: 3 },
-  rowTitle: { fontSize: typography.size.sm, fontWeight: typography.weight.extraBold },
-  rowIssuer: { fontSize: typography.size.xs, fontWeight: typography.weight.medium },
-  dateBox: { alignItems: 'flex-end', gap: 2 },
-  dateText: { fontSize: 11, fontWeight: '500' },
-  noResult: { paddingVertical: 44, textAlign: 'center', fontSize: typography.size.sm },
-  infoCard: { minHeight: 94, borderRadius: radius.lg + 2, padding: spacing.md + spacing.xxs, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  infoIcon: { width: 48, height: 48, borderRadius: radius.md + 2, backgroundColor: palette.blue[100], alignItems: 'center', justifyContent: 'center' },
-  infoMain: { flex: 1 },
-  infoTitle: { fontSize: 13, fontWeight: '800' },
-  infoText: { fontSize: 11, lineHeight: 17, marginTop: 5 },
-  filterOverlay: { flex: 1, justifyContent: 'flex-end' },
-  filterBackdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(11, 15, 26, 0.42)' },
-  filterSheet: { borderTopWidth: border.thin, borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, paddingHorizontal: spacing.lg + spacing.xxs, paddingTop: spacing.lg, paddingBottom: spacing.xl + spacing.xs, gap: 15 },
-  filterSheetHeader: { flexDirection: 'row', alignItems: 'center' },
-  filterSheetTitle: { flex: 1, fontSize: 19, fontWeight: '800' },
-  filterClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  filterSheetLabel: { fontSize: 13, fontWeight: '700' },
-  filterOptions: { gap: 8 },
-  filterOption: { minHeight: componentSize.secondaryButtonHeight + spacing.xs, borderWidth: border.thin, borderRadius: radius.md + 2, paddingHorizontal: spacing.md + spacing.xxs, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  filterOptionText: { fontSize: 13, fontWeight: '700' },
-  filterActions: { flexDirection: 'row', gap: 10, marginTop: 3 },
-  filterReset: { flex: 1, minHeight: componentSize.buttonHeight, borderWidth: border.thin, borderRadius: radius.md + 2, alignItems: 'center', justifyContent: 'center' },
-  filterResetText: { fontSize: 14, fontWeight: '700' },
-  filterApply: { flex: 1, minHeight: componentSize.buttonHeight, borderRadius: radius.md + 2, alignItems: 'center', justifyContent: 'center' },
-  filterApplyText: { color: palette.white, fontSize: typography.size.sm, fontWeight: typography.weight.extraBold },
+  flex: { flex: 1, gap: 3 },
+  restoreCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderRadius: 16, padding: spacing.lg },
+  listPanel: { paddingVertical: 0 },
+  itemRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md, minHeight: 72 },
+  pill: { flexDirection: 'row', marginTop: 2 },
+  empty: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xxl, paddingHorizontal: spacing.lg },
+  emptyButton: { alignSelf: 'stretch', marginTop: spacing.md },
+  centerText: { textAlign: 'center' },
 });

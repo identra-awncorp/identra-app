@@ -37,3 +37,17 @@ SecureStore prefs appear in an Android restore.
 ## Verification
 
 Record the device models, OS versions and the result of each step in the hand-off.
+
+## Receive and keep (added with the receive screens)
+
+14. Scan the sample university's QR code from `https://www.identra.id.vn/vi/school-portal`: the receive screen names "Trường Mẫu" and "Bằng tốt nghiệp"; the PIN field opens the numeric keypad, accepts a pasted 6-digit PIN, and the boxes advance.
+15. Before the system prompt, the one-line explanation is visible; then the biometric prompt appears (Android and iOS). Cancel it: the screen stays on the PIN step with "Bạn đã hủy…", nothing is saved.
+16. Wrong PIN once: the boxes turn red and empty, the sentence asks to re-enter; the right PIN then succeeds. Five wrong PINs: "Mã này đã hết hạn…" and the issuer page button opens the portal.
+17. Airplane mode at the PIN step: "Không kết nối được với nơi cấp…", retry works once online.
+18. Success: "Xem giấy tờ" opens the detail after the access gate; the seven fields show with Vietnamese labels; "Hiện"/"Ẩn" masks date of birth, student id and diploma number.
+19. "Kiểm tra lại" online → "Đã xác minh"; offline → the inline "Không kết nối được…" and the last known status stays. After the school revokes it (portal) and 15 minutes pass → "Đã bị thu hồi".
+20. "Xóa khỏi ví" → confirmation names the document and issuer → the list is empty, the empty state offers "Quét mã QR".
+21. Restored phone (iOS backup to a second iPhone): the list shows the restore card; the restore screen lists the documents, "Mở trang của nơi cấp" opens the portal, confirming clears the old rows.
+22. Settings → Sao lưu shows what is and is not backed up and opens the same restore list.
+23. Dark mode and English: repeat 14 and 18 with the system in dark mode and the app in English.
+24. TalkBack / VoiceOver: list rows read "document, issuer, status"; the PIN field is announced with its label.

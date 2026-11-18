@@ -1,7 +1,7 @@
 // Display metadata for real credentials (ADR-0009 §6): vct → document name, claim labels in
 // display order, value formatting and status mapping. Returns i18n keys; screens call t(...).
 // No technical term (vct, issuer URL, SD-JWT) reaches the user through these keys.
-import type { CredentialStatus as VaultStatus } from '@identra/sdk-app';
+import type { StoredCredentialStatus, WalletCredentialStatus } from '@identra/sdk-app';
 import { DIPLOMA_CLAIMS, VCT } from '@identra/sdk-core';
 
 import type { I18nKey } from '../../i18n';
@@ -66,8 +66,8 @@ export function displayClaims(vct: string, claims: Record<string, unknown>, loca
   return out;
 }
 
-/** The app status of a stored credential from the vault's status cache. */
-export function credentialStatusFromVault(status: VaultStatus | null): CredentialStatus {
+/** The app status of a credential: the wallet API's (`unknown`) or the vault column's (`unavailable`). */
+export function credentialStatusFromVault(status: StoredCredentialStatus | WalletCredentialStatus | null): CredentialStatus {
   switch (status) {
     case 'valid':
       return 'verified';
@@ -76,6 +76,7 @@ export function credentialStatusFromVault(status: VaultStatus | null): Credentia
     case 'suspended':
       return 'suspended';
     case 'unavailable':
+    case 'unknown':
     case null:
       return 'unknown';
   }

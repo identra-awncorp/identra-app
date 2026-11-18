@@ -39,7 +39,7 @@ export type PlatformFetch = (
     headers: Record<string, string>;
     body?: string;
     signal: AbortSignal;
-    redirect: 'error';
+    redirect: 'manual';
     credentials: 'omit';
   },
 ) => Promise<FetchResponseLike>;
@@ -76,8 +76,9 @@ async function readCapped(response: FetchResponseLike, maxBytes: number): Promis
 
 /**
  * The SDK's HttpFetch on the platform fetch: https only (plus exactly the origins in
- * `insecureOrigins`, for a development API), redirects refused, no cookies, `timeoutMs`
- * (default 10 s) covering request and body, and a 256 KB body cap. The body is read eagerly so
+ * `insecureOrigins`, for a development API), redirects never followed (a 3xx is returned with an
+ * empty body), no cookies, `timeoutMs` (default 10 s) covering request and body, and the per-call
+ * `maxBytes` (at most 256 KB). The body is read eagerly so
  * the timer covers it; `text()` returns the cached string.
  */
 export function createHttpFetch(options: { fetch: PlatformFetch; maxBytes?: number; insecureOrigins?: readonly string[] }): HttpFetch {
@@ -108,13 +109,16 @@ export function createHttpFetch(options: { fetch: PlatformFetch; maxBytes?: numb
         headers: { ...init.headers, 'cache-control': 'no-store' },
         ...(init.body !== undefined ? { body: init.body } : {}),
         signal: controller.signal,
-        redirect: 'error',
+        // A 3xx comes back as it is (HttpFetch contract); the SDK refuses it. Never followed.
+        redirect: 'manual',
         credentials: 'omit',
       });
-      if (response.redirected || (response.status >= 300 && response.status < 400)) throw new HttpFetchError('REDIRECT');
+      // `redirected` means the platform followed one anyway: never trust that answer.
+      if (response.redirected) throw new HttpFetchError('REDIRECT');
+      const cap = Math.min(init.maxBytes ?? maxBytes, maxBytes);
       const declared = Number(response.headers.get('content-length'));
-      if (Number.isFinite(declared) && declared > maxBytes) throw new HttpFetchError('TOO_LARGE');
-      const body = await readCapped(response, maxBytes);
+      if (Number.isFinite(declared) && declared > cap) throw new HttpFetchError('TOO_LARGE');
+      const body = response.status >= 300 && response.status < 400 ? '' : await readCapped(response, cap);
       if (timedOut) throw new HttpFetchError('TIMEOUT');
       return { status: response.status, headers: { get: (name: string) => response.headers.get(name) }, text: async () => body };
     } catch (error) {

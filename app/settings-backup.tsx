@@ -7,5 +7,5 @@ export default function SettingsBackupRoute() {
   const router = useRouter();
   const { colors } = useAppRouterState();
 
-  return <BackupSettingsScreen colors={colors} onBack={() => router.replace('/settings')} />;
+  return <BackupSettingsScreen colors={colors} onBack={() => router.replace('/settings')} onOpenRestore={() => router.push('/wallet-restore')} />;
 }

@@ -1,24 +1,23 @@
 import { useRouter } from 'expo-router';
 
-import { CredentialsScreen } from '@/screens/identity';
-import { useAppStore } from '@/store';
+import { CredentialsScreen, useWalletList } from '@/screens/identity';
 import { getPathForScreen } from '@/app/navigation/navigationConfig';
 import { useAppRouterState } from '@/app/router/AppRouterContext';
 
 export default function CredentialsRoute() {
   const router = useRouter();
-  const store = useAppStore();
   const { colors, returnScreen } = useAppRouterState();
+  const { state, reload } = useWalletList();
 
   return (
     <CredentialsScreen
       colors={colors}
-      credentials={store.credentials}
+      state={state}
       onBack={() => router.replace(getPathForScreen(returnScreen))}
-      onOpenCredential={(credential) => {
-        router.push({ pathname: '/credentials/[credentialId]', params: { credentialId: credential.id } });
-      }}
+      onOpenCredential={(credentialId) => router.push({ pathname: '/credentials/[credentialId]', params: { credentialId } })}
       onScan={() => router.push('/scan')}
+      onOpenRestore={() => router.push('/wallet-restore')}
+      onRetry={reload}
     />
   );
 }

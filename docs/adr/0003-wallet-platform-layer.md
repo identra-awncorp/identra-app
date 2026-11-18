@@ -46,6 +46,15 @@ many credentials the user held, their document type and issuer (the `vct` and `i
 are in clear, as in the catalogue). Fixing this needs a small native module (or an Expo module
 option) that sets `NSURLIsExcludedFromBackupKey` on the database directory.
 
+## Receive and keep (added 2026-11-19)
+
+- The SDK wallet object is built in the container with the pinned DEMO root (`pinnedRoots.ts`),
+  `https://api-identra.awncorp.vn/trust-list`, the diploma only, the seen store and the app's
+  HttpFetch (`expo/fetch`, `redirect: 'manual'`, per-call `maxBytes`).
+- Offers arrive from the scanner only. A deep link `openid-credential-offer://` would need that
+  scheme in `app.json` (native change, new build) and an Expo Router `+native-intent` rewrite.
+- The list shows the issuer's trusted name remembered at receipt/opening (the SDK list has none).
+
 ## Consequences
 
 - `npm install` needs a built `../identra-sdk` checkout.

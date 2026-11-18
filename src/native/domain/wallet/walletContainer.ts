@@ -4,21 +4,29 @@
 import {
   buildCatalogue,
   createCredentialVault,
+  createWallet as createSdkWallet,
   createSoftwareKeyStore,
-  DATA_KEY_NAME,
   diffCatalogue,
+  mergeCatalogue,
   nobleHasher,
   nobleVerifier,
   parseCatalogue,
   serializeCatalogue,
   type Catalogue,
+  type AcceptResult,
   type CatalogueItem,
+  type CredentialDetails,
   type CredentialRepository,
+  type CredentialSummary,
   type CredentialVault,
+  type ResolvedOffer,
   type SecretStorage,
+  type WalletFailure,
   type WalletKeyStore,
 } from '@identra/sdk-app';
-import type { Clock, Hasher, HttpFetch, RandomSource, SeenStore, Verifier } from '@identra/sdk-core';
+import { base64Decode, VCT, type Clock, type Hasher, type HttpFetch, type RandomSource, type SeenStore, type Verifier } from '@identra/sdk-core';
+
+import { PINNED_ROOT_CERTIFICATES_BASE64 } from './pinnedRoots';
 
 /** The backed-up catalogue file (ADR-0009 §5). Same name as plugins/withIdentraBackupRules.js. */
 export const CATALOGUE_FILE_NAME = 'identra-backup-catalogue.json';
@@ -27,6 +35,22 @@ export interface CatalogueFile {
   /** null when the file does not exist. */
   read(): Promise<string | null>;
   write(text: string): Promise<void>;
+}
+
+/** The signed trust list every issuer and status list is checked against (ADR-0013 §6). */
+export const TRUST_LIST_URL = 'https://api-identra.awncorp.vn/trust-list';
+/** What this wallet can receive today. */
+export const SUPPORTED_VCTS: readonly string[] = [VCT.diploma];
+const ISSUER_NAMES_KEY = 'identra.wallet.issuer-names.v1';
+
+export function pinnedRoots(): Uint8Array[] {
+  return PINNED_ROOT_CERTIFICATES_BASE64.map((b64) => base64Decode(b64));
+}
+
+/** AsyncStorage-shaped storage for small non-secret data (issuer display names). */
+export interface PlainStorage {
+  getItem(key: string): Promise<string | null>;
+  setItem(key: string, value: string): Promise<void>;
 }
 
 export interface WalletDependencies {
@@ -38,6 +62,16 @@ export interface WalletDependencies {
   dataKeySecrets: SecretStorage;
   repository: CredentialRepository;
   catalogueFile: CatalogueFile;
+  plainStorage: PlainStorage;
+  /** Defaults to the pinned Identra roots; tests pass the SDK's test root. */
+  trustedRoots?: Uint8Array[];
+  trustListUrl?: string;
+}
+
+/** A held credential as the list shows it: the SDK summary plus the issuer name last seen for it. */
+export interface WalletCredentialSummary extends CredentialSummary {
+  /** The trusted organisation name from the last receipt or opening; null when never seen. */
+  issuerName: string | null;
 }
 
 export type WalletStartupState =
@@ -67,6 +101,17 @@ export interface Wallet {
   readonly seen: SeenStore;
   readonly verifier: Verifier;
   readonly hasher: Hasher;
+  /** OpenID4VCI (SDK wallet object). */
+  readonly offers: {
+    resolve(qrText: string): Promise<{ ok: true; offer: ResolvedOffer } | WalletFailure>;
+    accept(offer: ResolvedOffer, input: { txCode?: string }): Promise<AcceptResult>;
+  };
+  readonly credentials: {
+    list(): Promise<WalletCredentialSummary[]>;
+    get(id: string): Promise<{ ok: true; credential: CredentialDetails } | WalletFailure>;
+    refreshStatus(id: string): ReturnType<ReturnType<typeof createSdkWallet>['credentials']['refreshStatus']>;
+    remove(id: string): Promise<{ ok: true } | WalletFailure>;
+  };
   getStartupState(): Promise<WalletStartupState>;
   /** Deletes the unreadable rows of a restored phone; only after the user confirmed it. */
   acknowledgeNewDevice(): Promise<void>;
@@ -74,18 +119,12 @@ export interface Wallet {
   forgetDocument(item: CatalogueItem): Promise<void>;
 }
 
-const itemKey = (i: CatalogueItem): string => JSON.stringify([i.vct, i.issuer]);
+/** What the screens use; a dev harness implements the same shape with scripted answers. */
+export type WalletApi = Pick<Wallet, 'offers' | 'credentials' | 'getStartupState' | 'acknowledgeNewDevice' | 'forgetDocument'>;
 
-/**
- * The next catalogue: everything the previous one listed plus every held document, minus the
- * `dropped` items that no row holds any more. Not just buildCatalogue(rows): on a restored phone
- * the first re-issued document would otherwise erase the rest of the list to request again.
- */
+/** The SDK's mergeCatalogue, also for a phone with no catalogue file yet. */
 export function nextCatalogue(previous: Catalogue | null, rows: readonly CatalogueItem[], dropped: readonly CatalogueItem[] = []): Catalogue {
-  const held = new Set(rows.map(itemKey));
-  const droppedKeys = new Set(dropped.map(itemKey));
-  const carried = (previous?.items ?? []).filter((i) => held.has(itemKey(i)) || !droppedKeys.has(itemKey(i)));
-  return buildCatalogue([...carried, ...rows]);
+  return mergeCatalogue(previous ?? { version: 1, items: [] }, rows, dropped);
 }
 
 export function createWallet(deps: WalletDependencies): Wallet {
@@ -117,7 +156,7 @@ export function createWallet(deps: WalletDependencies): Wallet {
   }
 
   async function itemOf(id: string): Promise<CatalogueItem[]> {
-    const row = (await inner.list()).find((r) => r.id === id);
+    const row = await inner.getMeta(id);
     return row ? [{ vct: row.vct, issuer: row.issuer }] : [];
   }
 
@@ -128,6 +167,8 @@ export function createWallet(deps: WalletDependencies): Wallet {
       return id;
     },
     list: () => inner.list(),
+    getMeta: (id) => inner.getMeta(id),
+    dataKeyState: () => inner.dataKeyState(),
     open: (id) => inner.open(id),
     async remove(id) {
       const dropped = await itemOf(id);
@@ -151,12 +192,61 @@ export function createWallet(deps: WalletDependencies): Wallet {
   };
 
   async function isRestoredDevice(rows: readonly unknown[]): Promise<boolean> {
-    return rows.length > 0 && (await dataKeySecrets.get(DATA_KEY_NAME)) === null;
+    return rows.length > 0 && (await inner.dataKeyState()) === 'missing';
+  }
+
+  const sdk = createSdkWallet({
+    keyStore,
+    vault,
+    fetch: deps.fetch,
+    random,
+    clock,
+    trustedRoots: deps.trustedRoots ?? pinnedRoots(),
+    trustListUrl: deps.trustListUrl ?? TRUST_LIST_URL,
+    supportedVcts: [...SUPPORTED_VCTS],
+    seen: deps.seen,
+  });
+
+  async function issuerNames(): Promise<Record<string, string>> {
+    try {
+      const parsed: unknown = JSON.parse((await deps.plainStorage.getItem(ISSUER_NAMES_KEY)) ?? '{}');
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, string>) : {};
+    } catch {
+      return {};
+    }
+  }
+  /** Best effort: a name that cannot be saved is shown again after the next opening. */
+  async function rememberIssuerName(issuerUri: string, name: string | null): Promise<void> {
+    if (!name) return;
+    const names = await issuerNames();
+    if (names[issuerUri] === name) return;
+    await deps.plainStorage.setItem(ISSUER_NAMES_KEY, JSON.stringify({ ...names, [issuerUri]: name })).catch(() => undefined);
   }
 
   return {
     keyStore,
     vault,
+    offers: {
+      resolve: (qrText) => sdk.offers.resolve(qrText),
+      async accept(offer, input) {
+        const result = await sdk.offers.accept(offer, input);
+        if (result.ok) await rememberIssuerName(offer.issuerUri, result.issuerName);
+        return result;
+      },
+    },
+    credentials: {
+      async list() {
+        const [summaries, names] = await Promise.all([sdk.credentials.list(), issuerNames()]);
+        return summaries.map((c) => ({ ...c, issuerName: names[c.issuerUri] ?? null }));
+      },
+      async get(id) {
+        const result = await sdk.credentials.get(id);
+        if (result.ok) await rememberIssuerName(result.credential.issuerUri, result.credential.issuerName);
+        return result;
+      },
+      refreshStatus: (id) => sdk.credentials.refreshStatus(id),
+      remove: (id) => sdk.credentials.remove(id),
+    },
     random,
     clock,
     fetch: deps.fetch,

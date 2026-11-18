@@ -6,6 +6,7 @@ import { AppRouterProvider } from '@/app/router/AppRouterContext';
 import { AppShell } from '@/app/router/AppShell';
 import { I18nProvider } from '@/i18n';
 import { UnsupportedDeviceOverlay } from '@/screens/system/UnsupportedDeviceOverlay';
+import { WalletSessionProvider } from '@/store/WalletSessionProvider';
 
 export default function RootLayout() {
   return (
@@ -25,5 +26,9 @@ export default function RootLayout() {
 function LocalizedApp({ children }: PropsWithChildren) {
   const { settings } = useAppStore();
 
-  return <I18nProvider locale={settings.language}>{children}</I18nProvider>;
+  return (
+    <I18nProvider locale={settings.language}>
+      <WalletSessionProvider>{children}</WalletSessionProvider>
+    </I18nProvider>
+  );
 }

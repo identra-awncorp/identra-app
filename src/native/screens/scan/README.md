@@ -29,7 +29,7 @@ QR sharing and credential sharing screens live under `src/native/screens/identit
 - Permission fallback must provide a clear action to request camera access.
 - Torch, zoom, and scanner controls must remain usable on Android and iOS.
 - Accept only supported, unexpired Identra connection and credential-presentation requests.
-- Credential offers and presentation requests go to `handOffWalletRequest` (`src/native/domain/wallet/walletRuntime.ts`) and nowhere else; until the wallet flows exist it answers that this build cannot open such codes, and the scanner says so truthfully. Invalid wallet codes get their own message.
+- Credential offers and presentation requests go to `handOffWalletRequest` (`src/native/domain/wallet/walletRuntime.ts`) and nowhere else. A credential offer opens the receive screen; presentation requests are answered truthfully as not available in this build until that flow is wired. Invalid wallet codes get their own message.
 - Plain web links must respect confirmation, risky-link warning, and verified-links-only settings before opening.
 - Scan history records only the classified result kind; raw QR contents must not be persisted.
 - Placeholder actions such as picking an image must show a clear pending state until implemented.

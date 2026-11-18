@@ -39,6 +39,7 @@ export function QrScannerScreen({
   onOpenChat,
   onOpenMenu,
   onRecordScan,
+  onReceiveCredential,
   scanSettings,
 }: {
   active?: boolean;
@@ -48,6 +49,8 @@ export function QrScannerScreen({
   onOpenChat: () => void;
   onOpenMenu: () => void;
   onRecordScan: (result: QrScanResult) => void;
+  /** A credential offer was handed to the wallet: open the receive screen. */
+  onReceiveCredential: () => void;
   scanSettings: ScanSettings;
 }) {
   const { t } = useI18n();
@@ -132,15 +135,18 @@ export function QrScannerScreen({
 
     if (result.kind === 'credential-offer' || result.kind === 'presentation-request') {
       const outcome = await handOffWalletRequest(result);
+      if (outcome.kind === 'receive') {
+        releaseScanner();
+        onReceiveCredential();
+        return;
+      }
       if (outcome.kind === 'device-unsupported') {
         showScanAlert(t('scan.result.walletRequestTitle'), t('scan.result.deviceUnsupported'));
         return;
       }
       showScanAlert(
         t('scan.result.walletRequestTitle'),
-        outcome.request === 'credential-offer'
-          ? t('scan.result.credentialOfferUnavailable')
-          : t('scan.result.presentationRequestUnavailable'),
+        t('scan.result.presentationRequestUnavailable'),
       );
       return;
     }

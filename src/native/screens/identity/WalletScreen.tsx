@@ -9,14 +9,12 @@ import {
   Share2,
   ShieldCheck,
 } from 'lucide-react-native';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { assetManifest } from '../../assets/assetManifest';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { AppColors } from '../../theme';
 import { border, palette, radius, shadows, spacing, typography } from '../../theme';
-import type { Credential } from '../../types';
+import type { CredentialListItem } from '../../domain/wallet/walletViews';
 import { MainTopHeader } from '../../components/MainTopHeader';
 import { useI18n } from '../../i18n';
-import { formatDidForDisplay } from '../../domain/credentials/credentialDisplay';
 import {
   Card,
   CredentialIcon,
@@ -27,10 +25,9 @@ import {
 
 interface Props {
   colors: AppColors;
-  compactDid?: boolean;
-  credentials: Credential[];
-  did: string;
-  onOpenCredential: (credential: Credential) => void;
+  /** Documents held in the wallet (vault), newest first; null while loading. */
+  documents: CredentialListItem[] | null;
+  onOpenCredential: (credentialId: string) => void;
   onOpenCredentials: () => void;
   onOpenNotifications: () => void;
   onOpenProfile: () => void;
@@ -44,9 +41,7 @@ interface Props {
 
 export function WalletScreen({
   colors,
-  compactDid = false,
-  credentials,
-  did,
+  documents,
   onOpenCredential,
   onOpenCredentials,
   onOpenNotifications,
@@ -59,20 +54,9 @@ export function WalletScreen({
   onOpenMenu,
 }: Props) {
   const { t } = useI18n();
-  const featured =
-    credentials.find((item) => item.id === 'cred-degree') ??
-    credentials.find((item) => item.status === 'verified') ??
-    credentials[0];
-  const preferredCredentialOrder = ['cred-degree', 'cred-ielts', 'cred-kyc'];
-  const visibleCredentials = credentials
-    .filter((item) => item.status === 'verified')
-    .sort((first, second) => {
-      const firstRank = preferredCredentialOrder.indexOf(first.id);
-      const secondRank = preferredCredentialOrder.indexOf(second.id);
-      return (firstRank === -1 ? preferredCredentialOrder.length : firstRank) -
-        (secondRank === -1 ? preferredCredentialOrder.length : secondRank);
-    })
-    .slice(0, 3);
+  const held = documents ?? [];
+  const featured = held.find((item) => item.status === 'verified') ?? held[0];
+  const visibleCredentials = held.slice(0, 3);
   const quickActions = [
     { id: 'profile', label: t('identity.wallet.quickActions.profile'), icon: ContactRound, action: onOpenProfile },
     { id: 'security', label: t('identity.wallet.quickActions.security'), icon: LockKeyhole, action: onOpenSecurity },
@@ -112,11 +96,11 @@ export function WalletScreen({
       <View style={styles.titleRow}>
         <View>
           <Text style={[styles.screenTitle, { color: colors.text }]}>{t('identity.wallet.title')}</Text>
-          <Text style={[styles.did, { color: colors.textSecondary }]}>{formatDidForDisplay(did, compactDid)}</Text>
         </View>
       </View>
 
-      <Pressable accessibilityRole="button" onPress={() => featured && onOpenCredential(featured)}>
+      {featured ? (
+      <Pressable accessibilityRole="button" onPress={() => onOpenCredential(featured.id)}>
         {({ pressed }) => (
           <LinearGradient
             colors={['#6252F5', '#3C80F6', '#35B7EF']}
@@ -127,25 +111,22 @@ export function WalletScreen({
             <View style={styles.walletGlowOne} />
             <View style={styles.walletGlowTwo} />
             <View style={styles.walletAvatarFrame}>
-              <Image
-                accessibilityLabel={t('identity.wallet.avatarAccessibility')}
-                source={assetManifest.app.studentAvatar}
-                style={styles.walletAvatar}
-              />
+              <CredentialIcon icon="graduation" boxSize={64} size={36} />
             </View>
             <View style={styles.walletMain}>
-              <Text style={styles.walletTitle}>{featured?.title ?? ''}</Text>
-              <Text style={styles.walletIssuer}>{featured?.issuer ?? ''}</Text>
-              <View style={styles.walletVerified}>
-                <Check color={palette.white} size={14} strokeWidth={3} />
-                <Text style={styles.walletVerifiedText}>{t('common.verified')}</Text>
+              <Text style={styles.walletTitle}>{t(featured.nameKey)}</Text>
+              <Text style={styles.walletIssuer}>{featured.issuerName}</Text>
+              <View style={[styles.walletVerified, featured.status !== 'verified' && styles.walletStatusOther]}>
+                {featured.status === 'verified' ? <Check color={palette.white} size={14} strokeWidth={3} /> : null}
+                <Text style={styles.walletVerifiedText}>{t(`common.status.${featured.status}`)}</Text>
               </View>
-              <Text style={styles.walletDate}>{t('identity.wallet.issueDatePrefix')} {featured?.issueDate ?? ''}</Text>
+              <Text style={styles.walletDate}>{t('wallet.list.receivedOn', { date: featured.receivedDate })}</Text>
             </View>
             <ShieldCheck color="rgba(255,255,255,0.76)" size={76} strokeWidth={1.25} style={styles.walletShield} />
           </LinearGradient>
         )}
       </Pressable>
+      ) : null}
 
       <Card colors={colors} style={[styles.quickMenu, styles.subtleCardShadow]}>
         <View nativeID="identra-quick-menu" testID="identra-quick-menu" style={styles.quickMenuInner}>
@@ -184,20 +165,20 @@ export function WalletScreen({
             <Pressable
               key={credential.id}
               accessibilityRole="button"
-              onPress={() => onOpenCredential(credential)}
+              onPress={() => onOpenCredential(credential.id)}
               style={({ pressed }) => [
                 styles.credentialRow,
                 index < visibleCredentials.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border },
                 { opacity: pressed ? 0.65 : 1 },
               ]}
             >
-              <CredentialIcon icon={credential.icon} boxSize={52} size={28} />
+              <CredentialIcon icon="graduation" boxSize={52} size={28} />
               <View style={styles.credentialText}>
                 <Text numberOfLines={1} style={[styles.credentialTitle, { color: colors.text }]}>
-                  {credential.title}
+                  {t(credential.nameKey)}
                 </Text>
                 <Text numberOfLines={1} style={[styles.credentialIssuer, { color: colors.textSecondary }]}>
-                  {credential.issuer}
+                  {credential.issuerName}
                 </Text>
                 <StatusPill status={credential.status} compact />
               </View>
@@ -205,7 +186,7 @@ export function WalletScreen({
             </Pressable>
           ))}
         </Card>
-      ) : (
+      ) : documents === null ? null : (
         <Card colors={colors} style={[styles.walletEmpty, styles.subtleCardShadow]}>
           <Text style={[styles.walletEmptyTitle, { color: colors.text }]}>{t('identity.wallet.emptyTitle')}</Text>
           <Text style={[styles.walletEmptyText, { color: colors.textSecondary }]}>
@@ -298,6 +279,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm + 2,
     height: 29,
   },
+  walletStatusOther: { backgroundColor: 'rgba(11,15,26,0.38)' },
   walletVerifiedText: { color: palette.white, fontSize: typography.size.xs, fontWeight: typography.weight.semibold },
   walletDate: { color: 'rgba(255,255,255,0.92)', fontSize: typography.size.xs, fontWeight: typography.weight.medium, marginTop: spacing.md + 1 },
   walletShield: { position: 'absolute', right: 23, top: 55 },

@@ -1,224 +1,184 @@
-import * as Clipboard from 'expo-clipboard';
-import * as Haptics from 'expo-haptics';
-import {
-  Building2,
-  CalendarDays,
-  CheckCircle2,
-  ChevronRight,
-  ClipboardCopy,
-  GraduationCap,
-  History,
-  Info,
-  Share2,
-  ShieldCheck,
-} from 'lucide-react-native';
-import { Alert, Pressable, Text, View } from 'react-native';
-import type { AppColors } from '../../../theme';
-import { palette } from '../../../theme';
-import type { Credential, CredentialStatus } from '../../../types';
-import { credentialStatusTones, type CredentialStatusTone } from '../../../domain/credentials/credentialStatus';
+import { Building2, CalendarDays, Eye, EyeOff, RefreshCw } from 'lucide-react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { AppHeader, CredentialIcon, PrimaryButton, ScreenScroll, StatusPill } from '../../../components/AppUiPrimitives';
+import type { DetailState } from '../../../domain/wallet/walletFlows';
+import { MASKED_VALUE, type CredentialDetailView } from '../../../domain/wallet/walletViews';
 import { useI18n } from '../../../i18n';
+import type { AppColors } from '../../../theme';
+import { spacing } from '../../../theme';
+import type { CredentialStatus } from '../../../types';
+import { FailureNotice, Panel, TextAction, walletStyles } from '../wallet/WalletParts';
 
-
-import {
-  AppHeader,
-  Card,
-  CredentialIcon,
-  ScreenScroll,
-} from '../../../components/AppUiPrimitives';
-import { styles } from '../../shared/DetailScreenSharedStyles';
-
+/**
+ * One document from the vault: what it is, who issued it, whether it still holds, its fields.
+ * Nothing technical: no raw credential, no ids, no proof view.
+ */
 export function CredentialDetailScreen({
   colors,
-  credential,
+  state,
+  view,
   hideSensitive,
   onBack,
-  onShare,
+  onRefresh,
+  onRemove,
+  onRetry,
+  onOpenPortal,
 }: {
   colors: AppColors;
-  credential: Credential;
+  state: DetailState;
+  view: CredentialDetailView | null;
   hideSensitive: boolean;
   onBack: () => void;
-  onShare: () => void;
+  onRefresh: () => void;
+  onRemove: () => void;
+  onRetry: () => void;
+  onOpenPortal: (url: string) => void;
 }) {
   const { t } = useI18n();
-  const credentialId = `did:identra:vc:${credential.id}`;
-  const detailAttributes = credential.attributes.map((attribute) => ({
-    ...attribute,
-    highlight: attribute.key === 'degree.classification',
-  }));
-  const toneStyle: Record<CredentialStatusTone, { color: string; background: string }> = {
-    positive: { color: colors.success, background: palette.green[100] },
-    caution: { color: colors.warning, background: '#FFF3E8' },
-    negative: { color: colors.danger, background: palette.red[100] },
+  const [revealed, setRevealed] = useState(false);
+  const statusMeaning: Record<CredentialStatus, string> = {
+    verified: t('identity.detail.statuses.verified.description'),
+    pending: t('identity.detail.statuses.pending.description'),
+    expired: t('identity.detail.statuses.expired.description'),
+    revoked: t('identity.detail.statuses.revoked.description'),
+    suspended: t('identity.detail.statuses.suspended.description'),
+    unknown: t('identity.detail.statuses.unknown.description'),
   };
-  const statusText: Record<CredentialStatus, { label: string; description: string }> = {
-    verified: { label: t('identity.detail.statuses.verified.label'), description: t('identity.detail.statuses.verified.description') },
-    pending: { label: t('identity.detail.statuses.pending.label'), description: t('identity.detail.statuses.pending.description') },
-    expired: { label: t('identity.detail.statuses.expired.label'), description: t('identity.detail.statuses.expired.description') },
-    revoked: { label: t('identity.detail.statuses.revoked.label'), description: t('identity.detail.statuses.revoked.description') },
-    suspended: { label: t('identity.detail.statuses.suspended.label'), description: t('identity.detail.statuses.suspended.description') },
-    unknown: { label: t('identity.detail.statuses.unknown.label'), description: t('identity.detail.statuses.unknown.description') },
-  };
-  const statusContent = { ...statusText[credential.status], ...toneStyle[credentialStatusTones[credential.status]] };
 
-  const copyDid = async () => {
-    await Clipboard.setStringAsync(credentialId);
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  const confirmRemove = () => {
+    if (!view) return;
+    Alert.alert(
+      t('wallet.detail.removeTitle'),
+      t('wallet.detail.removeDescription', { document: t(view.nameKey), issuer: view.issuerName }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('wallet.detail.removeConfirm'), style: 'destructive', onPress: onRemove },
+      ],
+    );
   };
 
   return (
-    <ScreenScroll id="screen-credential-detail" colors={colors} contentStyle={styles.detailScreenContent}>
-      <AppHeader
-        colors={colors}
-        title={t('identity.detail.title')}
-        onBack={onBack}
-        right={
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('identity.detail.shareCredential')}
-            onPress={onShare}
-            style={({ pressed }) => [
-              styles.detailShareButton,
-              { backgroundColor: colors.surfaceMuted, opacity: pressed ? 0.72 : 1 },
-            ]}
-          >
-            <Share2 color={colors.primaryDark} size={18} />
-            <Text style={[styles.detailShareText, { color: colors.primaryDark }]}>{t('common.share')}</Text>
-          </Pressable>
-        }
-      />
+    <ScreenScroll id={state.phase === 'loaded' ? 'screen-credential-detail' : `screen-credential-detail-${state.phase}`} colors={colors} contentStyle={walletStyles.content}>
+      <AppHeader colors={colors} title={t('wallet.detail.headerTitle')} onBack={onBack} />
 
-      <View style={styles.detailStatusIntro}>
-        <View style={[styles.detailStatusPill, { backgroundColor: statusContent.background }]}>
-          <CheckCircle2 color={statusContent.color} fill={statusContent.color} size={15} />
-          <Text style={[styles.detailStatusText, { color: statusContent.color }]}>{statusContent.label}</Text>
+      {state.phase === 'loading' ? (
+        <View style={walletStyles.center}>
+          <ActivityIndicator color={colors.primaryDark} />
+          <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.detail.loading')}</Text>
         </View>
-        <Text style={[styles.detailStatusDescription, { color: colors.textSecondary }]}>{statusContent.description}</Text>
-      </View>
+      ) : null}
 
-      <View style={[styles.detailCredentialCard, { backgroundColor: colors.surface, borderColor: '#DCE5FF' }]}>
-        <View style={styles.detailCredentialTop}>
-          <CredentialIcon icon={credential.icon} boxSize={58} size={29} />
-          <View style={styles.detailCredentialMain}>
-            <Text style={[styles.detailCredentialTitle, { color: colors.text }]}>{credential.title}</Text>
-            <Text style={[styles.detailCredentialIssuer, { color: colors.textSecondary }]}>{credential.issuer}</Text>
-            <View style={[styles.detailCategoryPill, { backgroundColor: colors.surfaceMuted }]}>
-              <GraduationCap color={colors.primaryDark} size={13} />
-              <Text style={[styles.detailCategoryText, { color: colors.primaryDark }]}>{t('identity.detail.categoryEducation')}</Text>
-            </View>
-          </View>
-          <View style={[styles.detailShieldArt, { backgroundColor: colors.primary }]}>
-            <ShieldCheck color={palette.white} size={40} strokeWidth={2.2} />
-          </View>
-        </View>
+      {state.phase === 'failed' ? (
+        <>
+          <FailureNotice colors={colors} failure={state.failure} />
+          {state.failure.action === 'retry' ? <TextAction colors={colors} label={t('wallet.actions.tryAgain')} onPress={onRetry} /> : null}
+          <TextAction colors={colors} label={t('wallet.detail.backToList')} onPress={onBack} />
+        </>
+      ) : null}
 
-        <View style={[styles.detailDateGrid, { borderTopColor: colors.border, borderBottomColor: colors.border }]}>
-          <View style={styles.detailDateColumn}>
-            <Text style={[styles.detailMetaLabel, { color: colors.textSecondary }]}>{t('identity.detail.issueDate')}</Text>
-            <View style={styles.detailMetaValueRow}>
-              <CalendarDays color={colors.textSecondary} size={16} />
-              <Text style={[styles.detailMetaValue, { color: colors.text }]}>{credential.issueDate} {credential.time ?? ''}</Text>
-            </View>
-          </View>
-          <View style={[styles.detailDateColumn, styles.detailDateColumnDivider, { borderLeftColor: colors.border }]}>
-            <Text style={[styles.detailMetaLabel, { color: colors.textSecondary }]}>{t('identity.detail.expiryDate')}</Text>
-            <View style={styles.detailMetaValueRow}>
-              <CalendarDays color={colors.textSecondary} size={16} />
-              <Text style={[styles.detailMetaValue, { color: colors.text }]}>{credential.expiryDate ?? t('identity.detail.noExpiry')}</Text>
-            </View>
-          </View>
-        </View>
-
-        <Text style={[styles.detailMetaLabel, { color: colors.textSecondary }]}>{t('identity.detail.credentialId')}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel={t('identity.detail.copyId')} onPress={copyDid} style={styles.detailIdRow}>
-          <Text numberOfLines={1} style={[styles.detailIdValue, { color: colors.text }]}>{credentialId}</Text>
-          <ClipboardCopy color={colors.textSecondary} size={19} />
-        </Pressable>
-      </View>
-
-      <Card colors={colors} style={styles.detailIssuerCard}>
-        <Text style={[styles.detailCardHeading, { color: colors.text }]}>{t('identity.detail.issuerSection')}</Text>
-        <View style={styles.detailIssuerRow}>
-          <View style={[styles.detailIssuerLogo, { borderColor: '#C9D8FF', backgroundColor: colors.surfaceMuted }]}>
-            <Building2 color={colors.primaryDark} size={29} />
-          </View>
-          <View style={styles.detailIssuerMain}>
-            <View style={styles.detailIssuerNameRow}>
-              <Text style={[styles.detailIssuerName, { color: colors.text }]}>{credential.issuer}</Text>
-              <CheckCircle2 color={colors.success} fill={colors.success} size={16} />
-            </View>
-            <Text style={[styles.detailIssuerDescription, { color: colors.textSecondary }]}>
-              {t('identity.detail.issuerDescription')}
-            </Text>
-          </View>
-          <ChevronRight color={colors.textSecondary} size={21} />
-        </View>
-      </Card>
-
-      <Text style={[styles.detailSectionTitle, { color: colors.text }]}>{t('identity.detail.detailSection')}</Text>
-      <Card colors={colors} style={styles.detailAttributeCard}>
-        {detailAttributes.map((attribute, index) => (
-          <View
-            key={`${attribute.label}-${index}`}
-            style={[
-              styles.detailAttributeRow,
-              index < detailAttributes.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.detailAttributeLabel, { color: colors.textSecondary }]}>{attribute.label}</Text>
-            {attribute.highlight && !hideSensitive ? (
-              <View style={styles.detailAttributeHighlight}>
-                <Text style={[styles.detailAttributeHighlightText, { color: colors.success }]}>{attribute.value}</Text>
+      {state.phase === 'loaded' && view ? (
+        <>
+          <Panel colors={colors} style={styles.hero}>
+            <View style={styles.heroTop}>
+              <CredentialIcon icon="graduation" boxSize={56} size={30} />
+              <View style={styles.flex}>
+                <Text style={[walletStyles.title, styles.heroTitle, { color: colors.text }]}>{t(view.nameKey)}</Text>
+                <View style={styles.inline}>
+                  <Building2 color={colors.textSecondary} size={15} />
+                  <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{view.issuerName}</Text>
+                </View>
+                <View style={styles.inline}>
+                  <CalendarDays color={colors.textSecondary} size={15} />
+                  <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.list.receivedOn', { date: view.receivedDate })}</Text>
+                </View>
               </View>
+            </View>
+          </Panel>
+
+          <View style={styles.section}>
+            <Text style={[walletStyles.sectionTitle, { color: colors.text }]}>{t('wallet.detail.statusSection')}</Text>
+            <Panel colors={colors} style={styles.statusPanel}>
+              <View style={styles.pillRow}>
+                <StatusPill status={view.status} />
+              </View>
+              <Text style={[walletStyles.lead, { color: colors.text }]}>{statusMeaning[view.status]}</Text>
+              {view.statusCheckedDate ? (
+                <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.detail.checkedOn', { date: view.statusCheckedDate })}</Text>
+              ) : null}
+              {state.refreshFailure ? <FailureNotice colors={colors} failure={state.refreshFailure} showTitle={false} /> : null}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ busy: state.refreshing }}
+                disabled={state.refreshing}
+                onPress={onRefresh}
+                style={({ pressed }) => [styles.refresh, { borderColor: colors.border, opacity: pressed ? 0.7 : 1 }]}
+              >
+                {state.refreshing ? <ActivityIndicator color={colors.primaryDark} /> : <RefreshCw color={colors.primaryDark} size={18} />}
+                <Text style={[walletStyles.label, { color: colors.primaryDark }]}>{state.refreshing ? t('wallet.detail.checking') : t('wallet.detail.checkAgain')}</Text>
+              </Pressable>
+            </Panel>
+            {view.status === 'revoked' || view.status === 'suspended' ? (
+              view.portalUrl ? <TextAction colors={colors} label={t('wallet.detail.contactIssuer')} onPress={() => onOpenPortal(view.portalUrl!)} /> : null
+            ) : null}
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.sectionHead}>
+              <Text style={[walletStyles.sectionTitle, { color: colors.text }]}>{t('wallet.detail.fieldsSection')}</Text>
+              {hideSensitive ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={revealed ? t('wallet.detail.hideValues') : t('wallet.detail.showValues')}
+                  hitSlop={8}
+                  onPress={() => setRevealed((v) => !v)}
+                  style={styles.inline}
+                >
+                  {revealed ? <EyeOff color={colors.primaryDark} size={18} /> : <Eye color={colors.primaryDark} size={18} />}
+                  <Text style={[walletStyles.label, { color: colors.primaryDark }]}>{revealed ? t('wallet.detail.hideValues') : t('wallet.detail.showValues')}</Text>
+                </Pressable>
+              ) : null}
+            </View>
+            <Panel colors={colors} style={styles.fieldsPanel}>
+              {view.fields.map((field, index) => {
+                const masked = hideSensitive && !revealed && view.sensitiveFields.includes(field.name);
+                return (
+                  <View key={field.name} style={[styles.field, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
+                    <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t(field.labelKey)}</Text>
+                    <Text selectable={!masked} style={[walletStyles.value, { color: colors.text }]}>{masked ? MASKED_VALUE : field.value}</Text>
+                  </View>
+                );
+              })}
+            </Panel>
+          </View>
+
+          <View style={styles.section}>
+            {state.removeFailure ? <FailureNotice colors={colors} failure={state.removeFailure} showTitle={false} /> : null}
+            <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.detail.removeHint')}</Text>
+            {state.removing ? (
+              <PrimaryButton colors={colors} title={t('wallet.detail.removeConfirm')} onPress={() => undefined} loading secondary />
             ) : (
-              <Text numberOfLines={2} style={[styles.detailAttributeValue, { color: colors.text }]}>
-                {attribute.sensitive && hideSensitive ? '••••••••••' : attribute.value}
-              </Text>
+              <TextAction colors={colors} tone="danger" label={t('wallet.detail.remove')} onPress={confirmRemove} />
             )}
           </View>
-        ))}
-      </Card>
-
-      {[
-        {
-          icon: ShieldCheck,
-          title: t('identity.detail.actions.proofTitle'),
-          description: t('identity.detail.actions.proofDescription'),
-          message: t('identity.detail.actions.proofMessage', { signature: credential.signature }),
-        },
-        {
-          icon: History,
-          title: t('identity.detail.actions.historyTitle'),
-          description: t('identity.detail.actions.historyDescription'),
-          message: t('identity.detail.actions.historyMessage', { issuedAt: `${credential.issueDate} ${credential.time ?? ''}`.trim() }),
-        },
-        {
-          icon: Info,
-          title: t('identity.detail.actions.technicalTitle'),
-          description: t('identity.detail.actions.technicalDescription'),
-          message: t('identity.detail.actions.technicalMessage', { did: credential.didIssuer }),
-        },
-      ].map(({ icon: Icon, title, description, message }) => (
-        <Pressable
-          key={title}
-          accessibilityRole="button"
-          onPress={() => Alert.alert(title, message)}
-          style={({ pressed }) => [
-            styles.detailActionCard,
-            { backgroundColor: colors.surface, borderColor: colors.border, opacity: pressed ? 0.72 : 1 },
-          ]}
-        >
-          <View style={[styles.detailActionIcon, { backgroundColor: colors.surfaceMuted }]}>
-            <Icon color={colors.primaryDark} size={21} />
-          </View>
-          <View style={styles.detailActionMain}>
-            <Text style={[styles.detailActionTitle, { color: colors.text }]}>{title}</Text>
-            <Text style={[styles.detailActionDescription, { color: colors.textSecondary }]}>{description}</Text>
-          </View>
-          <ChevronRight color={colors.textSecondary} size={21} />
-        </Pressable>
-      ))}
+        </>
+      ) : null}
     </ScreenScroll>
   );
 }
+
+const styles = StyleSheet.create({
+  flex: { flex: 1, gap: spacing.xs },
+  hero: { paddingVertical: spacing.lg },
+  heroTop: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
+  heroTitle: { fontSize: 22, lineHeight: 28 },
+  inline: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs + 2 },
+  section: { gap: spacing.sm },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 },
+  statusPanel: { gap: spacing.sm, paddingVertical: spacing.lg },
+  pillRow: { flexDirection: 'row' },
+  refresh: { minHeight: 44, borderWidth: 1, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, marginTop: spacing.xs },
+  fieldsPanel: { paddingVertical: 0 },
+  field: { paddingVertical: spacing.md, gap: 2 },
+});

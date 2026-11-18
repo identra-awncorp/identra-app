@@ -28,6 +28,10 @@
     "src/native/platform/runtimeGlobals.ts",
     "src/native/data/wallet/**/*.ts",
     "src/native/domain/wallet/walletContainer.ts",
-    "src/native/domain/wallet/credentialPresentation.ts"
+    "src/native/domain/wallet/credentialPresentation.ts",
+    "src/native/domain/wallet/walletMessages.ts",
+    "src/native/domain/wallet/walletViews.ts",
+    "src/native/domain/wallet/walletFlows.ts",
+    "src/native/domain/wallet/pinnedRoots.ts"
   ]
 }

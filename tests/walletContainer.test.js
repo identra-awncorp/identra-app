@@ -26,7 +26,7 @@ const ISSUER_B = 'https://dai-hoc-b.example.vn';
 
 /** One "phone": the fake keychain, the SQLite file and the backed-up catalogue file. */
 function createPhone({ secureStore = createFakeSecureStore(), db = openExpoSqliteDouble(), catalogueText = null } = {}) {
-  const phone = { secureStore, db, catalogueText, failCatalogueWrites: false };
+  const phone = { secureStore, db, catalogueText, failCatalogueWrites: false, plain: new Map() };
   phone.wallet = createWallet({
     random: createExpoRandomSource((a) => webcrypto.getRandomValues(a)),
     clock: { now: () => new Date('2026-11-19T00:00:00Z') },
@@ -37,6 +37,7 @@ function createPhone({ secureStore = createFakeSecureStore(), db = openExpoSqlit
     keySecrets: createWalletKeySecretStorage(secureStore, { authenticationPrompt: () => 'prompt' }),
     dataKeySecrets: createDataKeySecretStorage(secureStore),
     repository: createSqliteCredentialRepository(async () => db),
+    plainStorage: { getItem: async (k) => phone.plain.get(k) ?? null, setItem: async (k, v) => void phone.plain.set(k, v) },
     catalogueFile: {
       read: async () => phone.catalogueText,
       write: async (text) => {

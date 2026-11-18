@@ -17,4 +17,7 @@ config.watchFolders = [...(config.watchFolders ?? []), sdkRoot];
 // The SDK packages publish ESM through `exports` maps only (default in Metro 0.82+, explicit here).
 config.resolver.unstable_enablePackageExports = true;
 
+// expo-sqlite's web build imports its wasm engine (Expo's documented setting); native ignores it.
+config.resolver.assetExts = [...config.resolver.assetExts, 'wasm'];
+
 module.exports = config;

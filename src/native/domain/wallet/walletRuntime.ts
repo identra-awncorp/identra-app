@@ -13,8 +13,8 @@ import { createDataKeySecretStorage, createWalletKeySecretStorage } from '../../
 import { createAsyncStorageSeenStore } from '../../data/wallet/seenStore';
 import { getWalletRuntimeCheck } from '../../platform/installGlobals';
 import type { RuntimeProblem } from '../../platform/runtimeGlobals';
-import type { WalletQrRequest } from '../scan/qrScan';
-import { CATALOGUE_FILE_NAME, createWallet, type CatalogueFile, type Wallet } from './walletContainer';
+import { credentialOfferQrText, type WalletQrRequest } from '../scan/qrScan';
+import { CATALOGUE_FILE_NAME, createWallet, type CatalogueFile, type Wallet, type WalletApi } from './walletContainer';
 
 export class WalletUnavailableError extends Error {
   readonly problems: RuntimeProblem[];
@@ -64,22 +64,52 @@ export function getWallet(options: { authenticationPrompt: string }): Wallet {
     dataKeySecrets: createDataKeySecretStorage(SecureStore),
     repository: createSqliteCredentialRepository(() => openDatabaseAsync(WALLET_DATABASE_NAME)),
     catalogueFile: createCatalogueFile(),
+    plainStorage: AsyncStorage,
   });
   return instance;
+}
+
+/**
+ * What the screens call. With EXPO_PUBLIC_WALLET_HARNESS=1 (web screenshots only) a scripted
+ * in-memory wallet; the variable is inlined at build time, so a normal build drops the branch and
+ * the harness module with it.
+ */
+export function getWalletApi(options: { authenticationPrompt: string }): WalletApi {
+  if (process.env.EXPO_PUBLIC_WALLET_HARNESS === '1') {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return (require('../../dev/walletHarness') as typeof import('../../dev/walletHarness')).getHarnessWallet();
+  }
+  return getWallet(options);
+}
+
+/** The scanned offer waiting for the receive screen (QR text never goes into a route or a log). */
+let pendingOffer: string | null = null;
+
+export function getPendingOffer(): string | null {
+  if (process.env.EXPO_PUBLIC_WALLET_HARNESS === '1') {
+    return pendingOffer ?? (globalThis as { localStorage?: Storage }).localStorage?.getItem('identra.harness.offer') ?? null;
+  }
+  return pendingOffer;
+}
+
+export function clearPendingOffer(): void {
+  pendingOffer = null;
 }
 
 export type WalletHandOffResult =
   /** The device failed the start-up self-check. */
   | { kind: 'device-unsupported' }
-  /** This build has no issuance or presentation flow; nothing was fetched or stored. */
+  /** Open the receive screen; the offer waits in getPendingOffer(). */
+  | { kind: 'receive' }
+  /** Presentation (OpenID4VP) is not wired yet; nothing was fetched or sent. */
   | { kind: 'flow-unavailable'; request: WalletQrRequest['kind'] };
 
-/**
- * The single entry from the QR scanner into the wallet. The issuance and presentation flows plug
- * in here; until then the honest answer is that this build cannot open such codes, and nothing
- * is fetched, stored or sent.
- */
+/** The single entry from the QR scanner into the wallet. */
 export async function handOffWalletRequest(request: WalletQrRequest): Promise<WalletHandOffResult> {
   if (!getWalletRuntimeCheck().ok) return { kind: 'device-unsupported' };
+  if (request.kind === 'credential-offer') {
+    pendingOffer = credentialOfferQrText(request.offerUri);
+    return { kind: 'receive' };
+  }
   return { kind: 'flow-unavailable', request: request.kind };
 }

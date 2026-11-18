@@ -61,3 +61,6 @@ expo-env.d.ts
 # @end expo-cli
 
 /assets
+
+# wallet screen review screenshots (scripts/capture-wallet-screens.cjs)
+.review/

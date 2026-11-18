@@ -66,7 +66,7 @@ describe('HttpFetch adapter', () => {
     assert.equal(res.status, 200);
     assert.equal(res.headers.get('content-type'), 'application/jwt');
     assert.equal(await res.text(), 'eyJ.token');
-    assert.equal(seen.init.redirect, 'error');
+    assert.equal(seen.init.redirect, 'manual');
     assert.equal(seen.init.credentials, 'omit');
     assert.equal(seen.init.method, 'GET');
     assert.equal(seen.init.headers.accept, 'application/jwt');
@@ -145,9 +145,11 @@ describe('HttpFetch adapter', () => {
     assert.equal((await (await exact('https://x.example/')).text()).length, MAX_RESPONSE_BYTES);
   });
 
-  it('refuses redirects whichever way the platform reports them, and hides network error details', async () => {
-    const manual = createHttpFetch({ fetch: async () => new Response(null, { status: 302, headers: { location: 'https://evil.example/' } }) });
-    await rejectsWith(manual('https://x.example/'), HttpFetchError, 'REDIRECT');
+  it('returns a 3xx as it is (never followed), refuses a followed redirect, and hides network error details', async () => {
+    const manual = createHttpFetch({ fetch: async () => new Response('moved', { status: 302, headers: { location: 'https://evil.example/' } }) });
+    const r = await manual('https://x.example/');
+    assert.equal(r.status, 302);
+    assert.equal(await r.text(), '', 'the body of a redirect is not read');
     const flagged = createHttpFetch({ fetch: async () => ({ status: 200, redirected: true, headers: new Headers(), body: null, text: async () => '' }) });
     await rejectsWith(flagged('https://x.example/'), HttpFetchError, 'REDIRECT');
     const native = createHttpFetch({
@@ -268,7 +270,8 @@ describe('SecretStorage adapters on expo-secure-store', () => {
     const keyStore = createSoftwareKeyStore({ secrets, random });
     const { keyId } = await keyStore.create();
     store.state.invalidateBiometricKeys();
-    await rejectsWith(keyStore.signer(keyId), SecretStorageError, 'KEY_INVALIDATED');
+    // The SDK passes the code on as a WalletKeyError (and the wallet maps it to KEY_INVALIDATED).
+    await rejectsWith(keyStore.signer(keyId), WalletKeyError, 'KEY_INVALIDATED');
     // An id that never existed is still the SDK's KEY_NOT_FOUND.
     await rejectsWith(keyStore.signer('AAAAAAAAAAAAAAAAAAAAAA'), WalletKeyError, 'KEY_NOT_FOUND');
   });

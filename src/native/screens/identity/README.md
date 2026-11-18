@@ -19,7 +19,8 @@ This folder owns identity, wallet, credential, profile, security, and credential
 - `share/CredentialSharingScreens.tsx`: sharing and QR-related screens.
 - `profile/ProfileScreen.tsx`: profile view/edit surface.
 - `security/SecurityScreen.tsx`: security surface.
-- `src/native/data/demo/identityDemoData.ts`: replaceable identity demo data.
+- `receive/ReceiveCredentialScreen.tsx`, `restore/RestoreWalletScreen.tsx`, `wallet/WalletParts.tsx`, `wallet/walletHooks.ts`: the real wallet (see `src/native/domain/wallet/README.md`).
+- `src/native/data/demo/identityDemoData.ts`: replaceable identity demo data, still used by the sharing screens until presentation is wired; the wallet home, list and detail never show it.
 - `src/native/domain/app-store/appStoreStateService.ts`: current credential/profile state transformations.
 
 ## Business Rules
