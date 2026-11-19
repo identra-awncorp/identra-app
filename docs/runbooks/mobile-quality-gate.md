@@ -23,6 +23,8 @@ Use this runbook before handing off code changes that affect the Identra mobile 
    - `npm run typecheck`
 4. Run tests:
    - `npm test`
+   - `npm run check:bundle` (release gate: no dev-only module or string in the android/ios bundles;
+     prints the SDK commit the bundle was built from)
    - targeted tests for touched logic where practical
 5. For UI changes, manually inspect:
    - Android or Android emulator

@@ -32,6 +32,7 @@
     "src/native/domain/wallet/walletMessages.ts",
     "src/native/domain/wallet/walletViews.ts",
     "src/native/domain/wallet/walletFlows.ts",
-    "src/native/domain/wallet/pinnedRoots.ts"
+    "src/native/domain/wallet/pinnedRoots.ts",
+    "src/native/domain/wallet/presentationFlow.ts"
   ]
 }

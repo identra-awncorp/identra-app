@@ -9,8 +9,9 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "tsc -p tsconfig.test.json && node --test \"tests/**/*.test.js\"",
-    "typecheck": "tsc --noEmit"
+    "test": "tsc -p tsconfig.test.json && node --test --test-timeout=120000 \"tests/**/*.test.js\"",
+    "typecheck": "tsc --noEmit",
+    "check:bundle": "node scripts/check-bundle.mjs"
   },
   "dependencies": {
     "@identra/sdk-app": "file:../identra-sdk/packages/app",

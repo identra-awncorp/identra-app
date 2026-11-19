@@ -8,7 +8,7 @@ const {
   credentialStatusTones,
 } = require('../.tmp-test/src/native/domain/credentials/credentialStatus');
 
-const ALL_STATUSES = ['verified', 'pending', 'expired', 'revoked', 'suspended', 'unknown'];
+const ALL_STATUSES = ['verified', 'pending', 'expired', 'revoked', 'suspended', 'unknown', 'invalid'];
 
 describe('credentialStats', () => {
   it('derives status counts from the current credential collection', () => {
@@ -23,7 +23,7 @@ describe('credentialStats', () => {
       { status: 'unknown' },
     ]);
 
-    assert.deepEqual(stats, { verified: 2, pending: 1, expired: 1, revoked: 1, suspended: 1, unknown: 2, total: 8 });
+    assert.deepEqual(stats, { verified: 2, pending: 1, expired: 1, revoked: 1, suspended: 1, unknown: 2, invalid: 0, total: 8 });
   });
 
   it('returns zero counts for an empty wallet', () => {
@@ -34,13 +34,14 @@ describe('credentialStats', () => {
       revoked: 0,
       suspended: 0,
       unknown: 0,
+      invalid: 0,
       total: 0,
     });
   });
 
   it('gives every status a tone, and never a positive one to a credential that cannot be trusted', () => {
     assert.deepEqual(Object.keys(credentialStatusTones).sort(), [...ALL_STATUSES].sort());
-    for (const status of ['pending', 'expired', 'revoked', 'suspended', 'unknown']) {
+    for (const status of ['pending', 'expired', 'revoked', 'suspended', 'unknown', 'invalid']) {
       assert.notEqual(credentialStatusTones[status], 'positive', status);
     }
     assert.equal(credentialStatusTones.revoked, 'negative');

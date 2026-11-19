@@ -116,6 +116,44 @@ describe('CredentialRepository on expo-sqlite (SQL executed by node:sqlite)', ()
     assert.equal(opens, 2);
   });
 
+  it('migrates a version-1 database with rows to version 2 (CHECK now allows invalid) without losing a row', async () => {
+    const db = openExpoSqliteDouble();
+    // The exact table the previous app version created (identra-sdk before 373a673), with rows.
+    db.raw.exec(`CREATE TABLE IF NOT EXISTS credentials (
+  id TEXT PRIMARY KEY NOT NULL,
+  vct TEXT NOT NULL,
+  issuer TEXT NOT NULL,
+  key_id TEXT NOT NULL,
+  ciphertext TEXT NOT NULL,
+  status_cache TEXT CHECK (status_cache IN ('valid', 'revoked', 'suspended', 'unavailable')),
+  status_checked_at TEXT,
+  created_at TEXT NOT NULL
+); PRAGMA user_version = 1;`);
+    const insert = db.raw.prepare('INSERT INTO credentials (id, vct, issuer, key_id, ciphertext, status_cache, status_checked_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+    insert.run('r1', 'v', 'i', 'k1', 'sealed-1', 'valid', '2026-11-18T00:00:00.000Z', '2026-11-17T00:00:00.000Z');
+    insert.run('r2', 'v', 'i', 'k2', 'sealed-2', null, null, '2026-11-18T00:00:00.000Z');
+    assert.throws(() => db.raw.exec("UPDATE credentials SET status_cache = 'invalid' WHERE id = 'r1'"), /CHECK/);
+
+    const repo = createSqliteCredentialRepository(async () => db);
+    assert.deepEqual((await repo.list()).map((r) => [r.id, r.ciphertext, r.status_cache]), [['r1', 'sealed-1', 'valid'], ['r2', 'sealed-2', null]]);
+    assert.equal(db.raw.prepare('PRAGMA user_version').get().user_version, WALLET_SCHEMA_VERSION);
+    assert.equal(WALLET_SCHEMA_VERSION, 2);
+    await repo.update('r1', { status_cache: 'invalid', status_checked_at: '2026-11-19T00:00:00.000Z' });
+    assert.equal((await repo.get('r1')).status_cache, 'invalid');
+    assert.equal(db.raw.prepare("SELECT count(*) AS n FROM sqlite_master WHERE name = 'credentials_v1'").get().n, 0, 'the old table is gone');
+    await assert.rejects(repo.update('r2', { status_cache: 'bogus', status_checked_at: null }), WalletDatabaseError);
+  });
+
+  it('rolls the migration back when it fails: the old table and rows stay', async () => {
+    const db = openExpoSqliteDouble();
+    db.raw.exec(`CREATE TABLE credentials (id TEXT PRIMARY KEY NOT NULL, vct TEXT NOT NULL, issuer TEXT NOT NULL, key_id TEXT NOT NULL, ciphertext TEXT NOT NULL, status_cache TEXT, status_checked_at TEXT, created_at TEXT NOT NULL);
+      CREATE TABLE credentials_v1 (x TEXT); PRAGMA user_version = 1;`);
+    db.raw.prepare("INSERT INTO credentials VALUES ('r1', 'v', 'i', 'k', 'sealed', NULL, NULL, 'now')").run();
+    await assert.rejects(migrateWalletDatabase(db));
+    assert.equal(db.raw.prepare('PRAGMA user_version').get().user_version, 1);
+    assert.equal(db.raw.prepare('SELECT count(*) AS n FROM credentials').get().n, 1);
+  });
+
   it('refuses a database written by a newer app version', async () => {
     const db = openExpoSqliteDouble();
     db.raw.exec(`PRAGMA user_version = ${WALLET_SCHEMA_VERSION + 1}`);

@@ -39,6 +39,8 @@ export interface CatalogueFile {
 
 /** The signed trust list every issuer and status list is checked against (ADR-0013 §6). */
 export const TRUST_LIST_URL = 'https://api-identra.awncorp.vn/trust-list';
+/** The only origin wallet QR codes may point to (ADR-0010 §6); a development build maps it to a local server. */
+export const IDENTRA_API_ORIGIN = 'https://api-identra.awncorp.vn';
 /** What this wallet can receive today. */
 export const SUPPORTED_VCTS: readonly string[] = [VCT.diploma];
 const ISSUER_NAMES_KEY = 'identra.wallet.issuer-names.v1';
@@ -104,8 +106,13 @@ export interface Wallet {
   /** OpenID4VCI (SDK wallet object). */
   readonly offers: {
     resolve(qrText: string): Promise<{ ok: true; offer: ResolvedOffer } | WalletFailure>;
+    /** Resumable: after a `retryable` failure, call again with the same offer (the PIN is then ignored). */
     accept(offer: ResolvedOffer, input: { txCode?: string }): Promise<AcceptResult>;
+    /** The person abandoned the offer: forget its token and any key waiting for a retried save. */
+    discard(offer: ResolvedOffer): Promise<void>;
   };
+  /** OpenID4VP (SDK wallet object): resolve / submit / decline. */
+  readonly presentations: ReturnType<typeof createSdkWallet>['presentations'];
   readonly credentials: {
     list(): Promise<WalletCredentialSummary[]>;
     get(id: string): Promise<{ ok: true; credential: CredentialDetails } | WalletFailure>;
@@ -120,7 +127,7 @@ export interface Wallet {
 }
 
 /** What the screens use; a dev harness implements the same shape with scripted answers. */
-export type WalletApi = Pick<Wallet, 'offers' | 'credentials' | 'getStartupState' | 'acknowledgeNewDevice' | 'forgetDocument'>;
+export type WalletApi = Pick<Wallet, 'offers' | 'presentations' | 'credentials' | 'getStartupState' | 'acknowledgeNewDevice' | 'forgetDocument'>;
 
 /** The SDK's mergeCatalogue, also for a phone with no catalogue file yet. */
 export function nextCatalogue(previous: Catalogue | null, rows: readonly CatalogueItem[], dropped: readonly CatalogueItem[] = []): Catalogue {
@@ -205,6 +212,7 @@ export function createWallet(deps: WalletDependencies): Wallet {
     trustListUrl: deps.trustListUrl ?? TRUST_LIST_URL,
     supportedVcts: [...SUPPORTED_VCTS],
     seen: deps.seen,
+    allowedOrigins: [IDENTRA_API_ORIGIN],
   });
 
   async function issuerNames(): Promise<Record<string, string>> {
@@ -228,12 +236,14 @@ export function createWallet(deps: WalletDependencies): Wallet {
     vault,
     offers: {
       resolve: (qrText) => sdk.offers.resolve(qrText),
+      discard: (offer) => sdk.offers.discard(offer),
       async accept(offer, input) {
         const result = await sdk.offers.accept(offer, input);
         if (result.ok) await rememberIssuerName(offer.issuerUri, result.issuerName);
         return result;
       },
     },
+    presentations: sdk.presentations,
     credentials: {
       async list() {
         const [summaries, names] = await Promise.all([sdk.credentials.list(), issuerNames()]);

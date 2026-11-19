@@ -13,7 +13,7 @@ const viModule = require('../.tmp-test/src/native/i18n/locales/vi');
 const enModule = require('../.tmp-test/src/native/i18n/locales/en');
 
 const CHECK_IDS = ['query', 'structure', 'algorithm', 'certificate_chain', 'signature', 'validity_time', 'credential_type', 'issuer_trust', 'status', 'holder_binding', 'product_chain', 'chain_format', 'chain_signatures', 'chain_validity', 'chain_constraints', 'leaf_key', 'issuer_uri'];
-const APP_CODES = ['DEVICE_UNSUPPORTED'];
+const APP_CODES = ['DEVICE_UNSUPPORTED', 'DATABASE_TOO_NEW'];
 const ALL_CODES = [...Object.values(ErrorCodes), ...APP_CODES];
 /** Whitepaper rule: none of these may reach a person. */
 const TECHNICAL = /sd-jwt|\bjwt\b|nonce|certificate|chứng thư|status ?list|did:|\bvct\b|openid|token|x509|hash|thumbprint|\bcnf\b|disclosure/i;
@@ -89,17 +89,25 @@ describe('wallet code → sentence tables', () => {
     assert.equal(failureCodeOfError(Object.assign(new Error('x'), { code: 'CANCELLED' })), 'USER_CANCELLED');
     assert.equal(failureCodeOfError(Object.assign(new Error('x'), { code: 'KEY_INVALIDATED' })), 'KEY_INVALIDATED');
     assert.equal(failureCodeOfError(Object.assign(new Error('x'), { code: 'QUERY_FAILED' })), 'STORAGE_ERROR');
+    assert.equal(failureCodeOfError(Object.assign(new Error('x'), { code: 'SCHEMA_TOO_NEW' })), 'DATABASE_TOO_NEW');
+    assert.equal(failureView('DATABASE_TOO_NEW').action, 'close');
     assert.equal(failureCodeOfError(null), 'STORAGE_ERROR');
   });
 });
 
 describe('pinned Identra root', () => {
-  it('is the certificate the website publishes (same SHA-256), as an array ready for a rollover', () => {
+  // Vendored: the SHA-256 of the DEMO Root CA the website publishes (identra-website/src/identra/trust/root-ca.pem).
+  const DEMO_ROOT_SHA256 = 'ad70fa54b54db1824ecec3118bf1dd0eeb10d653244571a80645aec0454b99b5';
+  const sha = (der) => createHash('sha256').update(der).digest('hex');
+  const websitePem = path.resolve(__dirname, '../../identra-website/src/identra/trust/root-ca.pem');
+
+  it('is the DEMO root, as an array ready for a rollover', () => {
     assert.ok(Array.isArray(PINNED_ROOT_CERTIFICATES_BASE64) && PINNED_ROOT_CERTIFICATES_BASE64.length >= 1);
-    const pem = fs.readFileSync(path.resolve(__dirname, '../../identra-website/src/identra/trust/root-ca.pem'), 'utf8');
-    const websiteDer = Buffer.from(/-----BEGIN CERTIFICATE-----([\s\S]+?)-----END/.exec(pem)[1].replace(/\s+/g, ''), 'base64');
-    const sha = (der) => createHash('sha256').update(der).digest('hex');
-    assert.equal(sha(Buffer.from(PINNED_ROOT_CERTIFICATES_BASE64[0], 'base64')), sha(websiteDer));
-    assert.equal(sha(websiteDer), 'ad70fa54b54db1824ecec3118bf1dd0eeb10d653244571a80645aec0454b99b5');
+    assert.equal(sha(Buffer.from(PINNED_ROOT_CERTIFICATES_BASE64[0], 'base64')), DEMO_ROOT_SHA256);
+  });
+
+  it('still matches the file the website publishes', { skip: !fs.existsSync(websitePem) && 'identra-website is not checked out next to the app' }, () => {
+    const pem = fs.readFileSync(websitePem, 'utf8');
+    assert.equal(sha(Buffer.from(/-----BEGIN CERTIFICATE-----([\s\S]+?)-----END/.exec(pem)[1].replace(/\s+/g, ''), 'base64')), DEMO_ROOT_SHA256);
   });
 });

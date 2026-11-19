@@ -1,7 +1,12 @@
 import { CREDENTIALS_TABLE_DDL, type CredentialRepository, type CredentialRow } from '@identra/sdk-app';
 
 export const WALLET_DATABASE_NAME = 'identra-wallet.db';
-export const WALLET_SCHEMA_VERSION = 1;
+/**
+ * 1: the first table. 2: `status_cache` also allows 'invalid' (SDK 373a673): SQLite cannot alter a
+ * CHECK constraint, so the table is recreated from the SDK's DDL and the rows copied, in one
+ * transaction.
+ */
+export const WALLET_SCHEMA_VERSION = 2;
 
 type Bind = string | number | null;
 
@@ -27,15 +32,38 @@ export class WalletDatabaseError extends Error {
 
 const COLUMNS = 'id, vct, issuer, key_id, ciphertext, status_cache, status_checked_at, created_at';
 
+/** Runs `source` as one transaction; on failure rolls back so the old schema and rows stay. */
+async function inTransaction(db: SqliteDatabaseLike, source: string): Promise<void> {
+  await db.execAsync('BEGIN IMMEDIATE;');
+  try {
+    await db.execAsync(source);
+    await db.execAsync('COMMIT;');
+  } catch (error) {
+    await db.execAsync('ROLLBACK;').catch(() => undefined);
+    throw error;
+  }
+}
+
 /** Brings the schema to WALLET_SCHEMA_VERSION; PRAGMA user_version holds the version. */
 export async function migrateWalletDatabase(db: SqliteDatabaseLike): Promise<void> {
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version', []);
   const version = row?.user_version ?? 0;
   if (version > WALLET_SCHEMA_VERSION) throw new WalletDatabaseError('SCHEMA_TOO_NEW');
-  if (version < 1) {
-    // The DDL is IF NOT EXISTS, so a crash between the two statements is repaired on the next start.
-    await db.execAsync(`${CREDENTIALS_TABLE_DDL};\nPRAGMA user_version = 1;`);
+  if (version === WALLET_SCHEMA_VERSION) return;
+  if (version === 0) {
+    // A new database (or a v0 one with no table yet): the current DDL directly.
+    await inTransaction(db, `${CREDENTIALS_TABLE_DDL};\nPRAGMA user_version = ${WALLET_SCHEMA_VERSION};`);
+    return;
   }
+  // 1 -> 2: recreate with the new CHECK and copy every row unchanged.
+  await inTransaction(
+    db,
+    `ALTER TABLE credentials RENAME TO credentials_v1;
+${CREDENTIALS_TABLE_DDL};
+INSERT INTO credentials (${COLUMNS}) SELECT ${COLUMNS} FROM credentials_v1;
+DROP TABLE credentials_v1;
+PRAGMA user_version = ${WALLET_SCHEMA_VERSION};`,
+  );
 }
 
 /**

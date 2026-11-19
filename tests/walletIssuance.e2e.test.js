@@ -5,12 +5,11 @@
 // fakes (SecureStore fake, expo-sqlite double on node:sqlite, in-memory files). The network path is
 // the app's own HttpFetch with the development origin mapping, on Node's fetch.
 const assert = require('node:assert/strict');
-const path = require('node:path');
 const { after, before, describe, it } = require('node:test');
 const { webcrypto } = require('node:crypto');
 
-const SDK = path.resolve(__dirname, '../../identra-sdk');
-const { createWorld, startListener, rootDer, DIPLOMA } = require(path.join(SDK, 'packages/app/test-dist/helpers/world.js'));
+const { missing, world: sdkWorld, freePort } = require('./helpers/sdkWorld');
+const { createWorld, startListener, rootDer, DIPLOMA } = sdkWorld ?? {};
 
 const { createWallet, TRUST_LIST_URL } = require('../.tmp-test/src/native/domain/wallet/walletContainer');
 const { createWalletHttpFetch } = require('../.tmp-test/src/native/data/wallet/httpFetch');
@@ -25,10 +24,11 @@ const { translate } = require('../.tmp-test/src/native/i18n');
 const { createFakeSecureStore } = require('./helpers/fakeSecureStore');
 const { openExpoSqliteDouble } = require('./helpers/expoSqliteDouble');
 
-const PORT = 47346;
 let listener;
-before(async () => (listener = await startListener(PORT)));
-after(() => listener.close());
+before(async () => {
+  if (!missing) listener = await startListener(await freePort(47340, 47344));
+});
+after(() => listener?.close());
 
 function memoryStorage() {
   const map = new Map();
@@ -55,7 +55,7 @@ function appWallet(world) {
   return phone;
 }
 
-describe('the app wallet receives and keeps a diploma from a real issuer (no device)', () => {
+describe('the app wallet receives and keeps a diploma from a real issuer (no device)', { skip: missing }, () => {
   it('scan → resolve → wrong PIN → right PIN → stored, listed, opened, checked, revoked, removed', async () => {
     const world = await createWorld(listener);
     const phone = appWallet(world);
@@ -67,11 +67,11 @@ describe('the app wallet receives and keeps a diploma from a real issuer (no dev
     assert.equal(scanned.kind, 'credential-offer');
     const qrText = credentialOfferQrText(scanned.offerUri);
 
-    let state = initialReceiveState;
+    let state = receiveReducer(initialReceiveState, { type: 'device-checked', ready: true });
     state = receiveReducer(state, { type: 'resolved', result: await wallet.offers.resolve(qrText) });
     assert.equal(state.phase, 'consent', JSON.stringify(state));
     const view = offerView(state.offer, 'vi');
-    assert.deepEqual(view, { issuerName: 'Trường Mẫu', documentNameKey: 'wallet.documentTypes.diploma', pin: { length: 6, numeric: true } });
+    assert.deepEqual({ ...view, issuerOrigin: undefined }, { issuerName: 'Trường Mẫu', issuerOrigin: undefined, documentNameKey: 'wallet.documentTypes.diploma', pin: { length: 6, numeric: true } });
     assert.equal(secureStore.state.items.size, 0, 'resolving creates no key');
 
     // A wrong PIN: back to the PIN field, PIN cleared, retry on the same offer.
@@ -140,6 +140,35 @@ describe('the app wallet receives and keeps a diploma from a real issuer (no dev
     assert.deepEqual(JSON.parse(phone.catalogue).items, []);
   });
 
+  it('a cancelled fingerprint prompt after the right PIN resumes without the PIN (code not wasted)', async () => {
+    const world = await createWorld(listener);
+    const phone = appWallet(world);
+    const { offerUri: qr, txCode } = await world.offer();
+    let state = receiveReducer(initialReceiveState, { type: 'device-checked', ready: true });
+    state = receiveReducer(state, { type: 'resolved', result: await phone.wallet.offers.resolve(credentialOfferQrText(parseQrScanValue(qr).offerUri)) });
+    state = receiveReducer(state, { type: 'submit' });
+    phone.secureStore.state.cancelNextPrompt = true; // the person dismisses the prompt for the new key
+    const cancelled = await phone.wallet.offers.accept(state.offer, { txCode });
+    assert.deepEqual([cancelled.ok, cancelled.code, cancelled.retryable], [false, 'USER_CANCELLED', true]);
+    state = receiveReducer(state, { type: 'accepted', result: cancelled });
+    assert.equal(state.phase, 'resume');
+    state = receiveReducer(state, { type: 'submit' });
+    assert.equal(state.resuming, true);
+    const resumed = await phone.wallet.offers.accept(state.offer, {}); // no PIN on resume
+    state = receiveReducer(state, { type: 'accepted', result: resumed });
+    assert.equal(state.phase, 'received', JSON.stringify(resumed));
+    assert.equal(world.issued.length, 1, 'one credential issued for one code');
+  });
+
+  it('refuses a QR code pointing anywhere but the Identra API origin, before any network call', async () => {
+    const world = await createWorld(listener);
+    const phone = appWallet(world);
+    listener.requests.length = 0;
+    const r = await phone.wallet.offers.resolve(credentialOfferQrText('https://issuer.example.vn/offers/1'));
+    assert.deepEqual(r, { ok: false, code: 'URL_NOT_ALLOWED' });
+    assert.deepEqual(listener.requests, []);
+  });
+
   it('an offer from an issuer outside the pinned roots fails its checks and stores nothing', async () => {
     const world = await createWorld(listener);
     // The app's real pinned DEMO root: the SDK's test PKI does not chain to it.
@@ -148,7 +177,7 @@ describe('the app wallet receives and keeps a diploma from a real issuer (no dev
     const { offerUri: qr, txCode } = await world.offer();
     const resolved = await demoRooted.offers.resolve(credentialOfferQrText(parseQrScanValue(qr).offerUri));
     assert.equal(resolved.ok, true);
-    let state = receiveReducer(receiveReducer(initialReceiveState, { type: 'resolved', result: resolved }), { type: 'submit' });
+    let state = receiveReducer(receiveReducer(receiveReducer(initialReceiveState, { type: 'device-checked', ready: true }), { type: 'resolved', result: resolved }), { type: 'submit' });
     state = receiveReducer(state, { type: 'accepted', result: await demoRooted.offers.accept(resolved.offer, { txCode }) });
     assert.equal(state.phase, 'accept-failed');
     assert.equal(state.failure.code, 'CREDENTIAL_INVALID');

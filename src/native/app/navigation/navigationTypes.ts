@@ -11,8 +11,6 @@ export type ScreenKey =
   | 'credentials'
   | 'profile'
   | 'security'
-  | 'share'
-  | 'share-qr'
   | 'connection-qr'
   | 'chat-list'
   | 'chat'

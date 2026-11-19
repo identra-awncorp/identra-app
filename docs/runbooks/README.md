@@ -10,6 +10,7 @@ Runbooks should be short, step-by-step, and safe to follow under pressure.
 - `mobile-incident-triage.md`: first-response checklist for app incidents or severe regressions.
 - `wallet-device-verification.md`: what the wallet platform layer still needs a physical device to prove.
 - `wallet-screen-review.md`: web screenshots of every wallet screen state for design review.
+- `release-build.md`: building a release from a pinned SDK commit, with the bundle gate.
 
 ## Runbook Format
 

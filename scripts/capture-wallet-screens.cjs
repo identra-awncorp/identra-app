@@ -28,14 +28,17 @@ function serve() {
 const SESSION = JSON.stringify({ accessToken: 'harness', accessTokenExpiresAt: '2099-01-01T00:00:00Z', deviceId: 'harness', refreshToken: 'harness', refreshTokenExpiresAt: '2099-01-01T00:00:00Z', sessionId: 'harness', tokenType: 'Bearer', userId: 'harness' });
 const settings = (theme, language) => JSON.stringify({ version: 2, settings: { language, theme, hideSensitiveData: true, notificationsEnabled: true, flowSettings: { identity: { requireAuthForCredential: false } } } });
 
-async function shot(browser, { name, url, scenario = 'held', offer = 'openid-credential-offer://?credential_offer_uri=https%3A%2F%2Fapi-identra.awncorp.vn%2Fissuers%2Ftruong-mau%2Foffers%2Fdemo', theme = 'light', language = 'vi', width = 390, height = 844, act, settle = 1600 }) {
+async function shot(browser, { name, url, scenario = 'held', offer = 'openid-credential-offer://?credential_offer_uri=https%3A%2F%2Fapi-identra.awncorp.vn%2Fissuers%2Ftruong-mau%2Foffers%2Fdemo', presentation = 'openid4vp://?trusted', submit = 'ok', biometrics = 'on', theme = 'light', language = 'vi', width = 390, height = 844, act, settle = 2400 }) {
   const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 2, colorScheme: theme === 'dark' ? 'dark' : 'light' });
-  await context.addInitScript(({ SESSION, scenario, offer, settingsJson }) => {
+  await context.addInitScript(({ SESSION, scenario, offer, presentation, submit, biometrics, settingsJson }) => {
+    localStorage.setItem('identra.harness.presentation', presentation);
+    localStorage.setItem('identra.harness.submit', submit);
+    localStorage.setItem('identra.harness.biometrics', biometrics);
     localStorage.setItem('identra.native.auth.session.v1', SESSION);
     localStorage.setItem('identra.native.settings.v2', settingsJson);
     localStorage.setItem('identra.harness.scenario', scenario);
     localStorage.setItem('identra.harness.offer', offer);
-  }, { SESSION, scenario, offer, settingsJson: settings(theme, language) });
+  }, { SESSION, scenario, offer, presentation, submit, biometrics, settingsJson: settings(theme, language) });
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
@@ -44,6 +47,17 @@ async function shot(browser, { name, url, scenario = 'held', offer = 'openid-cre
   if (act) await act(page).catch((e) => errors.push(`action failed: ${e.message.split('\n')[0]}`));
   const file = path.join(outDir, `${name}-${width}${theme === 'dark' ? '-dark' : ''}${language === 'en' ? '-en' : ''}.png`);
   await page.screenshot({ path: file, fullPage: true });
+  // The screens scroll inside their own scroll view: also capture the bottom when it does not fit.
+  const scrolled = await page.evaluate(() => {
+    const el = [...document.querySelectorAll('div')].filter((d) => d.scrollHeight > d.clientHeight + 4 && getComputedStyle(d).overflowY !== 'visible').sort((a, b) => b.scrollHeight - a.scrollHeight)[0];
+    if (!el) return false;
+    el.scrollTop = el.scrollHeight;
+    return true;
+  });
+  if (scrolled) {
+    await page.waitForTimeout(200);
+    await page.screenshot({ path: file.replace(/\.png$/, '-bottom.png') });
+  }
   await context.close();
   if (errors.length) console.log(`  ${name}: page errors: ${errors.join(' | ').slice(0, 300)}`);
   console.log(`  ${file}`);
@@ -61,6 +75,33 @@ const typePin = (pin, submit = true) => async (page) => {
   fs.mkdirSync(outDir, { recursive: true });
   const server = await serve();
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || undefined });
+  const tap = (text) => async (p) => {
+    await p.getByText(text, typeof text === 'string' ? { exact: true } : undefined).first().click();
+    await p.waitForTimeout(400);
+  };
+  const share = (wait = 1800) => async (p) => {
+    await p.getByText(/^(Chia sẻ|Share)$/).last().click();
+    await p.waitForTimeout(wait);
+  };
+  const present = '/present-credential';
+  // resolve 0.7 s + list 0.3 s + values 0.4 s in the harness
+  const presentStates = [
+    { name: 'present-checking', url: present, settle: 250 },
+    { name: 'present-trusted', url: present, settle: 2600 },
+    { name: 'present-trusted-revealed', url: present, act: tap(/^(Hiện|Show)$/) },
+    { name: 'present-trusted-less', url: present, act: tap(/^(Chia sẻ ít hơn|Share less)$/) },
+    { name: 'present-withheld-open', url: present, act: tap(/^(Không chia sẻ|Not shared) \(3\)$/) },
+    { name: 'present-chooser', url: present, presentation: 'openid4vp://?two-docs' },
+    { name: 'present-untrusted', url: present, presentation: 'openid4vp://?untrusted' },
+    { name: 'present-untrusted-confirm', url: present, presentation: 'openid4vp://?untrusted', act: tap(/^(Vẫn chia sẻ|Share anyway)$/) },
+    ...['CERT_CHAIN_UNTRUSTED', 'CLIENT_ID_MISMATCH', 'SIGNATURE_INVALID', 'REQUEST_INVALID', 'REQUEST_EXPIRED', 'URL_NOT_ALLOWED', 'TRUST_LIST_UNAVAILABLE'].map((code) => ({ name: `present-refused-${code.toLowerCase()}`, url: present, presentation: `openid4vp://?${code}` })),
+    { name: 'present-nomatch', url: present, presentation: 'openid4vp://?nomatch' },
+    { name: 'present-revoked', url: present, presentation: 'openid4vp://?revoked' },
+    { name: 'present-expired', url: present, presentation: 'openid4vp://?short', settle: 5600 },
+    { name: 'present-sending', url: present, act: share(300) },
+    { name: 'present-sent', url: present, act: share() },
+    ...['USER_CANCELLED', 'DEVICE_LOCKED', 'KEY_INVALIDATED', 'VERIFIER_ERROR', 'NETWORK_ERROR'].map((code) => ({ name: `present-submit-${code.toLowerCase()}`, url: present, submit: code, act: share() })),
+  ];
   const states = [
     { name: 'receive-checking', url: '/receive-credential', settle: 250 },
     { name: 'receive-consent', url: '/receive-credential' },
@@ -69,6 +110,9 @@ const typePin = (pin, submit = true) => async (page) => {
     { name: 'receive-offline-on-accept', url: '/receive-credential', act: typePin('333333') },
     { name: 'receive-accepting', url: '/receive-credential', act: async (p) => { await typePin('123456', false)(p); await p.getByRole('button', { name: /Nhận giấy tờ|Receive document/ }).last().click(); await p.waitForTimeout(300); } },
     { name: 'receive-success', url: '/receive-credential', act: typePin('123456') },
+    { name: 'receive-device-not-ready', url: '/receive-credential', biometrics: 'off' },
+    { name: 'receive-resume', url: '/receive-credential', act: typePin('444444') },
+    { name: 'detail-invalid', url: '/credentials/h4' },
     { name: 'receive-invalid-credential', url: '/receive-credential', act: typePin('111111') },
     { name: 'receive-expired-on-accept', url: '/receive-credential', act: typePin('222222') },
     { name: 'receive-expired-code', url: '/receive-credential', offer: 'openid-credential-offer://?credential_offer_uri=https%3A%2F%2Fx%2Fexpired' },
@@ -89,11 +133,16 @@ const typePin = (pin, submit = true) => async (page) => {
     { name: 'backup-settings', url: '/settings-backup' },
     { name: 'wallet-home', url: '/wallet' },
     { name: 'wallet-home-empty', url: '/wallet', scenario: 'empty' },
+    { name: 'wallet-home-failed', url: '/wallet', scenario: 'broken' },
+    { name: 'wallet-home-restored', url: '/wallet', scenario: 'restored' },
   ];
+  const only = process.env.CAPTURE_ONLY;
+  const all = [...states, ...presentStates].filter((x) => !only || x.name.startsWith(only));
   for (const width of [390, 360]) {
-    for (const s of states) await shot(browser, { ...s, width, height: width === 360 ? 740 : 844 });
+    for (const s of all) await shot(browser, { ...s, width, height: width === 360 ? 740 : 844 });
   }
-  for (const s of states.filter((x) => ['receive-consent', 'receive-wrong-pin', 'list-held', 'detail-valid', 'restore-confirm'].includes(x.name))) {
+  const themed = ['receive-consent', 'receive-wrong-pin', 'list-held', 'detail-valid', 'restore-confirm', 'present-trusted', 'present-trusted-less', 'present-chooser', 'present-untrusted', 'present-untrusted-confirm', 'present-refused-cert_chain_untrusted', 'present-refused-trust_list_unavailable', 'present-nomatch', 'present-revoked', 'present-expired', 'present-sent', 'present-submit-key_invalidated'];
+  for (const s of all.filter((x) => themed.includes(x.name))) {
     await shot(browser, { ...s, theme: 'dark' });
     await shot(browser, { ...s, language: 'en' });
   }

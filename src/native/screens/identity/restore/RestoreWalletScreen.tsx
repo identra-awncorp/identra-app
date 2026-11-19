@@ -1,7 +1,7 @@
 import { ExternalLink, KeyRound } from 'lucide-react-native';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { AppHeader, CredentialIcon, PrimaryButton, ScreenScroll } from '../../../components/AppUiPrimitives';
+import { AppHeader, CredentialIcon, ScreenScroll } from '../../../components/AppUiPrimitives';
 import type { RestoreState } from '../../../domain/wallet/walletFlows';
 import { documentsToRequestViews } from '../../../domain/wallet/walletViews';
 import { useI18n } from '../../../i18n';
@@ -67,7 +67,7 @@ export function RestoreWalletScreen({
               {items.map((item, index) => (
                 <View key={item.key} style={[styles.item, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
                   <View style={walletStyles.row}>
-                    <CredentialIcon icon="graduation" boxSize={44} size={24} />
+                    <CredentialIcon icon="graduation" boxSize={44} size={24} colors={colors} />
                     <View style={styles.flex}>
                       <Text style={[walletStyles.value, { color: colors.text }]}>{t(item.nameKey)}</Text>
                       <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{item.issuerName}</Text>
@@ -99,7 +99,21 @@ export function RestoreWalletScreen({
             <View style={walletStyles.actions}>
               {state.failure ? <FailureNotice colors={colors} failure={state.failure} /> : null}
               <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.restore.confirmHint', { count: state.unreadableCount })}</Text>
-              <PrimaryButton colors={colors} title={t('wallet.restore.confirm')} onPress={onConfirm} loading={state.confirming} />
+              {/* Irreversible: destructive styling and a second confirmation that says what goes. */}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ busy: state.confirming, disabled: state.confirming }}
+                disabled={state.confirming}
+                onPress={() =>
+                  Alert.alert(t('wallet.restore.confirmDialogTitle'), t('wallet.restore.confirmDialogBody', { count: state.unreadableCount }), [
+                    { text: t('common.cancel'), style: 'cancel' },
+                    { text: t('wallet.restore.confirmDialogAction'), style: 'destructive', onPress: onConfirm },
+                  ])
+                }
+                style={({ pressed }) => [styles.danger, { borderColor: colors.danger, opacity: pressed || state.confirming ? 0.7 : 1 }]}
+              >
+                {state.confirming ? <ActivityIndicator color={colors.danger} /> : <Text style={[styles.dangerLabel, { color: colors.danger }]}>{t('wallet.restore.confirm')}</Text>}
+              </Pressable>
               <TextAction colors={colors} label={t('wallet.restore.later')} onPress={onBack} />
             </View>
           ) : null}
@@ -118,4 +132,6 @@ const styles = StyleSheet.create({
   itemActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, paddingLeft: 56 },
   link: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   flex: { flex: 1, gap: 2 },
+  danger: { minHeight: 48, borderWidth: 1.5, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  dangerLabel: { fontSize: 16, fontWeight: '700' },
 });

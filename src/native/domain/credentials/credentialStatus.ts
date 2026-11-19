@@ -10,4 +10,5 @@ export const credentialStatusTones: Record<CredentialStatus, CredentialStatusTon
   unknown: 'caution',
   expired: 'negative',
   revoked: 'negative',
+  invalid: 'negative',
 };

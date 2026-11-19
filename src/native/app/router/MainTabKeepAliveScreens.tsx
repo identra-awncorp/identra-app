@@ -147,6 +147,7 @@ export function MainTabKeepAliveScreens({ activeScreen }: { activeScreen: KeepAl
           }}
           onOpenActivity={() => router.push('/activity')}
           onReceiveCredential={() => router.push('/receive-credential')}
+          onPresentCredential={() => router.push('/present-credential')}
           onOpenMenu={openSideMenu}
           onOpenChat={() => {
             setChatReturnScreen('scan');

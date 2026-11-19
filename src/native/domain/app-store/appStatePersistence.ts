@@ -32,6 +32,7 @@ const credentialStatusMembers: Record<CredentialStatus, true> = {
   revoked: true,
   suspended: true,
   unknown: true,
+  invalid: true,
 };
 const credentialStatuses = new Set(Object.keys(credentialStatusMembers) as CredentialStatus[]);
 const credentialIcons = new Set<CredentialIconName>([
@@ -161,6 +162,10 @@ function parseActivityLog(value: unknown): ActivityLog | null {
     ...(typeof value.unread === 'boolean' ? { unread: value.unread } : {}),
     ...(typeof value.isNew === 'boolean' ? { isNew: value.isNew } : {}),
     ...(typeof value.isDemo === 'boolean' ? { isDemo: value.isDemo } : {}),
+    ...(optionalString(value.credentialId) ? { credentialId: value.credentialId as string } : {}),
+    ...(Array.isArray(value.sharedClaims) && value.sharedClaims.every((n) => typeof n === 'string' && /^[a-z_]{1,40}$/.test(n))
+      ? { sharedClaims: value.sharedClaims as string[] }
+      : {}),
   };
 }
 

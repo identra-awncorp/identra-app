@@ -14,7 +14,9 @@ const {
 const {
   credentialDetailView,
   credentialListItems,
+  displayedValue,
   documentsToRequestViews,
+  MASKED_VALUE,
   formatWalletDate,
   issuerLabel,
   offerView,
@@ -32,47 +34,76 @@ const resolvedOk = { type: 'resolved', result: { ok: true, offer } };
 const fail = (code, checks) => ({ ok: false, code, ...(checks ? { checks } : {}) });
 
 describe('receive flow', () => {
-  const consent = receiveReducer(initialReceiveState, resolvedOk);
+  const ready = receiveReducer(initialReceiveState, { type: 'device-checked', ready: true });
+  const consent = receiveReducer(ready, resolvedOk);
   const accepting = receiveReducer(consent, { type: 'submit' });
+  const translate = require('../.tmp-test/src/native/i18n').translate;
 
-  it('goes checking → consent → accepting → received', () => {
-    assert.equal(initialReceiveState.phase, 'resolving');
+  it('checks the phone first, then goes checking → consent → accepting → received', () => {
+    assert.equal(initialReceiveState.phase, 'checking-device');
+    assert.equal(receiveReducer(initialReceiveState, resolvedOk), initialReceiveState, 'nothing is resolved before the device check');
+    assert.equal(ready.phase, 'resolving');
     assert.deepEqual(consent, { phase: 'consent', offer, failure: null, attempt: 0 });
-    assert.deepEqual(accepting, { phase: 'accepting', offer, attempt: 1 });
+    assert.deepEqual(accepting, { phase: 'accepting', offer, attempt: 1, resuming: false });
     const received = receiveReducer(accepting, { type: 'accepted', result: { ok: true, credentialId: 'c1', vct: VCT.diploma, issuerName: 'Trường Mẫu (TEST)' } });
-    assert.deepEqual(received, { phase: 'received', credentialId: 'c1', vct: VCT.diploma, issuerName: 'Trường Mẫu (TEST)' });
+    assert.deepEqual(received, { phase: 'received', credentialId: 'c1', vct: VCT.diploma, issuerName: 'Trường Mẫu (TEST)', issuerUri: ISS, status: 'valid' });
+    // The lists were unreachable at receipt: kept, shown as "not checked yet" rather than failed.
+    const unchecked = receiveReducer(accepting, { type: 'accepted', result: { ok: true, credentialId: 'c2', vct: VCT.diploma, issuerName: 'X', status: 'unknown' } });
+    assert.equal(unchecked.status, 'unknown');
+  });
+
+  it('stops before any code is spent when the phone cannot protect a key', () => {
+    const notReady = receiveReducer(initialReceiveState, { type: 'device-checked', ready: false });
+    assert.equal(notReady.phase, 'device-not-ready');
+    assert.equal(receiveReducer(notReady, resolvedOk), notReady);
+    assert.equal(receiveReducer(notReady, { type: 'submit' }), notReady);
   });
 
   it('shows why a code cannot be opened, and lets a network failure be retried', () => {
     for (const [code, action] of [['OFFER_EXPIRED', 'contact-issuer'], ['OFFER_INVALID', 'scan-again'], ['URL_NOT_ALLOWED', 'scan-again'], ['NETWORK_ERROR', 'retry']]) {
-      const s = receiveReducer(initialReceiveState, { type: 'resolved', result: fail(code) });
+      const s = receiveReducer(ready, { type: 'resolved', result: fail(code) });
       assert.equal(s.phase, 'resolve-failed');
       assert.equal(s.failure.action, action, code);
     }
-    const failed = receiveReducer(initialReceiveState, { type: 'resolved', result: fail('NETWORK_ERROR') });
+    const failed = receiveReducer(ready, { type: 'resolved', result: fail('NETWORK_ERROR') });
     assert.equal(receiveReducer(failed, { type: 'retry-resolve' }).phase, 'resolving');
   });
 
-  it('keeps the offer after a wrong PIN, asks to clear the PIN, and allows another try', () => {
+  it('keeps the offer after a wrong PIN and asks to clear the PIN (only then)', () => {
     const wrong = receiveReducer(accepting, { type: 'accepted', result: fail('TX_CODE_WRONG') });
     assert.equal(wrong.phase, 'consent');
     assert.equal(wrong.offer, offer);
     assert.equal(wrong.failure.code, 'TX_CODE_WRONG');
     assert.equal(shouldClearPin(accepting, wrong), true);
+    assert.equal(shouldClearPin(consent, wrong), false, 'only the transition out of accepting clears it');
+    assert.equal(shouldClearPin(accepting, { ...wrong, failure: null }), false);
     assert.equal(receiveReducer(wrong, { type: 'submit' }).attempt, 2);
-    // A network failure keeps the PIN (the person did nothing wrong).
-    const offline = receiveReducer(accepting, { type: 'accepted', result: fail('NETWORK_ERROR') });
-    assert.equal(offline.phase, 'consent');
-    assert.equal(shouldClearPin(accepting, offline), false);
-    // A cancelled biometric prompt (thrown by the key store) is retryable too.
-    assert.equal(receiveReducer(accepting, { type: 'accept-threw', code: 'USER_CANCELLED' }).phase, 'consent');
-    assert.equal(receiveReducer(accepting, { type: 'accepted', result: fail('DEVICE_LOCKED') }).phase, 'consent');
-    assert.equal(receiveReducer(accepting, { type: 'accepted', result: fail('KEY_INVALIDATED') }).phase, 'accept-failed');
   });
 
-  it('ends with nothing saved when the offer expired or the credential failed its checks', () => {
+  it('after the PIN was accepted, never sends the person back to type it (the code is spent)', () => {
+    for (const code of ['USER_CANCELLED', 'DEVICE_LOCKED', 'NETWORK_ERROR', 'STORAGE_ERROR', 'KEY_INVALIDATED']) {
+      const s = receiveReducer(accepting, { type: 'accepted', result: fail(code) });
+      assert.deepEqual([s.phase, s.codeSpent, s.failure.action], ['accept-failed', true, 'contact-issuer'], code);
+      assert.match(s.failure.sentenceKey, /^wallet\.receive\.afterPin\./, code);
+      assert.equal(/chưa có gì thay đổi/.test(translate('vi', s.failure.sentenceKey)), false, `${code}: never "nothing changed"`);
+    }
+    assert.equal(receiveReducer(accepting, { type: 'accept-threw', code: 'USER_CANCELLED' }).codeSpent, true);
     const expired = receiveReducer(accepting, { type: 'accepted', result: fail('OFFER_EXPIRED') });
-    assert.equal(expired.phase, 'accept-failed');
+    assert.deepEqual([expired.phase, expired.codeSpent], ['accept-failed', false]);
+  });
+
+  it('resumes without the PIN when the SDK says the failure is retryable', () => {
+    const resume = receiveReducer(accepting, { type: 'accepted', result: { ...fail('USER_CANCELLED'), retryable: true } });
+    assert.deepEqual([resume.phase, resume.failure.action, resume.failure.sentenceKey], ['resume', 'retry', 'wallet.receive.resume.USER_CANCELLED']);
+    const again = receiveReducer(resume, { type: 'submit' });
+    assert.deepEqual([again.phase, again.resuming], ['accepting', true]);
+    // A wrong-PIN answer while resuming cannot happen in the protocol; it is final, not a PIN prompt.
+    assert.equal(receiveReducer(again, { type: 'accepted', result: fail('TX_CODE_WRONG') }).phase, 'accept-failed');
+    const final = receiveReducer(accepting, { type: 'accepted', result: { ...fail('NETWORK_ERROR'), retryable: false } });
+    assert.equal(final.phase, 'accept-failed');
+  });
+
+  it('ends with nothing saved when the credential failed its checks', () => {
     const invalid = receiveReducer(accepting, { type: 'accepted', result: fail('CREDENTIAL_INVALID', [{ id: 'signature', ok: false, code: 'SIGNATURE_INVALID' }]) });
     assert.equal(invalid.phase, 'accept-failed');
     assert.equal(invalid.failure.detailKey, 'wallet.errors.SIGNATURE_INVALID');
@@ -88,10 +119,12 @@ describe('receive flow', () => {
   });
 
   it('describes the offer and keeps only what a PIN field may hold', () => {
-    assert.deepEqual(offerView(offer, 'vi'), { issuerName: 'Trường Mẫu', documentNameKey: 'wallet.documentTypes.diploma', pin: { length: 6, numeric: true } });
+    assert.deepEqual(offerView(offer, 'vi'), { issuerName: 'Trường Mẫu', issuerOrigin: null, documentNameKey: 'wallet.documentTypes.diploma', pin: { length: 6, numeric: true } });
+    assert.equal(offerView({ ...offer, issuerOrigin: 'https://api-identra.awncorp.vn' }, 'vi').issuerOrigin, 'api-identra.awncorp.vn');
+    assert.equal(offerView({ ...offer, issuerOrigin: 'http://evil.example' }, 'vi').issuerOrigin, null);
     assert.equal(offerView(offer, 'en').issuerName, 'Sample University');
     assert.equal(offerView({ ...offer, issuerDisplay: [], txCode: null }, 'vi').pin, null);
-    assert.equal(offerView({ ...offer, issuerDisplay: [] }, 'vi').issuerName, 'Trường Mẫu');
+    assert.equal(offerView({ ...offer, issuerDisplay: [] }, 'vi').issuerName, 'Trường Đại học Mẫu (DEMO)');
     assert.equal(offerView({ ...offer, txCode: { length: null, inputMode: 'numeric', description: null } }, 'vi').pin.length, 6);
     const pin = { length: 6, numeric: true };
     assert.equal(sanitizePin('12 34-56', pin), '123456');
@@ -113,7 +146,7 @@ describe('credential list and detail views', () => {
     const items = credentialListItems(summaries, 'vi');
     assert.deepEqual(items.map((i) => i.id), ['b', 'a', 'c']);
     assert.deepEqual(items.map((i) => i.status), ['verified', 'unknown', 'unknown']);
-    assert.deepEqual(items.map((i) => i.issuerName), ['Đại học Khác', 'Trường Mẫu', 'third.example.vn']);
+    assert.deepEqual(items.map((i) => i.issuerName), ['Đại học Khác', 'Trường Đại học Mẫu (DEMO)', 'third.example.vn']);
     assert.equal(items[2].nameKey, 'wallet.documentTypes.unknown');
     assert.equal(items[0].receivedDate, formatWalletDate('2026-11-18T03:00:00.000Z', 'vi'));
   });
@@ -139,9 +172,18 @@ describe('credential list and detail views', () => {
     assert.equal(view.fields[1].value, '03/02/2001');
     assert.deepEqual([...view.sensitiveFields], ['ngay_sinh', 'ma_sinh_vien', 'so_hieu_bang']);
     assert.equal(view.issuerName, 'Trường Mẫu (TEST)');
-    assert.equal(view.portalUrl, 'https://www.identra.id.vn/vi/school-portal');
+    assert.equal(view.portalUrl, 'https://identra.awncorp.vn/vi/school-portal');
     assert.equal(JSON.stringify(view).includes(details.id), true, 'the id is kept for navigation only');
-    assert.equal(issuerLabel(ISS, null, 'en'), 'Sample University');
+    assert.equal(issuerLabel(ISS, null, 'en'), 'Sample University (DEMO)');
+  });
+
+  it('masks exactly the sensitive fields until revealed, and nothing when the setting is off', () => {
+    const o = { sensitiveFields: ['ngay_sinh', 'so_hieu_bang'] };
+    assert.equal(displayedValue({ name: 'ngay_sinh', value: '03/02/2001' }, { ...o, hideSensitive: true, revealed: false }), MASKED_VALUE);
+    assert.equal(displayedValue({ name: 'ho_ten', value: 'A' }, { ...o, hideSensitive: true, revealed: false }), 'A');
+    assert.equal(displayedValue({ name: 'ngay_sinh', value: '03/02/2001' }, { ...o, hideSensitive: true, revealed: true }), '03/02/2001');
+    assert.equal(displayedValue({ name: 'so_hieu_bang', value: 'B-1' }, { ...o, hideSensitive: false, revealed: false }), 'B-1');
+    assert.equal(MASKED_VALUE.includes('0'), false);
   });
 
   it('runs the detail screen: load, check again, remove, and their failures', () => {
@@ -186,6 +228,6 @@ describe('restore flow', () => {
     assert.deepEqual(restoreReducer(initialRestoreState, { type: 'loaded', startup: { kind: 'ready', credentialCount: 3, toRequest: [] } }).items, []);
     assert.equal(restoreReducer(initialRestoreState, { type: 'load-failed', code: 'DEVICE_LOCKED' }).failure.action, 'retry');
     const views = documentsToRequestViews(items, 'vi');
-    assert.deepEqual(views.map((v) => [v.issuerName, v.portalUrl]), [['Trường Mẫu', 'https://www.identra.id.vn/vi/school-portal'], ['other.example.vn', null]]);
+    assert.deepEqual(views.map((v) => [v.issuerName, v.portalUrl]), [['Trường Đại học Mẫu (DEMO)', 'https://identra.awncorp.vn/vi/school-portal'], ['other.example.vn', null]]);
   });
 });

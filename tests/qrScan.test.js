@@ -110,6 +110,9 @@ describe('qrScan', () => {
         'openid-credential-offer://?',
         offer('credential_offer_uri='),
         offer(`credential_offer_uri=${encoded}&credential_offer_uri=${encoded}`),
+        // An offer by value next to one by reference is refused, not half-read.
+        offer(`credential_offer_uri=${encoded}&credential_offer=${encodeURIComponent('{"credential_issuer":"https://x"}')}`),
+        offer(`credential_offer=${encodeURIComponent('{}')}&credential_offer_uri=${encoded}`),
         // By-value offers are not supported: the offer is always fetched by reference.
         offer(`credential_offer=${encodeURIComponent('{"credential_issuer":"https://x"}')}`),
         // Decision: unknown parameters are refused rather than ignored.

@@ -88,13 +88,13 @@ export function CredentialsScreen({
                       { opacity: pressed ? 0.65 : 1 },
                     ]}
                   >
-                    <CredentialIcon icon="graduation" boxSize={44} size={24} />
+                    <CredentialIcon icon="graduation" boxSize={44} size={24} colors={colors} />
                     <View style={styles.flex}>
                       <Text numberOfLines={1} style={[walletStyles.value, { color: colors.text }]}>{t(item.nameKey)}</Text>
                       <Text numberOfLines={1} style={[walletStyles.meta, { color: colors.textSecondary }]}>{item.issuerName}</Text>
                       <Text numberOfLines={1} style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.list.receivedOn', { date: item.receivedDate })}</Text>
                       <View style={styles.pill}>
-                        <StatusPill status={item.status} compact />
+                        <StatusPill status={item.status} compact colors={colors} />
                       </View>
                     </View>
                     <ListChevron colors={colors} />

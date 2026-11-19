@@ -12,7 +12,8 @@ export default function ActivityRoute() {
   return (
     <ActivityScreen
       colors={colors}
-      logs={store.logs}
+      // Real activity only: demo entries are never mixed with what the person actually did.
+      logs={store.logs.filter((log) => !log.isDemo)}
       onOpenMenu={openSideMenu}
       onOpenChat={() => {
         setChatReturnScreen('activity');

@@ -94,6 +94,12 @@ export function credentialOfferQrText(offerUri: string): string {
   return `${CREDENTIAL_OFFER_PREFIX}?credential_offer_uri=${encodeURIComponent(offerUri)}`;
 }
 
+/** The QR form the wallet SDK takes for a presentation request, rebuilt from the parsed parts. */
+export function presentationRequestQrText(request: { clientId: string; requestUri: string; requestUriMethod?: 'get' | 'post' }): string {
+  const method = request.requestUriMethod ? `&request_uri_method=${request.requestUriMethod}` : '';
+  return `${PRESENTATION_REQUEST_PREFIX}?client_id=${encodeURIComponent(request.clientId)}&request_uri=${encodeURIComponent(request.requestUri)}${method}`;
+}
+
 export function parseQrScanValue(rawValue: string, nowMs = Date.now()): QrScanResult {
   const value = rawValue.trim();
 

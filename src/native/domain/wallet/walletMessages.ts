@@ -5,8 +5,8 @@ import type { Check, CheckId, ErrorCode } from '@identra/sdk-core';
 
 import type { I18nKey } from '../../i18n';
 
-/** The one code the app adds: the start-up self-check failed. */
-export type AppWalletCode = 'DEVICE_UNSUPPORTED';
+/** Codes the app adds: the start-up self-check failed; the wallet database was written by a newer app. */
+export type AppWalletCode = 'DEVICE_UNSUPPORTED' | 'DATABASE_TOO_NEW';
 export type FailureCode = ErrorCode | AppWalletCode;
 
 /** What the person can do next. */
@@ -59,9 +59,11 @@ export const failureSentenceKeys: Record<FailureCode, I18nKey> = {
   REQUEST_EXPIRED: 'wallet.errors.REQUEST_EXPIRED',
   VERIFIER_ERROR: 'wallet.errors.VERIFIER_ERROR',
   KEY_INVALIDATED: 'wallet.errors.KEY_INVALIDATED',
+  TOO_MANY_ATTEMPTS: 'wallet.errors.TOO_MANY_ATTEMPTS',
   USER_CANCELLED: 'wallet.errors.USER_CANCELLED',
   DEVICE_LOCKED: 'wallet.errors.DEVICE_LOCKED',
   DEVICE_UNSUPPORTED: 'wallet.errors.DEVICE_UNSUPPORTED',
+  DATABASE_TOO_NEW: 'wallet.errors.DATABASE_TOO_NEW',
 };
 
 /** A check that failed without a code: which step, in plain words. */
@@ -98,6 +100,7 @@ const actions: Partial<Record<FailureCode, FailureAction>> = {
   CLAIMS_INCOMPLETE: 'contact-issuer',
   STORAGE_ERROR: 'retry',
   KEY_INVALIDATED: 'request-again',
+  TOO_MANY_ATTEMPTS: 'scan-again',
   KEY_NOT_FOUND: 'request-again',
   USER_CANCELLED: 'retry',
   DEVICE_LOCKED: 'retry',
@@ -141,5 +144,6 @@ export function failureCodeOfError(error: unknown): FailureCode {
   if (code === 'KEY_INVALIDATED' || code === 'KEY_NOT_FOUND') return code;
   if (code === 'CANCELLED') return 'USER_CANCELLED';
   if (code === 'LOCKED') return 'DEVICE_LOCKED';
+  if (code === 'SCHEMA_TOO_NEW') return 'DATABASE_TOO_NEW';
   return 'STORAGE_ERROR';
 }

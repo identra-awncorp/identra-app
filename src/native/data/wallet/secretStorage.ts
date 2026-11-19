@@ -41,14 +41,17 @@ export const VAULT_DATA_KEY_SERVICE = 'identra.wallet.vault';
 
 /**
  * Maps a native SecureStore rejection to a code. Messages per node_modules/expo-secure-store:
- * Android AuthenticationPrompt "User canceled the authentication"; iOS KeyChainException
+ * Android AuthenticationPrompt "User canceled the authentication" (ERROR_USER_CANCELED and
+ * ERROR_NEGATIVE_BUTTON only; the system's ERROR_CANCELED arrives as "Unknown error (code: 5)"); iOS KeyChainException
  * errSecUserCanceled "User canceled the operation." and errSecInteractionNotAllowed "User
  * interaction is not allowed."; Android EncryptException "... permanently invalidated ...".
  */
 export function classifySecureStoreError(error: unknown): SecretStorageErrorCode {
   const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
   if (message.includes('permanently invalidated')) return 'KEY_INVALIDATED';
-  if (message.includes('canceled') || message.includes('cancelled')) return 'CANCELLED';
+  // Only the person dismissing the prompt is CANCELLED; ERROR_CANCELED (the system stopped it) and
+  // lockout/timeout are not "you cancelled".
+  if (message.includes('user canceled the authentication') || message.includes('user canceled the operation')) return 'CANCELLED';
   if (message.includes('interaction is not allowed')) return 'LOCKED';
   return 'UNAVAILABLE';
 }

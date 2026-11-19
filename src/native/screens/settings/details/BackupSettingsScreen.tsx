@@ -1,5 +1,5 @@
 import { CircleCheck, CircleSlash, History, type LucideIcon } from 'lucide-react-native';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader, Card, ScreenScroll } from '../../../components/AppUiPrimitives';
 import { useI18n, type I18nKey } from '../../../i18n';
@@ -8,8 +8,12 @@ import { border, radius, spacing, typography } from '../../../theme';
 import { SettingsLink } from '../components/SettingsLink';
 import { settingsStyles } from '../settingsStyles';
 
-const INCLUDED: I18nKey[] = ['settings.backup.included.a', 'settings.backup.included.b'];
-const NEVER: I18nKey[] = ['settings.backup.never.a', 'settings.backup.never.b', 'settings.backup.never.c'];
+// iOS backs up the app's Documents folder, which holds the encrypted wallet database (a documented
+// gap, docs/adr/0003): there it is in the backup, sealed under a key that never leaves the phone.
+const INCLUDED: I18nKey[] = Platform.OS === 'ios'
+  ? ['settings.backup.included.a', 'settings.backup.included.b', 'settings.backup.included.iosEncrypted']
+  : ['settings.backup.included.a', 'settings.backup.included.b'];
+const NEVER: I18nKey[] = [Platform.OS === 'ios' ? 'settings.backup.never.aIos' : 'settings.backup.never.a', 'settings.backup.never.b', 'settings.backup.never.c'];
 
 /** What the phone's own backup carries for the wallet (ADR-0009 §5), and what it never does. */
 export function BackupSettingsScreen({ colors, onBack, onOpenRestore }: { colors: AppColors; onBack: () => void; onOpenRestore: () => void }) {

@@ -1,4 +1,7 @@
 import { useRouter } from 'expo-router';
+import { Alert } from 'react-native';
+
+import { useI18n } from '@/i18n';
 
 import { useWalletList, WalletScreen } from '@/screens/identity';
 import { useAppRouterState } from '@/app/router/AppRouterContext';
@@ -6,12 +9,15 @@ import { useAppRouterState } from '@/app/router/AppRouterContext';
 export default function WalletRoute() {
   const router = useRouter();
   const { colors, openSideMenu, setChatReturnScreen, setReturnScreen } = useAppRouterState();
-  const { state } = useWalletList();
+  const { state, reload } = useWalletList();
+  const { t } = useI18n();
 
   return (
     <WalletScreen
       colors={colors}
-      documents={state.phase === 'ready' ? state.items : state.phase === 'failed' ? [] : null}
+      walletState={state}
+      onOpenRestore={() => router.push('/wallet-restore')}
+      onRetry={reload}
       onOpenActivity={() => router.push('/activity')}
       onOpenChat={() => {
         setChatReturnScreen('wallet');
@@ -38,7 +44,13 @@ export default function WalletRoute() {
         setReturnScreen('wallet');
         router.push('/security');
       }}
-      onOpenShare={() => router.push('/share')}
+      onOpenShare={() =>
+        // Credentials are shared only by scanning the verifier's QR code (OpenID4VP).
+        Alert.alert(t('wallet.present.shareEntryTitle'), t('wallet.present.shareEntryBody'), [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('wallet.present.openScanner'), onPress: () => router.push('/scan') },
+        ])
+      }
     />
   );
 }

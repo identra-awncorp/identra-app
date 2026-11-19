@@ -259,7 +259,8 @@ export function getSideMenuFlowForPathname(pathname: string): AppFlowKey {
     pathname.startsWith('/credentials') ||
     pathname === '/profile' ||
     pathname === '/security' ||
-    pathname.startsWith('/share') ||
+    pathname === '/present-credential' ||
+    pathname === '/receive-credential' ||
     pathname === '/activity'
   ) {
     return 'identity';

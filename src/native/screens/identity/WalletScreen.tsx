@@ -12,7 +12,8 @@ import {
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { AppColors } from '../../theme';
 import { border, palette, radius, shadows, spacing, typography } from '../../theme';
-import type { CredentialListItem } from '../../domain/wallet/walletViews';
+import type { CredentialsListState } from './credentials/CredentialsScreen';
+import { FailureNotice, TextAction } from './wallet/WalletParts';
 import { MainTopHeader } from '../../components/MainTopHeader';
 import { useI18n } from '../../i18n';
 import {
@@ -25,8 +26,10 @@ import {
 
 interface Props {
   colors: AppColors;
-  /** Documents held in the wallet (vault), newest first; null while loading. */
-  documents: CredentialListItem[] | null;
+  /** The wallet as the list screen sees it: loading, failed (locked, storage) or ready. */
+  walletState: CredentialsListState;
+  onOpenRestore: () => void;
+  onRetry: () => void;
   onOpenCredential: (credentialId: string) => void;
   onOpenCredentials: () => void;
   onOpenNotifications: () => void;
@@ -41,7 +44,9 @@ interface Props {
 
 export function WalletScreen({
   colors,
-  documents,
+  walletState,
+  onOpenRestore,
+  onRetry,
   onOpenCredential,
   onOpenCredentials,
   onOpenNotifications,
@@ -54,7 +59,8 @@ export function WalletScreen({
   onOpenMenu,
 }: Props) {
   const { t } = useI18n();
-  const held = documents ?? [];
+  const held = walletState.phase === 'ready' ? walletState.items : [];
+  const restoreNeeded = walletState.phase === 'ready' && (walletState.restoreNeeded || walletState.toRequestCount > 0);
   const featured = held.find((item) => item.status === 'verified') ?? held[0];
   const visibleCredentials = held.slice(0, 3);
   const quickActions = [
@@ -159,6 +165,28 @@ export function WalletScreen({
         </Pressable>
       </View>
 
+      {walletState.phase === 'failed' ? (
+        <View style={styles.stateBlock}>
+          <FailureNotice colors={colors} failure={walletState.failure} />
+          <TextAction colors={colors} label={t('wallet.actions.tryAgain')} onPress={onRetry} />
+        </View>
+      ) : null}
+
+      {restoreNeeded && walletState.phase === 'ready' ? (
+        <Pressable accessibilityRole="button" onPress={onOpenRestore} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+          <View style={[styles.restoreCard, { backgroundColor: colors.surfaceMuted }]}>
+            <History color={colors.primaryDark} size={22} strokeWidth={1.9} />
+            <View style={styles.restoreText}>
+              <Text style={[styles.credentialTitle, { color: colors.text }]}>
+                {walletState.restoreNeeded ? t('wallet.list.restoreTitle') : t('wallet.list.toRequestTitle', { count: walletState.toRequestCount })}
+              </Text>
+              <Text style={[styles.credentialIssuer, { color: colors.textSecondary }]}>{t('wallet.list.restoreHint')}</Text>
+            </View>
+            <ListChevron colors={colors} />
+          </View>
+        </Pressable>
+      ) : null}
+
       {visibleCredentials.length ? (
         <Card colors={colors} style={[styles.credentialList, styles.subtleCardShadow]}>
           {visibleCredentials.map((credential, index) => (
@@ -172,7 +200,7 @@ export function WalletScreen({
                 { opacity: pressed ? 0.65 : 1 },
               ]}
             >
-              <CredentialIcon icon="graduation" boxSize={52} size={28} />
+              <CredentialIcon icon="graduation" boxSize={52} size={28} colors={colors} />
               <View style={styles.credentialText}>
                 <Text numberOfLines={1} style={[styles.credentialTitle, { color: colors.text }]}>
                   {t(credential.nameKey)}
@@ -180,13 +208,13 @@ export function WalletScreen({
                 <Text numberOfLines={1} style={[styles.credentialIssuer, { color: colors.textSecondary }]}>
                   {credential.issuerName}
                 </Text>
-                <StatusPill status={credential.status} compact />
+                <StatusPill status={credential.status} compact colors={colors} />
               </View>
               <ListChevron colors={colors} />
             </Pressable>
           ))}
         </Card>
-      ) : documents === null ? null : (
+      ) : walletState.phase !== 'ready' || walletState.restoreNeeded ? null : (
         <Card colors={colors} style={[styles.walletEmpty, styles.subtleCardShadow]}>
           <Text style={[styles.walletEmptyTitle, { color: colors.text }]}>{t('identity.wallet.emptyTitle')}</Text>
           <Text style={[styles.walletEmptyText, { color: colors.textSecondary }]}>
@@ -209,13 +237,6 @@ export function WalletScreen({
           <Text style={styles.bannerTitle}>{t('identity.wallet.bannerTitle')}</Text>
           <Text style={styles.bannerDescription}>{t('identity.wallet.bannerDescription')}</Text>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('identity.wallet.bannerAccessibility')}
-          style={({ pressed }) => [styles.bannerButton, { opacity: pressed ? 0.65 : 1 }]}
-        >
-          <Text style={styles.bannerButtonText}>{t('identity.wallet.bannerAction')}</Text>
-        </Pressable>
       </LinearGradient>
       </ScreenScroll>
     </View>
@@ -300,6 +321,9 @@ const styles = StyleSheet.create({
   credentialTitle: { fontSize: typography.size.sm, fontWeight: typography.weight.extraBold },
   credentialIssuer: { fontSize: typography.size.xs, fontWeight: typography.weight.medium },
   walletEmpty: { alignItems: 'center', gap: spacing.sm },
+  stateBlock: { gap: spacing.xs },
+  restoreCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderRadius: 16, padding: spacing.lg },
+  restoreText: { flex: 1, gap: 2 },
   walletEmptyTitle: { fontSize: typography.size.md, fontWeight: typography.weight.extraBold },
   walletEmptyText: { textAlign: 'center', fontSize: 13, lineHeight: 19 },
   walletEmptyButton: { minHeight: 44, marginTop: spacing.sm - 1, backgroundColor: palette.blue[500], paddingHorizontal: 20, borderRadius: radius.md, justifyContent: 'center' },

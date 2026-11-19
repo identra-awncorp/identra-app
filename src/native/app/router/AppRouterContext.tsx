@@ -15,7 +15,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 
 import { NEWS_FEED_OVERLAY_HEIGHT } from '../../screens/news-feed';
 import { darkColors, lightColors, type AppColors } from '../../theme';
-import type { Credential, ScreenKey } from '../../types';
+import type { ScreenKey } from '../../types';
 import { useAppStore } from '../../store';
 import { initialScreen } from '../navigation/navigationConfig';
 import {
@@ -27,11 +27,6 @@ import {
   shouldInvalidateStoredAuthSession,
   type StoredAuthSession,
 } from '../../domain/auth';
-
-interface SharePayload {
-  credential: Credential;
-  attributes: Credential['attributes'];
-}
 
 interface ConnectionInvitation {
   id: string;
@@ -64,6 +59,8 @@ interface AppRouterContextValue {
   isDark: boolean;
   logout: () => Promise<void>;
   lockCredentialAccess: () => void;
+  /** The platform just verified biometrics for a wallet key (receipt): skip the access gate briefly. */
+  noteCredentialKeyAuthentication: () => void;
   newsFeedChromeProgress: Animated.AnimatedInterpolation<number>;
   newsFeedScrollY: Animated.Value;
   openSideMenu: () => void;
@@ -73,8 +70,6 @@ interface AppRouterContextValue {
   setConnectionInvitation: Dispatch<SetStateAction<ConnectionInvitation | null>>;
   setReturnScreen: Dispatch<SetStateAction<ScreenKey>>;
   setSelectedChatId: Dispatch<SetStateAction<string>>;
-  setSharePayload: Dispatch<SetStateAction<SharePayload | null>>;
-  sharePayload: SharePayload | null;
   sideMenuOpen: boolean;
 }
 
@@ -87,7 +82,6 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
   const [authCompleted, setAuthCompleted] = useState(false);
   const [authHydrated, setAuthHydrated] = useState(false);
   const [authSession, setAuthSession] = useState<StoredAuthSession | null>(null);
-  const [sharePayload, setSharePayload] = useState<SharePayload | null>(null);
   const [connectionInvitation, setConnectionInvitation] = useState<ConnectionInvitation | null>(null);
   const [returnScreen, setReturnScreen] = useState<ScreenKey>(initialScreen);
   const [chatReturnScreen, setChatReturnScreen] = useState<ScreenKey>(initialScreen);
@@ -219,6 +213,10 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
     return request;
   }, []);
 
+  const noteCredentialKeyAuthentication = useCallback(() => {
+    if (AppState.currentState === 'active') credentialAccessExpiresAt.current = Date.now() + 2 * 60 * 1000;
+  }, []);
+
   const lockCredentialAccess = useCallback(() => {
     credentialAccessGeneration.current += 1;
     credentialAccessExpiresAt.current = 0;
@@ -266,6 +264,7 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
       isDark,
       logout,
       lockCredentialAccess,
+      noteCredentialKeyAuthentication,
       newsFeedChromeProgress,
       newsFeedScrollY,
       openSideMenu: () => setSideMenuOpen(true),
@@ -275,8 +274,6 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
       setConnectionInvitation,
       setReturnScreen,
       setSelectedChatId,
-      setSharePayload,
-      sharePayload,
       sideMenuOpen,
     }),
     [
@@ -293,11 +290,11 @@ export function AppRouterProvider({ children }: PropsWithChildren) {
       isDark,
       logout,
       lockCredentialAccess,
+      noteCredentialKeyAuthentication,
       newsFeedChromeProgress,
       newsFeedScrollY,
       returnScreen,
       selectedChatId,
-      sharePayload,
       sideMenuOpen,
     ],
   );

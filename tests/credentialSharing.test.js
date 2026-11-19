@@ -5,7 +5,6 @@ const {
   createTemporaryQrReference,
   getTemporaryQrRemainingSeconds,
   isTemporaryQrReferenceExpired,
-  selectApprovedCredentialAttributes,
   serializeTemporaryQrReference,
   TEMPORARY_QR_TTL_MS,
 } = require('../.tmp-test/src/native/domain/credentials/credentialSharing');
@@ -17,13 +16,13 @@ describe('credentialSharing', () => {
   it('serializes only an opaque short-lived reference without credential data', () => {
     const reference = createTemporaryQrReference({
       createdAt: Date.parse('2026-07-23T00:00:00.000Z'),
-      purpose: 'credential-presentation',
+      purpose: 'connection-invitation',
       requestId: 'request-123',
     });
 
     const value = serializeTemporaryQrReference(reference);
 
-    assert.match(value, /^identra:\/\/credential-presentation\?/);
+    assert.match(value, /^identra:\/\/connection-invitation\?/);
     assert.match(value, /request=request-123/);
     assert.doesNotMatch(value, /credentialId|holder|attributes|fullName|Nguyen/i);
   });
@@ -48,28 +47,12 @@ describe('credentialSharing', () => {
       () =>
         createTemporaryQrReference({
           createdAt: 0,
-          purpose: 'credential-presentation',
+          purpose: 'connection-invitation',
           requestId: 'request-789',
           ttlMs: 0,
         }),
       /TTL must be positive/,
     );
-  });
-
-  it('returns exactly the approved attributes from the credential source', () => {
-    const attributes = [
-      { key: 'subject.fullName', label: 'Full Name', value: 'Nguyễn Văn An', sensitive: true },
-      { key: 'degree.major', label: 'Major', value: 'Software Engineering' },
-      { key: 'degree.gpa', label: 'GPA', value: '3.85' },
-    ];
-
-    const selected = selectApprovedCredentialAttributes(
-      attributes,
-      ['degree.gpa', 'subject.fullName', 'unknown.key'],
-    );
-
-    assert.deepEqual(selected, [attributes[0], attributes[2]]);
-    assert.notEqual(selected[0], attributes[0]);
   });
 });
 

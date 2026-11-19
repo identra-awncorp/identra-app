@@ -183,13 +183,20 @@ export function CredentialIcon({
   background = palette.blue[100],
   size = iconSize.md,
   boxSize = touchTarget.comfortable,
+  colors,
 }: {
   icon: CredentialIconName;
   color?: string;
   background?: string;
   size?: number;
   boxSize?: number;
+  /** Theme colours for the tile (dark mode); overrides the light-only defaults. */
+  colors?: AppColors;
 }) {
+  if (colors) {
+    color = colors.primaryDark;
+    background = colors.surfaceMuted;
+  }
   const Icon = credentialIcons[icon];
   const renderIcon = () => {
     if (icon === 'languages') {
@@ -237,11 +244,15 @@ const statusStyle: Record<CredentialStatus, { color: string; background: string;
   revoked: { color: palette.red[500], background: palette.red[100], icon: ShieldX },
   suspended: { color: palette.orange[500], background: palette.orange[100], icon: Clock3 },
   unknown: { color: palette.orange[500], background: palette.orange[100], icon: CircleHelp },
+  invalid: { color: palette.red[500], background: palette.red[100], icon: ShieldX },
 };
 
-export function StatusPill({ status, compact = false }: { status: CredentialStatus; compact?: boolean }) {
+/** With `colors` the pill follows the theme (semantic colour on a translucent tint, readable in dark mode). */
+export function StatusPill({ status, compact = false, colors }: { status: CredentialStatus; compact?: boolean; colors?: AppColors }) {
   const { t } = useI18n();
-  const config = statusStyle[status];
+  const base = statusStyle[status];
+  const tone = colors ? { verified: colors.success, revoked: colors.danger, expired: colors.danger, invalid: colors.danger, pending: colors.warning, suspended: colors.warning, unknown: colors.warning }[status] : null;
+  const config = tone ? { ...base, color: tone, background: `${tone}26` } : base;
   const Icon = config.icon;
   return (
     <View style={[styles.statusPill, { backgroundColor: config.background }, compact && styles.statusCompact]}>
@@ -267,6 +278,7 @@ export function PrimaryButton({
   onPress,
   secondary = false,
   loading = false,
+  disabled = false,
   style,
 }: {
   colors: AppColors;
@@ -274,20 +286,23 @@ export function PrimaryButton({
   onPress: () => void;
   secondary?: boolean;
   loading?: boolean;
+  /** Not pressable, and announced as unavailable by screen readers. */
+  disabled?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={title}
-      disabled={loading}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
+      disabled={loading || disabled}
       onPress={onPress}
       style={({ pressed }) => [
         styles.primaryButton,
         secondary
           ? { backgroundColor: colors.surface, borderColor: colors.primaryDark, borderWidth: border.thin }
           : { backgroundColor: colors.primaryDark },
-        { opacity: pressed || loading ? 0.75 : 1 },
+        { opacity: disabled ? 0.45 : pressed || loading ? 0.75 : 1 },
         style,
       ]}
     >

@@ -13,10 +13,13 @@ export type Locale = 'vi' | 'en';
  * data (an organisation's own name), not UI copy. ponytail: one sample issuer; the trust list
  * will name the rest once the SDK exposes its entries.
  */
+/** The Identra website (one value for every link the app opens there). */
+export const IDENTRA_WEBSITE_ORIGIN = 'https://identra.awncorp.vn';
+
 export const knownIssuers: Record<string, { name: Record<Locale, string>; portalUrl: Record<Locale, string> }> = {
   'https://api-identra.awncorp.vn/issuers/truong-mau': {
-    name: { vi: 'Trường Mẫu', en: 'Sample University' },
-    portalUrl: { vi: 'https://www.identra.id.vn/vi/school-portal', en: 'https://www.identra.id.vn/en/school-portal' },
+    name: { vi: 'Trường Đại học Mẫu (DEMO)', en: 'Sample University (DEMO)' },
+    portalUrl: { vi: `${IDENTRA_WEBSITE_ORIGIN}/vi/school-portal`, en: `${IDENTRA_WEBSITE_ORIGIN}/en/school-portal` },
   },
 };
 
@@ -43,9 +46,21 @@ export function formatWalletDate(value: string | number | Date | null | undefine
 export interface OfferView {
   /** From the issuer's own description, not yet checked against the trust list (the screen says so). */
   issuerName: string;
+  /** The web origin the offer came from (new in the SDK; shown small under the name), or null. */
+  issuerOrigin: string | null;
   documentNameKey: I18nKey;
   /** null: this offer needs no PIN. */
   pin: { length: number; numeric: boolean } | null;
+}
+
+/** The host of an https origin, for display; null for anything else. */
+function originHost(origin: unknown): string | null {
+  if (typeof origin !== 'string' || !origin.startsWith('https://')) return null;
+  try {
+    return new URL(origin).host || null;
+  } catch {
+    return null;
+  }
 }
 
 function displayNameFor(entries: readonly { name: string; locale?: string }[], locale: Locale): string | null {
@@ -56,6 +71,7 @@ export function offerView(offer: ResolvedOffer, locale: Locale): OfferView {
   const tx = offer.txCode;
   return {
     issuerName: displayNameFor(offer.issuerDisplay, locale) ?? issuerLabel(offer.issuerUri, null, locale),
+    issuerOrigin: originHost((offer as { issuerOrigin?: unknown }).issuerOrigin),
     documentNameKey: documentNameKeys[documentTypeOf(offer.configuration.vct)],
     pin: tx ? { length: tx.length && tx.length > 0 && tx.length <= 12 ? tx.length : 6, numeric: tx.inputMode === 'numeric' } : null,
   };
@@ -114,6 +130,11 @@ export function credentialDetailView(details: CredentialDetails, locale: Locale)
 
 /** `•••` in place of a value, never revealing its length. */
 export const MASKED_VALUE = '•••••';
+
+/** What the detail screen prints for a field: the value, or the mask for a sensitive one until revealed. */
+export function displayedValue(field: { name: string; value: string }, o: { hideSensitive: boolean; revealed: boolean; sensitiveFields: readonly string[] }): string {
+  return o.hideSensitive && !o.revealed && o.sensitiveFields.includes(field.name) ? MASKED_VALUE : field.value;
+}
 
 export interface DocumentToRequestView {
   key: string;

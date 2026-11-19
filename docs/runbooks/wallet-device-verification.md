@@ -26,7 +26,7 @@ this checklist on physical devices before relying on the wallet.
 9. Android backup: `adb shell bmgr backupnow com.identra.app`, uninstall, reinstall with restore (or `adb shell bmgr restore`). Expect: catalogue back; database, SecureStore prefs absent; `getStartupState()` → `ready` with `toRequest` listing the documents.
 10. iOS backup: back up, restore to a second iPhone. Expect (known gap): database back, data key not; `getStartupState()` → `restored-device`; after `acknowledgeNewDevice()` the vault is empty and the catalogue lists the documents.
 11. HTTP: against a test server, a redirect is refused (`REDIRECT`), a >256 KB body is refused (`TOO_LARGE`), a stalled response times out (`TIMEOUT`), no cookie is sent or stored, and a development build with `EXPO_PUBLIC_IDENTRA_API_URL` reaches the mapped origin.
-12. QR: scanning `openid-credential-offer://?credential_offer_uri=https://…` and `openid4vp://?client_id=…&request_uri=https://…` shows the translated "cannot open yet" message in both languages; nothing is fetched (check server logs).
+12. QR: scanning `openid-credential-offer://?credential_offer_uri=https://…` opens the receive screen and `openid4vp://?client_id=…&request_uri=https://…` opens the sharing screen; an old `identra://credential-presentation` code says that way of sharing is no longer used.
 13. Android build: `./gradlew :app:lintRelease` shows no `FullBackupContent` errors and the merged manifest keeps `@xml/identra_backup_rules` / `@xml/identra_data_extraction_rules`.
 
 ## Safe Stop
@@ -40,7 +40,7 @@ Record the device models, OS versions and the result of each step in the hand-of
 
 ## Receive and keep (added with the receive screens)
 
-14. Scan the sample university's QR code from `https://www.identra.id.vn/vi/school-portal`: the receive screen names "Trường Mẫu" and "Bằng tốt nghiệp"; the PIN field opens the numeric keypad, accepts a pasted 6-digit PIN, and the boxes advance.
+14. Scan the sample university's QR code from `https://identra.awncorp.vn/vi/school-portal`: the receive screen names "Trường Mẫu" and "Bằng tốt nghiệp"; the PIN field opens the numeric keypad, accepts a pasted 6-digit PIN, and the boxes advance.
 15. Before the system prompt, the one-line explanation is visible; then the biometric prompt appears (Android and iOS). Cancel it: the screen stays on the PIN step with "Bạn đã hủy…", nothing is saved.
 16. Wrong PIN once: the boxes turn red and empty, the sentence asks to re-enter; the right PIN then succeeds. Five wrong PINs: "Mã này đã hết hạn…" and the issuer page button opens the portal.
 17. Airplane mode at the PIN step: "Không kết nối được với nơi cấp…", retry works once online.
@@ -51,3 +51,16 @@ Record the device models, OS versions and the result of each step in the hand-of
 22. Settings → Sao lưu shows what is and is not backed up and opens the same restore list.
 23. Dark mode and English: repeat 14 and 18 with the system in dark mode and the app in English.
 24. TalkBack / VoiceOver: list rows read "document, issuer, status"; the PIN field is announced with its label.
+
+## Sharing (added with the consent screen)
+
+25. On the website's employer demo, scan the verifier QR: the consent screen names "Nhà Tuyển Dụng Mẫu", shows "Đã được Identra xác nhận", the purpose and a countdown; values are dots until "Hiện".
+26. "Chia sẻ ít hơn" drops Hạng/Năm tốt nghiệp; "Không chia sẻ" lists Ngày sinh, Mã sinh viên, Số hiệu bằng. Share: the one-line explanation, then the biometric prompt; the website then shows exactly Họ và tên + Ngành.
+27. Cancel the biometric prompt: back on the consent screen with "Bạn đã hủy…", the website still waits; share again works (or, once the SDK makes requests single-use, the screen asks to scan again).
+28. Double-tap "Chia sẻ" quickly: one prompt, one result on the website.
+29. Wait out the countdown: "Yêu cầu đã hết hạn…", Chia sẻ is gone; scan again.
+30. Press back or switch apps on the consent screen: the app-switcher thumbnail shows the privacy cover, not values; going back declines (the website keeps waiting, nothing posted).
+31. Airplane mode just before "Chia sẻ": the failure says the information may or may not have arrived and to check their screen; nothing is resent automatically.
+32. A verifier missing from the trust list (staging): red warning, "Từ chối" is the primary action, "Vẫn chia sẻ" needs the second confirmation.
+33. After a biometric re-enrolment (Android): sharing ends with "Khóa bảo vệ giấy tờ này không còn dùng được…" and the portal button.
+34. Detail screen: "Lần chia sẻ gần đây" lists the employer, the field names and the date; no values.

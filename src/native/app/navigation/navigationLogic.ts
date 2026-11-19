@@ -25,8 +25,6 @@ export const screenPaths: Record<ScreenKey, Href> = {
   credentials: '/credentials',
   profile: '/profile',
   security: '/security',
-  share: '/share',
-  'share-qr': '/share-qr',
   'connection-qr': '/connection-qr',
   'chat-list': '/chat-list',
   chat: '/chat',

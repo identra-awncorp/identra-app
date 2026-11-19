@@ -67,8 +67,11 @@ export function displayClaims(vct: string, claims: Record<string, unknown>, loca
 }
 
 /** The app status of a credential: the wallet API's (`unknown`) or the vault column's (`unavailable`). */
-export function credentialStatusFromVault(status: StoredCredentialStatus | WalletCredentialStatus | null): CredentialStatus {
+export function credentialStatusFromVault(status: StoredCredentialStatus | WalletCredentialStatus | 'invalid' | null): CredentialStatus {
   switch (status) {
+    case 'invalid':
+      // Coming in the SDK: the document no longer passes its checks (not "could not check").
+      return 'invalid';
     case 'valid':
       return 'verified';
     case 'revoked':

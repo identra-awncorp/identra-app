@@ -9,21 +9,13 @@ import { useAppRouterState } from '@/app/router/AppRouterContext';
 export default function CredentialDetailRoute() {
   const { credentialId } = useLocalSearchParams<{ credentialId?: string | string[] }>();
   const requestedId = Array.isArray(credentialId) ? credentialId[0] : credentialId;
-  if (!requestedId) return <Redirect href="/credentials" />;
-  return <CredentialDetail id={requestedId} />;
-}
-
-function CredentialDetail({ id }: { id: string }) {
   const router = useRouter();
   const store = useAppStore();
   const { appActive, authenticateCredentialAccess, colors, credentialAccessRevision } = useAppRouterState();
-  const { state, view, refresh, remove, retry } = useCredentialDetail(id);
   const backToList = useCallback(() => router.replace('/credentials'), [router]);
+  if (!requestedId) return <Redirect href="/credentials" />;
 
-  useEffect(() => {
-    if (state.phase === 'removed') backToList();
-  }, [backToList, state.phase]);
-
+  // The document is decrypted only inside the gate, after the person passed it.
   return (
     <CredentialAccessGate
       accessRevision={credentialAccessRevision}
@@ -33,17 +25,32 @@ function CredentialDetail({ id }: { id: string }) {
       enabled={store.settings.flowSettings.identity.requireAuthForCredential}
       onDenied={backToList}
     >
-      <CredentialDetailScreen
-        colors={colors}
-        state={state}
-        view={view}
-        hideSensitive={store.settings.hideSensitiveData}
-        onBack={backToList}
-        onRefresh={() => void refresh()}
-        onRemove={() => void remove()}
-        onRetry={retry}
-        onOpenPortal={(url) => void Linking.openURL(url).catch(() => undefined)}
-      />
+      <CredentialDetail id={requestedId} onBack={backToList} />
     </CredentialAccessGate>
+  );
+}
+
+function CredentialDetail({ id, onBack }: { id: string; onBack: () => void }) {
+  const store = useAppStore();
+  const { colors } = useAppRouterState();
+  const { state, view, refresh, remove, retry } = useCredentialDetail(id);
+
+  useEffect(() => {
+    if (state.phase === 'removed') onBack();
+  }, [onBack, state.phase]);
+
+  return (
+    <CredentialDetailScreen
+      colors={colors}
+      state={state}
+      view={view}
+      hideSensitive={store.settings.hideSensitiveData}
+      shares={store.logs.filter((log) => log.type === 'share' && log.credentialId === id).sort((a, b) => b.timestamp.localeCompare(a.timestamp))}
+      onBack={onBack}
+      onRefresh={() => void refresh()}
+      onRemove={() => void remove()}
+      onRetry={retry}
+      onOpenPortal={(url) => void Linking.openURL(url).catch(() => undefined)}
+    />
   );
 }

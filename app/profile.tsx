@@ -15,7 +15,6 @@ export default function ProfileRoute() {
   return (
     <ProfileScreen
       colors={colors}
-      compactDid={store.settings.flowSettings.identity.compactDid}
       profile={store.profile}
       onBack={() => router.replace('/wallet')}
       onSave={(profile) => {

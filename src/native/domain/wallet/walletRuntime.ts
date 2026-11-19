@@ -3,6 +3,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getRandomValues } from 'expo-crypto';
 import { File, Paths } from 'expo-file-system';
+import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { openDatabaseAsync } from 'expo-sqlite';
 
@@ -11,9 +12,11 @@ import { createWalletHttpFetch, type PlatformFetch } from '../../data/wallet/htt
 import { createExpoRandomSource } from '../../data/wallet/randomSource';
 import { createDataKeySecretStorage, createWalletKeySecretStorage } from '../../data/wallet/secretStorage';
 import { createAsyncStorageSeenStore } from '../../data/wallet/seenStore';
+import { harness } from 'identra-wallet-harness';
+
 import { getWalletRuntimeCheck } from '../../platform/installGlobals';
 import type { RuntimeProblem } from '../../platform/runtimeGlobals';
-import { credentialOfferQrText, type WalletQrRequest } from '../scan/qrScan';
+import { credentialOfferQrText, presentationRequestQrText, type WalletQrRequest } from '../scan/qrScan';
 import { CATALOGUE_FILE_NAME, createWallet, type CatalogueFile, type Wallet, type WalletApi } from './walletContainer';
 
 export class WalletUnavailableError extends Error {
@@ -28,13 +31,19 @@ export class WalletUnavailableError extends Error {
 /** In the document directory, which the OS backup includes (iOS Documents; Android files/, see plugins/). */
 function createCatalogueFile(): CatalogueFile {
   const file = new File(Paths.document, CATALOGUE_FILE_NAME);
+  const next = new File(Paths.document, `${CATALOGUE_FILE_NAME}.next`);
   return {
     async read() {
-      return file.exists ? file.text() : null;
+      // An interrupted swap can leave only the new file.
+      if (file.exists) return file.text();
+      return next.exists ? next.text() : null;
     },
     async write(text) {
-      if (!file.exists) file.create();
-      file.write(text);
+      // Write the whole new list beside the old one, then swap: a crash leaves one complete file.
+      if (next.exists) next.delete();
+      next.create();
+      next.write(text);
+      await next.move(file, { overwrite: true });
     },
   };
 }
@@ -70,30 +79,46 @@ export function getWallet(options: { authenticationPrompt: string }): Wallet {
 }
 
 /**
- * What the screens call. With EXPO_PUBLIC_WALLET_HARNESS=1 (web screenshots only) a scripted
- * in-memory wallet; the variable is inlined at build time, so a normal build drops the branch and
- * the harness module with it.
+ * What the screens call. A development web build made with EXPO_PUBLIC_WALLET_HARNESS=1 gets the
+ * scripted review wallet; `identra-wallet-harness` resolves to an empty module in every other
+ * build (metro.config.js), and the harness is refused outside __DEV__ as well.
  */
 export function getWalletApi(options: { authenticationPrompt: string }): WalletApi {
-  if (process.env.EXPO_PUBLIC_WALLET_HARNESS === '1') {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return (require('../../dev/walletHarness') as typeof import('../../dev/walletHarness')).getHarnessWallet();
-  }
+  if (__DEV__ && harness) return harness.wallet();
   return getWallet(options);
 }
 
-/** The scanned offer waiting for the receive screen (QR text never goes into a route or a log). */
-let pendingOffer: string | null = null;
+/**
+ * Whether this phone can keep a biometric-protected wallet key (asked BEFORE the one-time code is
+ * spent): SecureStore's own check plus an enrolled screen lock / biometric, as the access gate asks.
+ */
+export async function isKeyProtectionReady(): Promise<boolean> {
+  if (__DEV__ && harness) return harness.keyProtectionReady();
+  try {
+    if (!SecureStore.canUseBiometricAuthentication()) return false;
+    return (await LocalAuthentication.getEnrolledLevelAsync()) !== LocalAuthentication.SecurityLevel.NONE;
+  } catch {
+    return false;
+  }
+}
+
+/** The scanned QR waiting for its screen (QR text never goes into a route or a log). */
+const pending: Record<'offer' | 'presentation', string | null> = { offer: null, presentation: null };
 
 export function getPendingOffer(): string | null {
-  if (process.env.EXPO_PUBLIC_WALLET_HARNESS === '1') {
-    return pendingOffer ?? (globalThis as { localStorage?: Storage }).localStorage?.getItem('identra.harness.offer') ?? null;
-  }
-  return pendingOffer;
+  return pending.offer ?? (__DEV__ && harness ? harness.pending('offer') : null);
 }
 
 export function clearPendingOffer(): void {
-  pendingOffer = null;
+  pending.offer = null;
+}
+
+export function getPendingPresentation(): string | null {
+  return pending.presentation ?? (__DEV__ && harness ? harness.pending('presentation') : null);
+}
+
+export function clearPendingPresentation(): void {
+  pending.presentation = null;
 }
 
 export type WalletHandOffResult =
@@ -101,15 +126,16 @@ export type WalletHandOffResult =
   | { kind: 'device-unsupported' }
   /** Open the receive screen; the offer waits in getPendingOffer(). */
   | { kind: 'receive' }
-  /** Presentation (OpenID4VP) is not wired yet; nothing was fetched or sent. */
-  | { kind: 'flow-unavailable'; request: WalletQrRequest['kind'] };
+  /** Open the sharing (consent) screen; the request waits in getPendingPresentation(). */
+  | { kind: 'present' };
 
 /** The single entry from the QR scanner into the wallet. */
 export async function handOffWalletRequest(request: WalletQrRequest): Promise<WalletHandOffResult> {
   if (!getWalletRuntimeCheck().ok) return { kind: 'device-unsupported' };
   if (request.kind === 'credential-offer') {
-    pendingOffer = credentialOfferQrText(request.offerUri);
+    pending.offer = credentialOfferQrText(request.offerUri);
     return { kind: 'receive' };
   }
-  return { kind: 'flow-unavailable', request: request.kind };
+  pending.presentation = presentationRequestQrText(request);
+  return { kind: 'present' };
 }

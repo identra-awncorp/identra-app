@@ -69,6 +69,9 @@ export function PinCodeInput({
 }) {
   const inputRef = useRef<TextInput>(null);
   const [focused, setFocused] = useState(false);
+  const { t } = useI18n();
+  // Screen readers hear the label and how many digits are in, never the digits themselves.
+  const progress = t('wallet.receive.pinProgress', { count: value.length, length });
   return (
     <Pressable accessible={false} onPress={() => inputRef.current?.focus()} style={styles.pinArea}>
       <View pointerEvents="none" style={styles.pinBoxes}>
@@ -84,7 +87,9 @@ export function PinCodeInput({
       </View>
       <TextInput
         ref={inputRef}
-        accessibilityLabel={label}
+        accessibilityLabel={`${label}. ${progress}`}
+        accessibilityValue={{ text: progress }}
+        autoCapitalize="none"
         autoComplete="off"
         autoCorrect={false}
         caretHidden
@@ -96,7 +101,7 @@ export function PinCodeInput({
         onBlur={() => setFocused(false)}
         onChangeText={onChangeText}
         onFocus={() => setFocused(true)}
-        secureTextEntry={false}
+        secureTextEntry
         style={styles.pinHiddenInput}
         textContentType="oneTimeCode"
         value={value}

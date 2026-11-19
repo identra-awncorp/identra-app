@@ -55,6 +55,17 @@ option) that sets `NSURLIsExcludedFromBackupKey` on the database directory.
   scheme in `app.json` (native change, new build) and an Expo Router `+native-intent` rewrite.
 - The list shows the issuer's trusted name remembered at receipt/opening (the SDK list has none).
 
+## Sharing (added 2026-11-19)
+
+- Credentials are shared only after scanning a verifier's `openid4vp://` QR code. The old
+  holder-shown "share QR" screens simulated a flow that does not exist in the protocol and were
+  removed. The connection-invitation QR in the scanner stays (it is not a credential flow).
+- An unverified verifier gets a red warning, decline as the default, and a second explicit
+  confirmation before `allowUntrusted: true`; its name and purpose text are never shown.
+- The activity log records each presentation with the document id and the claim NAMES only.
+- Pending SDK changes are read defensively: offer `issuerOrigin`, accept `status: 'unknown'`.
+  `createWallet({ allowedOrigins })` is not set yet (not in the SDK at 0930192).
+
 ## Consequences
 
 - `npm install` needs a built `../identra-sdk` checkout.

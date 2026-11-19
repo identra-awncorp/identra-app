@@ -1,8 +1,7 @@
-import type { CredentialAttribute } from '../../types';
-
 export const TEMPORARY_QR_TTL_MS = 3 * 60 * 1000;
 
-export type TemporaryQrPurpose = 'credential-presentation' | 'connection-invitation';
+// Credentials are never shared by a QR the holder shows: only by scanning a verifier's request.
+export type TemporaryQrPurpose = 'connection-invitation';
 
 export interface TemporaryQrReference {
   expiresAt: string;
@@ -65,14 +64,4 @@ export function getTemporaryQrRemainingSeconds(
 export function isTemporaryQrReferenceExpired(reference: TemporaryQrReference, nowMs: number): boolean {
   const expiresAt = Date.parse(reference.expiresAt);
   return !Number.isFinite(expiresAt) || expiresAt <= nowMs;
-}
-
-export function selectApprovedCredentialAttributes(
-  attributes: CredentialAttribute[],
-  approvedKeys: string[],
-): CredentialAttribute[] {
-  const approved = new Set(approvedKeys);
-  return attributes
-    .filter((attribute) => approved.has(attribute.key))
-    .map((attribute) => ({ ...attribute }));
 }

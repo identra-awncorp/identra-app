@@ -40,6 +40,7 @@ export function QrScannerScreen({
   onOpenMenu,
   onRecordScan,
   onReceiveCredential,
+  onPresentCredential,
   scanSettings,
 }: {
   active?: boolean;
@@ -51,6 +52,8 @@ export function QrScannerScreen({
   onRecordScan: (result: QrScanResult) => void;
   /** A credential offer was handed to the wallet: open the receive screen. */
   onReceiveCredential: () => void;
+  /** A presentation request was handed to the wallet: open the sharing screen. */
+  onPresentCredential: () => void;
   scanSettings: ScanSettings;
 }) {
   const { t } = useI18n();
@@ -140,14 +143,12 @@ export function QrScannerScreen({
         onReceiveCredential();
         return;
       }
-      if (outcome.kind === 'device-unsupported') {
-        showScanAlert(t('scan.result.walletRequestTitle'), t('scan.result.deviceUnsupported'));
+      if (outcome.kind === 'present') {
+        releaseScanner();
+        onPresentCredential();
         return;
       }
-      showScanAlert(
-        t('scan.result.walletRequestTitle'),
-        t('scan.result.presentationRequestUnavailable'),
-      );
+      showScanAlert(t('scan.result.walletRequestTitle'), t('scan.result.deviceUnsupported'));
       return;
     }
 

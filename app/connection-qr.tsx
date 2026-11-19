@@ -1,6 +1,6 @@
 import { Redirect, useRouter } from 'expo-router';
 
-import { ConnectionQrScreen } from '@/screens/identity';
+import { ConnectionQrScreen } from '@/screens/scan';
 import { useAppStore } from '@/store';
 import { useAppRouterState } from '@/app/router/AppRouterContext';
 import { useI18n } from '@/i18n';

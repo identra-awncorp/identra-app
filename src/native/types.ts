@@ -5,8 +5,9 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 export type AppFlowKey = 'chat' | 'feed' | 'scan' | 'payment' | 'miniApp' | 'identity';
 export type FlowSettingValues = Record<string, boolean>;
 export type AppFlowSettings = Record<AppFlowKey, FlowSettingValues>;
-// `verified` = valid; `unknown` = the status could not be checked (ADR-0013 fail-closed 'unavailable').
-export type CredentialStatus = 'verified' | 'pending' | 'expired' | 'revoked' | 'suspended' | 'unknown';
+// `verified` = valid; `unknown` = the status could not be checked (ADR-0013 fail-closed 'unavailable');
+// `invalid` = the document no longer passes its checks (issuer no longer recognised, certificate expired…).
+export type CredentialStatus = 'verified' | 'pending' | 'expired' | 'revoked' | 'suspended' | 'unknown' | 'invalid';
 export type SmartContractAvailability = 'available' | 'soldOut';
 
 export type CredentialIconName =
@@ -97,6 +98,10 @@ export interface ActivityLog {
   unread?: boolean;
   isNew?: boolean;
   isDemo?: boolean;
+  /** For a presentation: the wallet document it was made from. */
+  credentialId?: string;
+  /** For a presentation: the claim NAMES shared (never values). */
+  sharedClaims?: string[];
 }
 
 export interface PersonalInfo {

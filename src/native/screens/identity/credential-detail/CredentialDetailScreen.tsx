@@ -4,11 +4,12 @@ import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'rea
 
 import { AppHeader, CredentialIcon, PrimaryButton, ScreenScroll, StatusPill } from '../../../components/AppUiPrimitives';
 import type { DetailState } from '../../../domain/wallet/walletFlows';
-import { MASKED_VALUE, type CredentialDetailView } from '../../../domain/wallet/walletViews';
+import { displayedValue, formatWalletDate, MASKED_VALUE, type CredentialDetailView } from '../../../domain/wallet/walletViews';
+import { failureView } from '../../../domain/wallet/walletMessages';
 import { useI18n } from '../../../i18n';
 import type { AppColors } from '../../../theme';
 import { spacing } from '../../../theme';
-import type { CredentialStatus } from '../../../types';
+import type { ActivityLog, CredentialStatus } from '../../../types';
 import { FailureNotice, Panel, TextAction, walletStyles } from '../wallet/WalletParts';
 
 /**
@@ -20,6 +21,7 @@ export function CredentialDetailScreen({
   state,
   view,
   hideSensitive,
+  shares,
   onBack,
   onRefresh,
   onRemove,
@@ -30,13 +32,15 @@ export function CredentialDetailScreen({
   state: DetailState;
   view: CredentialDetailView | null;
   hideSensitive: boolean;
+  /** The local record of presentations made from this document (field names only), newest first. */
+  shares: ActivityLog[];
   onBack: () => void;
   onRefresh: () => void;
   onRemove: () => void;
   onRetry: () => void;
   onOpenPortal: (url: string) => void;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [revealed, setRevealed] = useState(false);
   const statusMeaning: Record<CredentialStatus, string> = {
     verified: t('identity.detail.statuses.verified.description'),
@@ -45,7 +49,13 @@ export function CredentialDetailScreen({
     revoked: t('identity.detail.statuses.revoked.description'),
     suspended: t('identity.detail.statuses.suspended.description'),
     unknown: t('identity.detail.statuses.unknown.description'),
+    invalid: t('identity.detail.statuses.invalid.description'),
   };
+  /** Why an `invalid` document fails, when the last check said so (checks of the refresh). */
+  const invalidReason = state.phase === 'loaded' && state.refreshChecks ? failureView('CREDENTIAL_INVALID', state.refreshChecks).detailKey : null;
+  /** Definite answers are successful checks; unknown / invalid are only the latest attempt. */
+  const checkedLabel = (status: CredentialStatus, date: string) =>
+    status === 'unknown' || status === 'invalid' ? t('wallet.detail.lastAttemptOn', { date }) : t('wallet.detail.checkedOn', { date });
 
   const confirmRemove = () => {
     if (!view) return;
@@ -82,7 +92,7 @@ export function CredentialDetailScreen({
         <>
           <Panel colors={colors} style={styles.hero}>
             <View style={styles.heroTop}>
-              <CredentialIcon icon="graduation" boxSize={56} size={30} />
+              <CredentialIcon icon="graduation" boxSize={56} size={30} colors={colors} />
               <View style={styles.flex}>
                 <Text style={[walletStyles.title, styles.heroTitle, { color: colors.text }]}>{t(view.nameKey)}</Text>
                 <View style={styles.inline}>
@@ -101,11 +111,15 @@ export function CredentialDetailScreen({
             <Text style={[walletStyles.sectionTitle, { color: colors.text }]}>{t('wallet.detail.statusSection')}</Text>
             <Panel colors={colors} style={styles.statusPanel}>
               <View style={styles.pillRow}>
-                <StatusPill status={view.status} />
+                <StatusPill status={view.status} colors={colors} />
               </View>
               <Text style={[walletStyles.lead, { color: colors.text }]}>{statusMeaning[view.status]}</Text>
+              {view.status === 'invalid' && invalidReason ? <Text style={[walletStyles.lead, { color: colors.text }]}>{t(invalidReason)}</Text> : null}
               {view.statusCheckedDate ? (
-                <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.detail.checkedOn', { date: view.statusCheckedDate })}</Text>
+                <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{checkedLabel(view.status, view.statusCheckedDate)}</Text>
+              ) : null}
+              {(view.status === 'unknown' || view.status === 'invalid') && state.lastValidAt ? (
+                <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.detail.lastValidOn', { date: formatWalletDate(state.lastValidAt, locale) })}</Text>
               ) : null}
               {state.refreshFailure ? <FailureNotice colors={colors} failure={state.refreshFailure} showTitle={false} /> : null}
               <Pressable
@@ -142,15 +156,36 @@ export function CredentialDetailScreen({
             </View>
             <Panel colors={colors} style={styles.fieldsPanel}>
               {view.fields.map((field, index) => {
-                const masked = hideSensitive && !revealed && view.sensitiveFields.includes(field.name);
+                const shown = displayedValue(field, { hideSensitive, revealed, sensitiveFields: view.sensitiveFields });
+                const masked = shown === MASKED_VALUE;
                 return (
                   <View key={field.name} style={[styles.field, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
                     <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t(field.labelKey)}</Text>
-                    <Text selectable={!masked} style={[walletStyles.value, { color: colors.text }]}>{masked ? MASKED_VALUE : field.value}</Text>
+                    <Text selectable={!masked} style={[walletStyles.value, { color: colors.text }]}>{shown}</Text>
                   </View>
                 );
               })}
             </Panel>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={[walletStyles.sectionTitle, { color: colors.text }]}>{t('wallet.detail.recentShares')}</Text>
+            {shares.length ? (
+              <Panel colors={colors} style={styles.fieldsPanel}>
+                {shares.slice(0, 5).map((log, index) => (
+                  <View key={log.id} style={[styles.field, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
+                    <Text style={[walletStyles.value, { color: colors.text }]}>{log.partner}</Text>
+                    <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{log.description}</Text>
+                    <Text style={[walletStyles.meta, { color: log.status === 'failed' ? colors.danger : colors.textSecondary }]}>
+                      {formatWalletDate(log.timestamp, locale)}
+                      {log.status === 'failed' ? ` · ${t('wallet.detail.shareFailed')}` : ''}
+                    </Text>
+                  </View>
+                ))}
+              </Panel>
+            ) : (
+              <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.detail.noShares')}</Text>
+            )}
           </View>
 
           <View style={styles.section}>
