@@ -6,12 +6,6 @@ import type {
 } from '../../types';
 import { defaultFlowSettings } from '../../domain/app-store/appSettingsDefaults';
 
-const common = {
-  didHolder: 'did:identra:1234',
-  signature: 'ed25519:85a3c9f28d8b8fe29a31c28f47b196',
-  isDemo: true,
-} as const;
-
 export const INITIAL_PROFILE: PersonalInfo = {
   fullName: 'Nguyễn Văn An',
   dob: '15/10/2002',
@@ -21,7 +15,8 @@ export const INITIAL_PROFILE: PersonalInfo = {
   email: 'an.nguyen@vnu.edu.vn',
   phone: '0382948210',
   address: 'Phố Xuân Thủy, Cầu Giấy, Hà Nội',
-  did: 'did:identra:1234',
+  // No demo identifier: the wallet has none to show, and the scanner's invitation does not use one.
+  did: '',
 };
 
 export const INITIAL_SETTINGS: AppSettings = {
@@ -32,107 +27,8 @@ export const INITIAL_SETTINGS: AppSettings = {
   flowSettings: defaultFlowSettings,
 };
 
-export const INITIAL_CREDENTIALS: Credential[] = [
-  {
-    ...common,
-    id: 'cred-degree',
-    title: 'Bằng tốt nghiệp',
-    issuer: 'Đại học Công nghệ',
-    issueDate: '20/06/2024',
-    time: '10:30',
-    status: 'verified',
-    icon: 'graduation',
-    didIssuer: 'did:identra:uet-academic',
-    attributes: [
-      { key: 'subject.fullName', label: 'Họ và tên', value: 'Nguyễn Văn An', sensitive: true },
-      { key: 'subject.birthDate', label: 'Ngày sinh', value: '15/10/2002', sensitive: true },
-      { key: 'degree.program', label: 'Chương trình đào tạo', value: 'Khoa học máy tính' },
-      { key: 'degree.major', label: 'Ngành học', value: 'Kỹ thuật Phần mềm' },
-      { key: 'degree.level', label: 'Bậc đào tạo', value: 'Đại học' },
-      { key: 'degree.mode', label: 'Loại hình đào tạo', value: 'Chính quy' },
-      { key: 'degree.classification', label: 'Xếp loại tốt nghiệp', value: 'Xuất sắc' },
-      { key: 'degree.number', label: 'Số hiệu bằng', value: 'CN-2024-123456', sensitive: true },
-      { key: 'degree.gpa', label: 'GPA', value: '3.85 / 4.0' },
-    ],
-  },
-  {
-    ...common,
-    id: 'cred-ielts',
-    title: 'Chứng chỉ ngoại ngữ',
-    issuer: 'IELTS',
-    issueDate: '20/06/2024',
-    time: '09:15',
-    expiryDate: '15/04/2026',
-    status: 'verified',
-    icon: 'languages',
-    didIssuer: 'did:identra:ielts-official',
-    attributes: [
-      { key: 'subject.fullName', label: 'Full Name', value: 'Nguyen Van An', sensitive: true },
-      { key: 'language.overallScore', label: 'Overall Band Score', value: '8.0' },
-      { key: 'language.listeningScore', label: 'Listening', value: '8.5' },
-      { key: 'language.readingScore', label: 'Reading', value: '8.5' },
-      { key: 'language.writingScore', label: 'Writing', value: '7.0' },
-      { key: 'language.speakingScore', label: 'Speaking', value: '7.5' },
-    ],
-  },
-  {
-    ...common,
-    id: 'cred-kyc',
-    title: 'KYC Level 2',
-    issuer: 'SSI KYC',
-    issueDate: '20/06/2024',
-    time: '16:20',
-    status: 'verified',
-    icon: 'shield',
-    didIssuer: 'did:identra:ssi-kyc',
-    attributes: [
-      { key: 'kyc.method', label: 'Phương thức', value: 'CCCD gắn chip & sinh trắc học' },
-      { key: 'kyc.reference', label: 'Mã số KYC', value: 'KYC-992110-SSI', sensitive: true },
-      { key: 'kyc.level', label: 'Cấp độ KYC', value: 'Level 2' },
-      { key: 'credential.status', label: 'Trạng thái', value: 'Đã thông qua xác minh' },
-    ],
-  },
-  {
-    ...common,
-    id: 'cred-bank',
-    title: 'Xác nhận tài khoản',
-    issuer: 'Ngân hàng ABC',
-    issueDate: '19/06/2024',
-    time: '11:05',
-    status: 'verified',
-    icon: 'bank',
-    didIssuer: 'did:identra:abc-bank',
-    attributes: [
-      { key: 'subject.fullName', label: 'Chủ tài khoản', value: 'Nguyễn Văn An', sensitive: true },
-      { key: 'bank.accountNumber', label: 'Số tài khoản', value: '0123456789', sensitive: true },
-      { key: 'credential.status', label: 'Trạng thái', value: 'Đã xác nhận' },
-    ],
-  },
-  {
-    ...common,
-    id: 'cred-share-pending',
-    title: 'Chia sẻ thông tin',
-    issuer: 'Công ty XYZ',
-    issueDate: '20/06/2024',
-    time: '14:30',
-    status: 'pending',
-    icon: 'clock',
-    didIssuer: 'did:identra:xyz-company',
-    attributes: [{ key: 'credential.status', label: 'Trạng thái', value: 'Đang chờ xác nhận' }],
-  },
-  {
-    ...common,
-    id: 'cred-security-expired',
-    title: 'Chứng chỉ bảo mật',
-    issuer: 'CyberSec Institute',
-    issueDate: '15/05/2024',
-    time: '10:00',
-    status: 'expired',
-    icon: 'security',
-    didIssuer: 'did:identra:cybersec',
-    attributes: [{ key: 'credential.status', label: 'Trạng thái', value: 'Đã hết hạn' }],
-  },
-];
+/** The wallet's documents live in the SDK vault; the app store keeps no demo credential. */
+export const INITIAL_CREDENTIALS: Credential[] = [];
 
 export const INITIAL_ACTIVITY_LOGS: ActivityLog[] = [
   {

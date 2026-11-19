@@ -31,7 +31,9 @@ This folder owns identity, wallet, credential, profile, security, and credential
 - Sharing flows must make it obvious which data will be shared and with whom.
 - Demo credential data must be removable without breaking empty states.
 - Sensitive data should be masked where required by product settings.
-- Protected credential detail and sharing routes must re-authenticate after the app leaves the foreground.
+- Protected credential detail and sharing routes must re-authenticate after the app leaves the foreground (`CredentialAccessGate`, setting `requireAuthForCredential`); the sharing route lets the gate stand aside from "Chia sẻ" until the app goes to the background (the signing prompt itself makes iOS `inactive`).
+- Revealed values ("Hiện") are masked again when the app becomes inactive (`useRevealedWhileActive`).
+- Removing a wallet document removes its sharing records from the activity log.
 - While the app is inactive or backgrounded, the app shell must cover visible content with a privacy overlay.
 
 ## State Boundaries

@@ -18,7 +18,7 @@ const { createDataKeySecretStorage, createWalletKeySecretStorage } = require('..
 const { createAsyncStorageSeenStore } = require('../.tmp-test/src/native/data/wallet/seenStore');
 const { createSqliteCredentialRepository } = require('../.tmp-test/src/native/data/wallet/credentialRepository');
 const { credentialOfferQrText, parseQrScanValue, presentationRequestQrText } = require('../.tmp-test/src/native/domain/scan/qrScan');
-const { claimSetChoice, initialPresentState, presentationActivityEntry, presentReducer } = require('../.tmp-test/src/native/domain/wallet/presentationFlow');
+const { claimSetChoice, createPresentationActions, initialPresentState, presentationActivityEntry, presentReducer } = require('../.tmp-test/src/native/domain/wallet/presentationFlow');
 const { translate } = require('../.tmp-test/src/native/i18n');
 const { createFakeSecureStore } = require('./helpers/fakeSecureStore');
 const { openExpoSqliteDouble } = require('./helpers/expoSqliteDouble');
@@ -69,11 +69,18 @@ async function receiveDiploma(world, wallet) {
   return accepted.credentialId;
 }
 
-/** The scanner path: parse the verifier's QR, rebuild it for the SDK, resolve into the state machine. */
-async function scanAndResolve(wallet, qr) {
+/**
+ * The consent screen without React: the scanner path into the reducer, and the screen's own actions
+ * (createPresentationActions) for "Chia sẻ" and leaving. `submitted` records what reached the SDK.
+ */
+async function consentScreen(world, wallet, qr) {
   const scanned = parseQrScanValue(qr);
   assert.equal(scanned.kind, 'presentation-request', JSON.stringify(scanned));
-  return presentReducer(initialPresentState, { type: 'resolved', result: await wallet.presentations.resolve(presentationRequestQrText(scanned)) });
+  const box = { state: initialPresentState, submitted: [] };
+  const session = { get: () => box.state, dispatch: (e) => (box.state = presentReducer(box.state, e)) };
+  session.dispatch({ type: 'resolved', result: await wallet.presentations.resolve(presentationRequestQrText(scanned)), nowMs: world.clock.now().getTime() });
+  const spy = { presentations: { ...wallet.presentations, submit: (r, choice) => (box.submitted.push(choice), wallet.presentations.submit(r, choice)) } };
+  return { box, dispatch: session.dispatch, actions: createPresentationActions(spy, session) };
 }
 
 describe('the app wallet presents a diploma to a real verifier (no device)', { skip: missing }, () => {
@@ -85,7 +92,8 @@ describe('the app wallet presents a diploma to a real verifier (no device)', { s
     const session = await newSession(verifier);
     listener.log.length = 0;
 
-    let state = await scanAndResolve(wallet, session.qr);
+    const screen = await consentScreen(world, wallet, session.qr);
+    let state = screen.box.state;
     assert.equal(state.phase, 'consent', JSON.stringify(state));
     assert.deepEqual(state.request.verifier, { trusted: true, ten: world.verifierEntry.ten, maToChuc: world.verifierEntry.ma_to_chuc });
     assert.equal(state.credentialId, credentialId);
@@ -96,15 +104,17 @@ describe('the app wallet presents a diploma to a real verifier (no device)', { s
     const match = state.request.matches[0];
     const full = claimSetChoice(match, state.claimSetIndex, match.vct, details.credential.claims, 'vi');
     assert.deepEqual(full.required.map((f) => [translate('vi', f.labelKey), f.value]), [['Họ và tên', DIPLOMA.ho_ten], ['Ngành', DIPLOMA.nganh]]);
-    assert.deepEqual(full.smaller.dropped.map((f) => f.name), ['hang_tot_nghiep', 'nam_tot_nghiep']);
+    const less = full.options.find((o) => !o.first);
+    assert.deepEqual(less.dropped.map((f) => f.name), ['hang_tot_nghiep', 'nam_tot_nghiep']);
     assert.ok(full.withheld.some((f) => f.name === 'ngay_sinh'), 'ngày sinh is listed as not shared');
 
-    state = presentReducer(state, { type: 'select-claim-set', index: full.smaller.index });
-    state = presentReducer(state, { type: 'submit' });
-    assert.equal(state.phase, 'submitting');
-    assert.equal(presentReducer(state, { type: 'submit' }), state, 'a second tap does nothing');
-    const result = await wallet.presentations.submit(state.request, { credentialId: state.credentialId, claimSetIndex: state.claimSetIndex });
-    state = presentReducer(state, { type: 'submitted', result });
+    // "Chia sẻ ít hơn", then "Chia sẻ" tapped twice: the screen's handler submits once, with the reducer's choice.
+    screen.dispatch({ type: 'select-claim-set', index: less.index });
+    const [attempt, second] = await Promise.all([screen.actions.share(), screen.actions.share()]);
+    assert.equal(second, null, 'a second tap does nothing');
+    assert.deepEqual(screen.box.submitted, [{ credentialId, claimSetIndex: less.index }], 'no allowUntrusted for a trusted verifier');
+    assert.deepEqual([attempt.outcome, attempt.claims], ['success', ['ho_ten', 'nganh']]);
+    state = screen.box.state;
     assert.deepEqual(state, { phase: 'sent', verifierName: world.verifierEntry.ten, credentialId, claims: ['ho_ten', 'nganh'] });
 
     // The verifier's side holds exactly the chosen fields; nothing else reached it.
@@ -129,18 +139,23 @@ describe('the app wallet presents a diploma to a real verifier (no device)', { s
     const credentialId = await receiveDiploma(world, wallet);
 
     const first = await newSession(verifier);
-    let state = await scanAndResolve(wallet, first.qr);
+    const warned = await consentScreen(world, wallet, first.qr);
+    let state = warned.box.state;
     assert.deepEqual([state.phase, state.untrusted, state.request.verifier.trusted], ['consent', 'warning', false]);
-    assert.equal(presentReducer(state, { type: 'submit' }), state, 'the screen cannot submit from the warning');
+    assert.equal(await warned.actions.share(), null, 'the screen cannot submit from the warning');
+    warned.dispatch({ type: 'share-untrusted' });
+    assert.equal(await warned.actions.share(), null, 'nor while asking for the confirmation');
+    assert.deepEqual(warned.box.submitted, []);
     // The SDK refuses on its own as well.
     assert.deepEqual(await wallet.presentations.submit(state.request, { credentialId, claimSetIndex: 0 }), { ok: false, code: 'VERIFIER_NOT_TRUSTED' });
 
     const second = await newSession(verifier);
-    state = await scanAndResolve(wallet, second.qr);
-    state = presentReducer(presentReducer(state, { type: 'share-untrusted' }), { type: 'confirm-untrusted' });
-    state = presentReducer(state, { type: 'submit' });
-    const result = await wallet.presentations.submit(state.request, { credentialId, claimSetIndex: state.claimSetIndex, allowUntrusted: state.untrusted === 'confirmed' });
-    state = presentReducer(state, { type: 'submitted', result });
+    const confirmed = await consentScreen(world, wallet, second.qr);
+    confirmed.dispatch({ type: 'share-untrusted' });
+    confirmed.dispatch({ type: 'confirm-untrusted' });
+    assert.equal((await confirmed.actions.share()).outcome, 'success');
+    assert.deepEqual(confirmed.box.submitted, [{ credentialId, claimSetIndex: 0, allowUntrusted: true }]);
+    state = confirmed.box.state;
     assert.equal(state.phase, 'sent');
     assert.equal(state.verifierName, null);
     assert.equal((await verifier.session(second.id)).status, 'verified');
@@ -152,11 +167,11 @@ describe('the app wallet presents a diploma to a real verifier (no device)', { s
     const { wallet } = appWallet(world);
     const session = await newSession(verifier);
     listener.log.length = 0;
-    let state = await scanAndResolve(wallet, session.qr);
-    assert.equal(state.phase, 'no-match');
-    wallet.presentations.decline(state.request);
-    state = presentReducer(state, { type: 'decline' });
-    assert.equal(state.phase, 'declined');
+    const screen = await consentScreen(world, wallet, session.qr);
+    assert.equal(screen.box.state.phase, 'no-match');
+    screen.actions.leave();
+    screen.dispatch({ type: 'decline' });
+    assert.equal(screen.box.state.phase, 'declined');
     assert.equal(listener.log.some((l) => l.path.startsWith('/oid4vp/response/')), false);
     assert.notEqual((await verifier.session(session.id)).status, 'verified');
   });

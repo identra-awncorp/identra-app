@@ -5,12 +5,14 @@
 //
 // Scenario (localStorage 'identra.harness.scenario'): empty | held | restored | catalogue | broken.
 // QR text containing "expired" / "offline" / "invalid" fails resolve accordingly. PIN 000000 is
-// wrong, 111111 gives a credential that fails its checks, 222222 an expired offer, 333333 no network.
+// wrong, 111111 gives a credential that fails its checks, 222222 an expired offer, 333333 no answer
+// to the PIN (code not redeemed), 444444 a cancelled prompt and 555555 no network after the PIN was
+// accepted (both resumable).
 // Presentation QR (localStorage 'identra.harness.presentation') containing: untrusted, two-docs,
-// revoked, nomatch, short (expires in 4 s), or a code (CERT_CHAIN_UNTRUSTED, CLIENT_ID_MISMATCH,
+// revoked, invalid-doc, three-sets, nomatch, short (expires in 4 s), or a code (CERT_CHAIN_UNTRUSTED, CLIENT_ID_MISMATCH,
 // SIGNATURE_INVALID, REQUEST_INVALID, REQUEST_EXPIRED, TRUST_LIST_UNAVAILABLE, URL_NOT_ALLOWED) to fail
 // resolve. Submit outcome: localStorage 'identra.harness.submit' (ok or a wallet code).
-import type { CredentialDetails, ResolvedOffer, ResolvedPresentation } from '@identra/sdk-app';
+import type { AcceptResult, CredentialDetails, ResolvedOffer, ResolvedPresentation } from '@identra/sdk-app';
 import { VCT } from '@identra/sdk-core';
 
 import type { WalletApi, WalletCredentialSummary } from '../domain/wallet/walletContainer';
@@ -47,11 +49,19 @@ export function getHarnessWallet(): WalletApi {
     issuerDisplay: [{ name: 'Trường Đại học Mẫu', locale: 'vi' }, { name: 'Sample University', locale: 'en' }],
     configuration: { id: 'bang-tot-nghiep-v1', vct: VCT.diploma, display: [{ name: 'Bằng tốt nghiệp', locale: 'vi' }] },
     txCode: { length: 6, inputMode: 'numeric', description: null },
+    codeRedeemed: false,
   };
   const sets = [
     { index: 0, claims: ['ho_ten', 'nganh', 'hang_tot_nghiep', 'nam_tot_nghiep'] },
     { index: 1, claims: ['ho_ten', 'nganh'] },
   ];
+  const threeSets = [
+    { index: 0, claims: ['ho_ten', 'nganh', 'hang_tot_nghiep', 'nam_tot_nghiep'] },
+    { index: 1, claims: ['ho_ten', 'nganh', 'hang_tot_nghiep'] },
+    { index: 2, claims: ['ho_ten', 'nganh'] },
+  ];
+  // `codeRedeemed` is the SDK field being added (not yet in its AcceptResult type).
+  const acceptFailure = (code: string, retryable: boolean, codeRedeemed: boolean, extra: object = {}) => ({ ok: false, code, retryable, codeRedeemed, ...extra }) as AcceptResult;
   const presentationCodes = ['CERT_CHAIN_UNTRUSTED', 'CLIENT_ID_MISMATCH', 'SIGNATURE_INVALID', 'REQUEST_INVALID', 'REQUEST_EXPIRED', 'TRUST_LIST_UNAVAILABLE', 'URL_NOT_ALLOWED'] as const;
   const catalogueItems = [{ vct: VCT.diploma, issuer: ISS }, { vct: VCT.diploma, issuer: 'https://dai-hoc-khac.example.vn/issuers/dhk' }];
 
@@ -67,12 +77,13 @@ export function getHarnessWallet(): WalletApi {
       async discard() {},
       async accept(_offer, { txCode }) {
         await wait(900);
-        if (txCode === '000000') return { ok: false, code: 'TX_CODE_WRONG', retryable: true };
-        if (txCode === '111111') return { ok: false, code: 'CREDENTIAL_INVALID', retryable: false, checks: [{ id: 'signature', ok: true, code: null }, { id: 'issuer_trust', ok: false, code: 'ISSUER_NOT_TRUSTED' }] };
-        if (txCode === '222222') return { ok: false, code: 'OFFER_EXPIRED', retryable: false };
-        if (txCode === '333333') return { ok: false, code: 'NETWORK_ERROR', retryable: false };
-        // 444444: the biometric prompt was cancelled after the PIN; the SDK can resume (txCode is then undefined).
-        if (txCode === '444444') return { ok: false, code: 'USER_CANCELLED', retryable: true };
+        if (txCode === '000000') return acceptFailure('TX_CODE_WRONG', true, false);
+        if (txCode === '111111') return acceptFailure('CREDENTIAL_INVALID', false, true, { checks: [{ id: 'signature', ok: true, code: null }, { id: 'issuer_trust', ok: false, code: 'ISSUER_NOT_TRUSTED' }] });
+        if (txCode === '222222') return acceptFailure('OFFER_EXPIRED', false, false);
+        if (txCode === '333333') return acceptFailure('NETWORK_ERROR', true, false);
+        // 444444 / 555555: after the PIN was accepted; the SDK can resume (txCode is then undefined).
+        if (txCode === '444444') return acceptFailure('USER_CANCELLED', true, true);
+        if (txCode === '555555') return acceptFailure('NETWORK_ERROR', true, true);
         const id = `r${held.size + 1}`;
         held.set(id, { id, vct: VCT.diploma, issuerUri: ISS, issuerName: 'Trường Đại học Mẫu (DEMO)', status: 'valid', statusCheckedAt: new Date().toISOString(), createdAt: new Date().toISOString() });
         return { ok: true, credentialId: id, vct: VCT.diploma, issuerName: 'Trường Đại học Mẫu (DEMO)', status: 'valid' };
@@ -84,12 +95,12 @@ export function getHarnessWallet(): WalletApi {
         const code = presentationCodes.find((c) => qr.includes(c));
         if (code) return { ok: false, code };
         const untrusted = qr.includes('untrusted');
-        const ids = qr.includes('nomatch') ? [] : qr.includes('two-docs') ? ['h1', 'h2'] : qr.includes('revoked') ? ['h3'] : ['h1'];
+        const ids = qr.includes('nomatch') ? [] : qr.includes('two-docs') ? ['h1', 'h2'] : qr.includes('revoked') ? ['h3'] : qr.includes('invalid-doc') ? ['h4'] : ['h1'];
         const request: ResolvedPresentation = {
           clientId: 'x509_hash:harness',
           verifier: untrusted ? { trusted: false } : { trusted: true, ten: 'Nhà tuyển dụng Mẫu (DEMO)', maToChuc: 'VATVN-0100000005' },
           ...(untrusted ? { warning: 'VERIFIER_NOT_TRUSTED' as const } : { purpose: { vi: 'Ứng tuyển vị trí kỹ sư phần mềm', en: 'Job application: software engineer' } }),
-          matches: ids.map((id) => ({ credentialId: id, vct: VCT.diploma, issuerName: 'Trường Đại học Mẫu (DEMO)', claimSets: sets })),
+          matches: ids.map((id) => ({ credentialId: id, vct: VCT.diploma, issuerName: 'Trường Đại học Mẫu (DEMO)', claimSets: qr.includes('three-sets') ? threeSets : sets })),
           expiresAt: new Date(Date.now() + (qr.includes('short') ? 4000 : 272000)).toISOString(),
         };
         return { ok: true, request };

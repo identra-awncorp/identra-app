@@ -46,7 +46,7 @@ const credentialIcons = new Set<CredentialIconName>([
   'briefcase',
 ]);
 const activityTypes = new Set<ActivityLog['type']>(['verify', 'share', 'add', 'security', 'scan']);
-const activityStatuses = new Set<NonNullable<ActivityLog['status']>>(['success', 'pending', 'failed']);
+const activityStatuses = new Set<NonNullable<ActivityLog['status']>>(['success', 'pending', 'failed', 'uncertain']);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);

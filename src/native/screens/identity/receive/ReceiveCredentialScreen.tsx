@@ -2,19 +2,17 @@ import { Building2, CheckCircle2, Fingerprint, LockKeyhole } from 'lucide-react-
 import type { ResolvedOffer } from '@identra/sdk-app';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppHeader, CredentialIcon, PrimaryButton, ScreenScroll, StatusPill } from '../../../components/AppUiPrimitives';
 import { LoadingOverlay } from '../../../components/LoadingOverlay';
 import { documentNameKeys, documentTypeOf, issuerDisplayName } from '../../../domain/wallet/credentialPresentation';
 import type { WalletApi } from '../../../domain/wallet/walletContainer';
-import { initialReceiveState, receiveReducer, shouldClearPin, type ReceiveEvent, type ReceiveState } from '../../../domain/wallet/walletFlows';
-import { failureCodeOfError } from '../../../domain/wallet/walletMessages';
+import { abandonOffer, initialReceiveState, receiveReducer, runAccept, shouldClearPin, type ReceiveEvent, type ReceiveState } from '../../../domain/wallet/walletFlows';
 import { issuerLabel, issuerPortalUrl, offerView, sanitizePin } from '../../../domain/wallet/walletViews';
 import { useI18n } from '../../../i18n';
 import type { AppColors } from '../../../theme';
 import { spacing } from '../../../theme';
-import { FailureNotice, Panel, PinCodeInput, TextAction, walletStyles } from '../wallet/WalletParts';
+import { FailureNotice, Panel, PinCodeInput, StickyFooter, TextAction, useAnnouncement, walletStyles } from '../wallet/WalletParts';
 
 /**
  * "Nhận giấy tờ": first whether this phone can protect a key at all (before any code is spent),
@@ -46,7 +44,6 @@ export function ReceiveCredentialScreen({
   onReceived: () => void;
 }) {
   const { locale, t } = useI18n();
-  const insets = useSafeAreaInsets();
   const [state, rawDispatch] = useReducer(receiveReducer, initialReceiveState);
   const [pin, setPin] = useState('');
   const stateRef = useRef<ReceiveState>(state);
@@ -69,9 +66,7 @@ export function ReceiveCredentialScreen({
   useEffect(
     () => () => {
       setPin('');
-      const s = stateRef.current;
-      if (s.phase === 'consent' || s.phase === 'resume' || s.phase === 'accepting') void wallet.offers.discard(s.offer).catch(() => undefined);
-      else if (s.phase === 'accept-failed' && resolvedOffer.current) void wallet.offers.discard(resolvedOffer.current).catch(() => undefined);
+      abandonOffer(stateRef.current, resolvedOffer.current, wallet);
     },
     [wallet],
   );
@@ -99,27 +94,29 @@ export function ReceiveCredentialScreen({
     };
   }, [state.phase, qrText, wallet, dispatch]);
 
+  useAnnouncement(
+    (state.phase === 'consent' || state.phase === 'resume') && state.failure
+      ? `${t(state.failure.titleKey)}. ${t(state.failure.sentenceKey)}`
+      : state.phase === 'accept-failed' || state.phase === 'resolve-failed'
+        ? t(state.failure.sentenceKey)
+        : state.phase === 'received'
+          ? t('wallet.receive.successTitle')
+          : null,
+  );
+
   const offer = state.phase === 'consent' || state.phase === 'accepting' || state.phase === 'resume' ? state.offer : null;
   const view = offer ? offerView(offer, locale) : null;
   const resuming = state.phase === 'resume' || (state.phase === 'accepting' && state.resuming);
   const pinReady = resuming || !view?.pin || pin.length === view.pin.length;
 
-  const submit = async () => {
-    const current = stateRef.current;
-    if ((current.phase !== 'consent' && current.phase !== 'resume') || !pinReady) return;
-    // On resume the SDK keeps the access token: no PIN is sent again.
-    const input = current.phase === 'consent' && view?.pin ? { txCode: pin } : {};
-    dispatch({ type: 'submit' });
-    try {
-      dispatch({ type: 'accepted', result: await wallet.offers.accept(current.offer, input) });
-    } catch (error) {
-      dispatch({ type: 'accept-threw', code: failureCodeOfError(error) });
-    }
-  };
+  // On resume the SDK keeps the access token: no PIN is sent again (acceptInput).
+  const submit = () => runAccept({ get: () => stateRef.current, dispatch }, wallet, pin, view?.pin?.length ?? null);
 
   const footer =
     view && (state.phase === 'consent' || state.phase === 'accepting' || state.phase === 'resume') ? (
-      <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+      <StickyFooter colors={colors}>
+        {/* Next to the button, so it is seen without scrolling (the PIN step is long on small phones). */}
+        {(state.phase === 'consent' || state.phase === 'resume') && state.failure ? <FailureNotice colors={colors} failure={state.failure} /> : null}
         <PrimaryButton
           colors={colors}
           title={resuming ? t('wallet.actions.tryAgain') : t('wallet.receive.accept')}
@@ -129,7 +126,7 @@ export function ReceiveCredentialScreen({
         />
         {!pinReady ? <Text style={[walletStyles.meta, styles.centerText, { color: colors.textSecondary }]}>{t('wallet.receive.pinIncomplete')}</Text> : null}
         <TextAction colors={colors} label={t('common.cancel')} onPress={onClose} disabled={state.phase === 'accepting'} />
-      </View>
+      </StickyFooter>
     ) : null;
 
   return (
@@ -220,12 +217,10 @@ export function ReceiveCredentialScreen({
               </View>
             ) : null}
 
-            {(state.phase === 'consent' || state.phase === 'resume') && state.failure ? <FailureNotice colors={colors} failure={state.failure} /> : null}
-
             <View style={[styles.biometricNote, { backgroundColor: colors.surfaceMuted }]}>
               <Fingerprint color={colors.primaryDark} size={20} strokeWidth={1.9} />
               <Text style={[styles.biometricText, { color: colors.text }]}>
-                {Platform.OS === 'android' ? t('wallet.receive.biometricNoteAndroid') : t('wallet.receive.biometricNote')}
+                {t(Platform.OS === 'android' ? 'wallet.receive.biometricNoteAndroid' : 'wallet.receive.biometricNote', { button: resuming ? t('wallet.actions.tryAgain') : t('wallet.receive.accept') })}
               </Text>
             </View>
           </>
@@ -263,7 +258,7 @@ export function ReceiveCredentialScreen({
           <>
             <FailureNotice colors={colors} failure={state.failure} />
             <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.receive.nothingSaved')}</Text>
-            {state.codeSpent ? <Text style={[walletStyles.lead, { color: colors.text }]}>{t('wallet.receive.codeSpent')}</Text> : null}
+            <Text style={[walletStyles.lead, { color: colors.text }]}>{state.codeSpent ? t('wallet.receive.codeSpent') : t('wallet.receive.newCodeNeeded')}</Text>
             <AcceptFailedActions colors={colors} portalUrl={issuerPortalUrl(state.issuerUri, locale)} contactIssuer={state.failure.action === 'contact-issuer'} onOpenPortal={onOpenPortal} onScanAgain={onScanAgain} onClose={onClose} />
           </>
         ) : null}
@@ -324,5 +319,4 @@ const styles = StyleSheet.create({
   biometricNote: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderRadius: 16, padding: spacing.md },
   biometricText: { flex: 1, fontSize: 14, lineHeight: 20 },
   centerText: { textAlign: 'center' },
-  footer: { borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: spacing.lg, paddingTop: spacing.md, gap: spacing.xs },
 });

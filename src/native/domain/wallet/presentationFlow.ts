@@ -6,7 +6,9 @@ import { VCT } from '@identra/sdk-core';
 import type { I18nKey } from '../../i18n';
 import type { ActivityLog, CredentialStatus } from '../../types';
 import { diplomaClaimLabelKeys, displayClaims, documentNameKeys, documentTypeOf, type DiplomaClaim } from './credentialPresentation';
-import { failureView, type FailureCode, type FailureView } from './walletMessages';
+import type { WalletApi } from './walletContainer';
+import type { FlowSession } from './walletFlows';
+import { failureCodeOfError, MAYBE_SENT_CODES, presentationFailureView, type FailureCode, type FailureView } from './walletMessages';
 import { issuerLabel, type Locale } from './walletViews';
 
 /** Resolve failures after which no consent UI may appear: the wallet could not establish who is asking. */
@@ -45,7 +47,8 @@ export type PresentState =
   | { phase: 'declined' };
 
 export type PresentEvent =
-  | { type: 'resolved'; result: { ok: true; request: ResolvedPresentation } | WalletFailure | { ok: false; code: FailureCode } }
+  /** `nowMs`: a request already past its expiry is expired from the start, not from the first tick. */
+  | { type: 'resolved'; result: { ok: true; request: ResolvedPresentation } | WalletFailure | { ok: false; code: FailureCode }; nowMs: number }
   | { type: 'statuses'; statuses: Record<string, CredentialStatus> }
   | { type: 'select-document'; credentialId: string }
   | { type: 'select-claim-set'; index: number }
@@ -63,20 +66,25 @@ export type PresentEvent =
 
 export const initialPresentState: PresentState = { phase: 'resolving' };
 
-const BLOCKING: readonly CredentialStatus[] = ['revoked', 'suspended'];
+/** Document statuses the requester would refuse: nothing is signed for them. */
+export const BLOCKING_STATUSES = ['revoked', 'suspended', 'invalid', 'expired'] as const satisfies readonly CredentialStatus[];
+export type BlockingStatus = (typeof BLOCKING_STATUSES)[number];
+const isBlocking = (status: CredentialStatus | undefined): status is BlockingStatus => (BLOCKING_STATUSES as readonly string[]).includes(status ?? '');
+
+export type ShareBlock = 'request-expired' | BlockingStatus | 'untrusted';
 
 /** Whether the selected document may be shared now, and if not, why. */
-export function shareBlock(state: ConsentState): 'expired' | 'revoked' | 'suspended' | 'untrusted' | null {
-  if (state.expired) return 'expired';
+export function shareBlock(state: ConsentState): ShareBlock | null {
+  if (state.expired) return 'request-expired';
   const status = state.statuses[state.credentialId];
-  if (status === 'revoked' || status === 'suspended') return status;
+  if (isBlocking(status)) return status;
   if (state.untrusted !== null && state.untrusted !== 'confirmed') return 'untrusted';
   return null;
 }
 
 function firstChoice(request: ResolvedPresentation, statuses: Record<string, CredentialStatus> = {}): PresentationMatch {
   // A document that can be shared before one that is revoked or suspended.
-  return request.matches.find((m) => !BLOCKING.includes(statuses[m.credentialId] ?? 'unknown')) ?? request.matches[0]!;
+  return request.matches.find((m) => !isBlocking(statuses[m.credentialId])) ?? request.matches[0]!;
 }
 
 export function presentReducer(state: PresentState, event: PresentEvent): PresentState {
@@ -85,7 +93,7 @@ export function presentReducer(state: PresentState, event: PresentEvent): Presen
       if (state.phase !== 'resolving') return state;
       const result = event.result;
       if (!result.ok) {
-        const failure = failureView(result.code);
+        const failure = presentationFailureView(result.code, 'resolve');
         return { phase: 'refused', failure, retryLater: RETRY_LATER_CODES.has(failure.code) };
       }
       const request = result.request;
@@ -95,14 +103,14 @@ export function presentReducer(state: PresentState, event: PresentEvent): Presen
       const first = firstChoice(request);
       return {
         phase: 'consent', request, credentialId: first.credentialId, claimSetIndex: first.claimSets[0]!.index,
-        untrusted: request.verifier.trusted ? null : 'warning', statuses: {}, refreshing: false, expired: false, failure: null,
+        untrusted: request.verifier.trusted ? null : 'warning', statuses: {}, refreshing: false, expired: event.nowMs >= Date.parse(request.expiresAt), failure: null,
       };
     }
     case 'statuses': {
       if (state.phase !== 'consent') return state;
       const statuses = { ...state.statuses, ...event.statuses };
       const current = statuses[state.credentialId];
-      if (current && BLOCKING.includes(current)) {
+      if (isBlocking(current)) {
         const better = firstChoice(state.request, statuses);
         if (better.credentialId !== state.credentialId) return { ...state, statuses, credentialId: better.credentialId, claimSetIndex: better.claimSets[0]!.index };
       }
@@ -143,7 +151,7 @@ export function presentReducer(state: PresentState, event: PresentEvent): Presen
         const claims = match.claimSets.find((c) => c.index === state.claimSetIndex)!.claims;
         return { phase: 'sent', verifierName: state.request.verifier.trusted ? state.request.verifier.ten : null, credentialId: state.credentialId, claims: [...claims] };
       }
-      const failure = failureView(event.result.code);
+      const failure = presentationFailureView(event.result.code, 'submit');
       return BACK_TO_CONSENT.has(failure.code) ? { ...state, phase: 'consent', failure } : { phase: 'failed', failure, credentialId: state.credentialId };
     }
     case 'decline':
@@ -161,6 +169,18 @@ export interface ConsentField {
   value: string;
 }
 
+/** One of the verifier's options (claim sets, in its order of preference). */
+export interface ClaimSetOption {
+  index: number;
+  /** The verifier's first option ("as requested"). */
+  first: boolean;
+  /** Exactly the fields this option sends. */
+  fields: ConsentField[];
+  /** Compared with the chosen option: what switching adds and drops (both, should a set not be nested). */
+  added: ConsentField[];
+  dropped: ConsentField[];
+}
+
 export interface ClaimSetChoice {
   /** The claim set index to submit. */
   index: number;
@@ -170,17 +190,18 @@ export interface ClaimSetChoice {
   optional: ConsentField[];
   /** Not requested at all: stays on the phone. */
   withheld: ConsentField[];
-  /** The smaller option, when the verifier accepts one, and the fields it leaves out. */
-  smaller: { index: number; dropped: ConsentField[] } | null;
-  /** The verifier's first option, when this is not it. */
-  fuller: { index: number; added: ConsentField[] } | null;
+  /** Every option, the chosen one included. */
+  options: ClaimSetOption[];
 }
 
 const labelKeyOf = (name: string): I18nKey | null => (Object.hasOwn(diplomaClaimLabelKeys, name) ? diplomaClaimLabelKeys[name as DiplomaClaim] : null);
+/** The label of a field name (unknown names read "Thông tin khác"). */
+export const fieldLabelKey = (name: string): I18nKey => labelKeyOf(name) ?? ('wallet.present.unknownField' as I18nKey);
 
 /**
  * Required / optional / withheld fields of the chosen claim set, with the values that would leave
- * the phone (`claims`: the stored disclosures of the document, from credentials.get).
+ * the phone (`claims`: the stored disclosures of the document, from credentials.get), and every
+ * option with what it would add or drop.
  */
 export function claimSetChoice(match: PresentationMatch, claimSetIndex: number, vct: string, claims: Record<string, unknown>, locale: Locale): ClaimSetChoice {
   const display = new Map(displayClaims(vct, claims, locale).map((c) => [c.name as string, c]));
@@ -188,21 +209,25 @@ export function claimSetChoice(match: PresentationMatch, claimSetIndex: number, 
   const sets = match.claimSets;
   const chosen = sets.find((s) => s.index === claimSetIndex) ?? sets[0]!;
   const inAll = sets.reduce<string[]>((acc, s) => acc.filter((n) => s.claims.includes(n)), [...sets[0]!.claims]);
-  const order = (names: string[]) => [...names].sort((a, b) => indexOfDisplay(a) - indexOfDisplay(b));
-  const indexOfDisplay = (n: string) => {
-    const i = [...display.keys()].indexOf(n);
+  const displayOrder = [...display.keys()];
+  const rank = (n: string) => {
+    const i = displayOrder.indexOf(n);
     return i === -1 ? 999 : i;
   };
+  const fields = (names: readonly string[]) => [...names].sort((a, b) => rank(a) - rank(b)).map(field);
   const shared = new Set(chosen.claims);
-  const smallest = sets.reduce((a, b) => (b.claims.length < a.claims.length ? b : a));
-  const first = sets[0]!;
   return {
     index: chosen.index,
-    required: order(chosen.claims.filter((n) => inAll.includes(n))).map(field),
-    optional: order(chosen.claims.filter((n) => !inAll.includes(n))).map(field),
-    withheld: order([...display.keys()].filter((n) => !shared.has(n))).map(field),
-    smaller: smallest.claims.length < chosen.claims.length ? { index: smallest.index, dropped: order(chosen.claims.filter((n) => !smallest.claims.includes(n))).map(field) } : null,
-    fuller: chosen.index !== first.index ? { index: first.index, added: order(first.claims.filter((n) => !shared.has(n))).map(field) } : null,
+    required: fields(chosen.claims.filter((n) => inAll.includes(n))),
+    optional: fields(chosen.claims.filter((n) => !inAll.includes(n))),
+    withheld: fields(displayOrder.filter((n) => !shared.has(n))),
+    options: sets.map((s, i) => ({
+      index: s.index,
+      first: i === 0,
+      fields: fields(s.claims),
+      added: fields(s.claims.filter((n) => !shared.has(n))),
+      dropped: fields(chosen.claims.filter((n) => !s.claims.includes(n))),
+    })),
   };
 }
 
@@ -239,6 +264,15 @@ export function documentChoices(request: ResolvedPresentation, issuerUris: Recor
 
 // ---------------------------------------------------------------- activity log
 
+/** `uncertain`: the answer was posted but no confirmation came back, so it may have arrived. */
+export type ShareOutcome = 'success' | 'failed' | 'uncertain';
+
+const ACTIVITY_TITLES: Record<ShareOutcome, I18nKey> = {
+  success: 'wallet.present.activity.sharedTitle',
+  failed: 'wallet.present.activity.failedTitle',
+  uncertain: 'wallet.present.activity.maybeSentTitle',
+};
+
 /**
  * The local record of a presentation: who, which document, which FIELD NAMES, when, outcome.
  * Never a claim value (only names and translated labels go in).
@@ -250,7 +284,7 @@ export function presentationActivityEntry(input: {
   credentialId: string;
   documentNameKey: I18nKey;
   claims: readonly string[];
-  outcome: 'success' | 'failed';
+  outcome: ShareOutcome;
   t: (key: I18nKey, params?: Record<string, string>) => string;
 }): ActivityLog {
   const { t } = input;
@@ -260,11 +294,78 @@ export function presentationActivityEntry(input: {
     timestamp: input.now.toISOString(),
     type: 'share',
     status: input.outcome,
-    title: t(input.outcome === 'success' ? 'wallet.present.activity.sharedTitle' : 'wallet.present.activity.failedTitle', { document: t(input.documentNameKey) }),
+    title: t(ACTIVITY_TITLES[input.outcome], { document: t(input.documentNameKey) }),
     description: labels.join(', '),
     partner: input.verifierName ?? t('wallet.present.activity.unverifiedPartner'),
     credentialId: input.credentialId,
     sharedClaims: input.claims.filter((n) => /^[a-z_]{1,40}$/.test(n)),
     unread: false,
+  };
+}
+
+// ---------------------------------------------------------------- what the screen does
+
+/** What "Chia sẻ" submits: the reducer's selection; `allowUntrusted` only after the second confirmation. */
+export function submissionOf(state: ConsentState): { credentialId: string; claimSetIndex: number; allowUntrusted?: true } {
+  return { credentialId: state.credentialId, claimSetIndex: state.claimSetIndex, ...(state.untrusted === 'confirmed' ? { allowUntrusted: true as const } : {}) };
+}
+
+/** How a finished attempt is recorded: null while nothing was attempted (back on the consent screen). */
+export function shareOutcomeOf(state: PresentState): ShareOutcome | null {
+  if (state.phase === 'sent') return 'success';
+  if (state.phase === 'failed') return MAYBE_SENT_CODES.has(state.failure.code) ? 'uncertain' : 'failed';
+  return null;
+}
+
+export interface ShareAttempt {
+  outcome: ShareOutcome;
+  documentNameKey: I18nKey;
+  request: ResolvedPresentation;
+  credentialId: string;
+  /** The field names of the submitted claim set. */
+  claims: string[];
+}
+
+/**
+ * The consent screen's actions on its reducer state. `share` submits at most once at a time (a
+ * double tap does nothing) and returns what to record; `leave` declines locally when the request
+ * is still unanswered (back button, unmount).
+ */
+export function createPresentationActions(wallet: Pick<WalletApi, 'presentations'>, session: FlowSession<PresentState, PresentEvent>) {
+  let inFlight = false;
+  return {
+    /** `onSubmit`: right before the signing key is used (its biometric prompt follows). */
+    async share(onSubmit?: () => void): Promise<ShareAttempt | null> {
+      const s = session.get();
+      if (inFlight || s.phase !== 'consent' || shareBlock(s) !== null) return null;
+      inFlight = true;
+      try {
+        const choice = submissionOf(s);
+        session.dispatch({ type: 'submit' });
+        onSubmit?.();
+        let result: { ok: true } | WalletFailure | { ok: false; code: FailureCode };
+        try {
+          result = await wallet.presentations.submit(s.request, choice);
+        } catch (error) {
+          result = { ok: false, code: failureCodeOfError(error) };
+        }
+        session.dispatch({ type: 'submitted', result });
+        const outcome = shareOutcomeOf(session.get());
+        if (!outcome) return null;
+        const match = s.request.matches.find((m) => m.credentialId === choice.credentialId)!;
+        return { outcome, documentNameKey: documentNameKeys[documentTypeOf(match.vct)], request: s.request, credentialId: choice.credentialId, claims: [...match.claimSets.find((c) => c.index === choice.claimSetIndex)!.claims] };
+      } finally {
+        inFlight = false;
+      }
+    },
+    leave(): void {
+      const s = session.get();
+      if (s.phase !== 'consent' && s.phase !== 'no-match') return;
+      try {
+        void Promise.resolve(wallet.presentations.decline(s.request)).catch(() => undefined);
+      } catch {
+        // Local only: a request that cannot be declined is simply never answered.
+      }
+    },
   };
 }

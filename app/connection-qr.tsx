@@ -17,7 +17,6 @@ export default function ConnectionQrRoute() {
   return (
     <ConnectionQrScreen
       colors={colors}
-      did={store.profile.did}
       createdAt={connectionInvitation.createdAt}
       onBack={() => router.replace('/scan')}
       onCancel={() => {

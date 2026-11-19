@@ -25,6 +25,14 @@ Use this runbook before handing off code changes that affect the Identra mobile 
    - `npm test`
    - `npm run check:bundle` (release gate: no dev-only module or string in the android/ios bundles;
      prints the SDK commit the bundle was built from)
+     It cannot catch: dev code that does not live in `src/native/dev/**` or carries no string of 10+
+     characters, a dev-only branch guarded only by `__DEV__` inside a normal module, an SDK checkout
+     other than the reviewed one (only `RELEASE=1` refuses a dirty SDK tree; the commit must be
+     compared by hand), native code, `app.json` / config plugin changes, or anything that only fails
+     at run time on a device.
+   - The SDK-world proofs (`tests/*.e2e.test.js`) need the SDK built and its test PKI: run
+     `sh scripts/pki/ensure-test-pki.sh` in `../identra-sdk` if they report it missing (they skip with
+     that message rather than fail).
    - targeted tests for touched logic where practical
 5. For UI changes, manually inspect:
    - Android or Android emulator

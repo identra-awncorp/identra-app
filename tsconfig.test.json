@@ -23,6 +23,7 @@
     "src/native/screens/chat-list/chatSearchLogic.ts",
     "src/native/domain/app-store/appStoreStateService.ts",
     "src/native/domain/app-store/appStatePersistence.ts",
+    "src/native/data/demo/identityDemoData.ts",
     "src/native/screens/settings/activity/activityLogLogic.ts",
     "src/native/screens/news-feed/search/newsFeedSearchLogic.ts",
     "src/native/platform/runtimeGlobals.ts",

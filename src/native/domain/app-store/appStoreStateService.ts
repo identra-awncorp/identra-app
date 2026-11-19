@@ -75,6 +75,11 @@ export function updateActivityLogInAppState(
   };
 }
 
+/** A wallet document was removed: its sharing records (verifier and field names) go with it. */
+export function removeCredentialActivityFromAppState(state: PersistedAppState, credentialId: string): PersistedAppState {
+  return { ...state, logs: state.logs.filter((log) => log.credentialId !== credentialId) };
+}
+
 export function removeActivityLogFromAppState(
   state: PersistedAppState,
   id: string,

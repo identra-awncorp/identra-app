@@ -20,9 +20,11 @@ biometric prompt differ on a phone. Use `wallet-device-verification.md` for the 
 ## Harness scenarios
 
 `src/native/dev/walletHarness.ts`: `held`, `empty`, `restored`, `catalogue`, `broken`; PIN
-`000000` wrong, `111111` credential fails its checks, `222222` expired, `333333` offline.
-Sharing: `identra.harness.presentation` QR containing `untrusted`, `two-docs`, `revoked`, `nomatch`,
-`short`, or a refusal code; `identra.harness.submit` = `ok` or a wallet code. `CAPTURE_ONLY=present`
+`000000` wrong, `111111` credential fails its checks, `222222` expired, `333333` no answer to the PIN
+(code not redeemed: PIN step again), `444444` cancelled prompt and `555555` offline after the PIN
+(both resume without the PIN).
+Sharing: `identra.harness.presentation` QR containing `untrusted`, `two-docs`, `revoked`,
+`invalid-doc`, `three-sets`, `nomatch`, `short`, or a refusal code; `identra.harness.submit` = `ok` or a wallet code. `CAPTURE_ONLY=present`
 limits the capture to the sharing states. Long screens also get a `-bottom.png`.
 
 ## Verification

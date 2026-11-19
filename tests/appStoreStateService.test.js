@@ -5,6 +5,7 @@ const {
   addActivityLogToAppState,
   createActivityLog,
   expirePendingActivityLogsInAppState,
+  removeCredentialActivityFromAppState,
   removeDemoDataFromAppState,
   updateProfileInAppState,
   upsertCredentialInAppState,
@@ -180,5 +181,24 @@ describe('appStoreStateService', () => {
 
     assert.deepEqual(next.credentials.map((credential) => credential.id), ['real-credential']);
     assert.deepEqual(next.logs.map((log) => log.id), ['real-log']);
+  });
+});
+
+describe('wallet documents and the app store', () => {
+  it('drops the sharing records of a removed document, and only those', () => {
+    const state = makeState({
+      logs: [
+        { id: 'a', type: 'share', title: '', description: 'Họ và tên', partner: 'X', credentialId: 'c1', sharedClaims: ['ho_ten'] },
+        { id: 'b', type: 'share', title: '', description: 'Ngành', partner: 'Y', credentialId: 'c2', sharedClaims: ['nganh'] },
+        { id: 'c', type: 'scan', title: '', description: '', partner: '' },
+      ],
+    });
+    assert.deepEqual(removeCredentialActivityFromAppState(state, 'c1').logs.map((l) => l.id), ['b', 'c']);
+  });
+
+  it('starts without demo credentials or a demo identifier (the wallet reads the SDK vault)', () => {
+    const { INITIAL_CREDENTIALS, INITIAL_PROFILE } = require('../.tmp-test/src/native/data/demo/identityDemoData');
+    assert.deepEqual(INITIAL_CREDENTIALS, []);
+    assert.equal(INITIAL_PROFILE.did, '');
   });
 });

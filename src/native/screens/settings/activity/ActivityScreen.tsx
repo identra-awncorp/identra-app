@@ -246,6 +246,7 @@ function ActivityRow({ colors, log, showDate, divider }: { colors: AppColors; lo
     success: { color: palette.green[600], icon: CheckCircle2 },
     pending: { color: palette.orange[500], icon: Clock3 },
     failed: { color: palette.red[500], icon: Clock3 },
+    uncertain: { color: palette.orange[500], icon: Clock3 },
   }[status];
   const StatusIcon = statusStyle.icon;
   const time = new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(log.timestamp));

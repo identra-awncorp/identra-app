@@ -17,14 +17,12 @@ import { styles } from '../shared/DetailScreenSharedStyles';
 // shared only by scanning a verifier's QR code, screens/identity/present).
 export function ConnectionQrScreen({
   colors,
-  did,
   createdAt: initialCreatedAt,
   onBack,
   onRefresh,
   onCancel,
 }: {
   colors: AppColors;
-  did: string;
   createdAt: number;
   onBack: () => void;
   onRefresh: (createdAt: number) => void;
@@ -33,17 +31,7 @@ export function ConnectionQrScreen({
   const { t } = useI18n();
   const [createdAt, setCreatedAt] = useState(initialCreatedAt);
   const [remaining, setRemaining] = useState(() => getTemporaryQrRemainingSeconds(initialCreatedAt, Date.now()));
-  const connectionRequest = useMemo(
-    () => ({
-      inviter: did,
-      reference: createTemporaryQrReference({
-        createdAt,
-        purpose: 'connection-invitation',
-      }),
-    }),
-    [createdAt, did],
-  );
-  const qrValue = serializeTemporaryQrReference(connectionRequest.reference);
+  const qrValue = useMemo(() => serializeTemporaryQrReference(createTemporaryQrReference({ createdAt, purpose: 'connection-invitation' })), [createdAt]);
 
   useEffect(() => {
     const timer = setInterval(() => {

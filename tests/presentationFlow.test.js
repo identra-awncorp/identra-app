@@ -4,6 +4,9 @@ const { describe, it } = require('node:test');
 const { VCT } = require('@identra/sdk-core');
 const {
   claimSetChoice,
+  createPresentationActions,
+  shareOutcomeOf,
+  submissionOf,
   formatCountdown,
   initialPresentState,
   presentationActivityEntry,
@@ -29,24 +32,24 @@ const request = (o = {}) => ({
   ...o,
 });
 const untrusted = (o = {}) => request({ verifier: { trusted: false }, warning: 'VERIFIER_NOT_TRUSTED', purpose: 'Chúng tôi là ngân hàng nhà nước', ...o });
-const resolved = (req) => presentReducer(initialPresentState, { type: 'resolved', result: { ok: true, request: req } });
+const resolved = (req, nowMs = NOW) => presentReducer(initialPresentState, { type: 'resolved', result: { ok: true, request: req }, nowMs });
 const fail = (code) => ({ ok: false, code });
 const t = (key, params) => translate('vi', key, params);
 
 describe('sharing: resolving', () => {
   it('shows no consent at all after a failed verifier check, and tells "check later" apart from "unusable code"', () => {
     for (const code of ['CERT_CHAIN_UNTRUSTED', 'CERT_EXPIRED', 'CERT_NOT_YET_VALID', 'CERT_CHAIN_MALFORMED', 'CERT_CONSTRAINT_INVALID', 'CERT_KEY_NOT_ALLOWED', 'CLIENT_ID_MISMATCH', 'SIGNATURE_INVALID', 'ALG_NOT_ALLOWED', 'REQUEST_INVALID', 'REQUEST_EXPIRED', 'URL_NOT_ALLOWED']) {
-      const s = presentReducer(initialPresentState, { type: 'resolved', result: fail(code) });
+      const s = presentReducer(initialPresentState, { type: 'resolved', result: fail(code), nowMs: NOW });
       assert.deepEqual([s.phase, s.retryLater, s.failure.code], ['refused', false, code], code);
       assert.equal('request' in s, false, `${code}: nothing of the request is kept`);
     }
     for (const code of ['TRUST_LIST_UNAVAILABLE', 'NETWORK_ERROR']) {
-      const s = presentReducer(initialPresentState, { type: 'resolved', result: fail(code) });
+      const s = presentReducer(initialPresentState, { type: 'resolved', result: fail(code), nowMs: NOW });
       assert.deepEqual([s.phase, s.retryLater], ['refused', true], code);
       assert.equal(presentReducer(s, { type: 'retry' }).phase, 'resolving');
     }
     assert.ok(RETRY_LATER_CODES.has('DEVICE_LOCKED'), 'resolve will propagate key-store codes soon');
-    const hard = presentReducer(initialPresentState, { type: 'resolved', result: fail('CLIENT_ID_MISMATCH') });
+    const hard = presentReducer(initialPresentState, { type: 'resolved', result: fail('CLIENT_ID_MISMATCH'), nowMs: NOW });
     assert.equal(presentReducer(hard, { type: 'retry' }), hard, 'an unusable code is not retried');
   });
 
@@ -70,20 +73,42 @@ describe('sharing: what leaves the phone', () => {
     assert.deepEqual(full.optional.map((f) => f.name), ['hang_tot_nghiep', 'nam_tot_nghiep']);
     assert.deepEqual(full.withheld.map((f) => f.name), ['ngay_sinh', 'ma_sinh_vien', 'so_hieu_bang']);
     assert.deepEqual(full.required.map((f) => [t(f.labelKey), f.value]), [['Họ và tên', CLAIMS.ho_ten], ['Ngành', CLAIMS.nganh]]);
-    assert.deepEqual(full.smaller, { index: 1, dropped: full.optional });
-    assert.equal(full.fuller, null);
+    assert.deepEqual(full.options.map((o) => [o.index, o.first, o.fields.map((f) => f.name), o.added.length, o.dropped.map((f) => f.name)]), [
+      [0, true, ['ho_ten', 'nganh', 'hang_tot_nghiep', 'nam_tot_nghiep'], 0, []],
+      [1, false, ['ho_ten', 'nganh'], 0, ['hang_tot_nghiep', 'nam_tot_nghiep']],
+    ]);
 
     const less = claimSetChoice(match('c1'), 1, VCT.diploma, CLAIMS, 'vi');
     assert.deepEqual(less.optional, []);
     assert.deepEqual(less.required.map((f) => f.name), ['ho_ten', 'nganh']);
     assert.deepEqual(less.withheld.map((f) => f.name), ['ngay_sinh', 'ma_sinh_vien', 'hang_tot_nghiep', 'nam_tot_nghiep', 'so_hieu_bang']);
-    assert.equal(less.smaller, null);
-    assert.deepEqual(less.fuller.added.map((f) => f.name), ['hang_tot_nghiep', 'nam_tot_nghiep']);
+    assert.deepEqual(less.options[0].added.map((f) => f.name), ['hang_tot_nghiep', 'nam_tot_nghiep']);
+    assert.deepEqual(less.options[0].dropped, []);
+  });
+
+  it('names exactly what each of several options sends, and can reach the middle one', () => {
+    const three = [{ index: 0, claims: ['ho_ten', 'nganh', 'hang_tot_nghiep', 'nam_tot_nghiep'] }, { index: 1, claims: ['ho_ten', 'nganh', 'hang_tot_nghiep'] }, { index: 2, claims: ['ho_ten', 'nganh'] }];
+    const choice = claimSetChoice(match('c1', three), 0, VCT.diploma, CLAIMS, 'vi');
+    assert.deepEqual(choice.options.map((o) => o.fields.map((f) => f.name)), three.map((x) => x.claims));
+    let s = resolved(request({ matches: [match('c1', three)] }));
+    s = presentReducer(s, { type: 'select-claim-set', index: 1 });
+    assert.deepEqual(submissionOf(s), { credentialId: 'c1', claimSetIndex: 1 });
+    const middle = claimSetChoice(match('c1', three), 1, VCT.diploma, CLAIMS, 'vi');
+    assert.deepEqual(middle.optional.map((f) => f.name), ['hang_tot_nghiep']);
+  });
+
+  it('shows both what is added and what is dropped should a non-nested option ever arrive', () => {
+    const odd = [{ index: 0, claims: ['ho_ten', 'nganh', 'hang_tot_nghiep'] }, { index: 1, claims: ['ho_ten', 'ngay_sinh'] }];
+    const choice = claimSetChoice(match('c1', odd), 0, VCT.diploma, CLAIMS, 'vi');
+    const other = choice.options[1];
+    assert.deepEqual(other.added.map((f) => f.name), ['ngay_sinh']);
+    assert.deepEqual(other.dropped.map((f) => f.name), ['nganh', 'hang_tot_nghiep']);
+    assert.deepEqual(choice.required.map((f) => f.name), ['ho_ten'], 'only what every option sends is required');
   });
 
   it('treats every field of a single option as required (the only way out is to decline)', () => {
     const only = claimSetChoice(match('c1', [SETS[1]]), 1, VCT.diploma, CLAIMS, 'vi');
-    assert.deepEqual([only.required.length, only.optional.length, only.smaller, only.fuller], [2, 0, null, null]);
+    assert.deepEqual([only.required.length, only.optional.length, only.options.length], [2, 0, 1]);
   });
 
   it('switches option only to one the document can satisfy', () => {
@@ -117,9 +142,20 @@ describe('sharing: choosing a document', () => {
     assert.equal(presentReducer(s, { type: 'select-document', credentialId: 'missing' }), s);
   });
 
-  it('keeps a single suspended document selected and blocked', () => {
-    const s = presentReducer(resolved(request()), { type: 'statuses', statuses: { c1: 'suspended' } });
-    assert.equal(shareBlock(s), 'suspended');
+  it('keeps a single suspended, invalid or expired document selected and blocked: nothing can be signed', () => {
+    for (const status of ['suspended', 'invalid', 'expired', 'revoked']) {
+      const s = presentReducer(resolved(request()), { type: 'statuses', statuses: { c1: status } });
+      assert.equal(shareBlock(s), status, status);
+      assert.equal(presentReducer(s, { type: 'submit' }), s, `${status}: no submit`);
+    }
+    for (const status of ['verified', 'unknown']) assert.equal(shareBlock(presentReducer(resolved(request()), { type: 'statuses', statuses: { c1: status } })), null, status);
+  });
+
+  it('switches away from a suspended document to one that can be shared', () => {
+    for (const status of ['suspended', 'invalid']) {
+      const s = presentReducer(resolved(request({ matches: [match('bad'), match('good')] })), { type: 'statuses', statuses: { bad: status, good: 'verified' } });
+      assert.deepEqual([s.credentialId, shareBlock(s)], ['good', null], status);
+    }
   });
 });
 
@@ -153,10 +189,16 @@ describe('sharing: countdown and submit', () => {
     s = presentReducer(s, { type: 'tick', nowMs: NOW + 299_000 });
     assert.equal(s.expired, false);
     s = presentReducer(s, { type: 'tick', nowMs: NOW + 300_000 });
-    assert.equal(shareBlock(s), 'expired');
+    assert.equal(shareBlock(s), 'request-expired');
     assert.equal(presentReducer(s, { type: 'submit' }), s);
     const confirming = presentReducer(presentReducer(resolved(untrusted()), { type: 'share-untrusted' }), { type: 'tick', nowMs: NOW + 300_000 });
     assert.equal(confirming.untrusted, 'warning', 'an expired request drops the confirmation');
+  });
+
+  it('treats a request already past its expiry as expired from the start, not from the first tick', () => {
+    const late = resolved(request(), NOW + 301_000);
+    assert.equal(shareBlock(late), 'request-expired');
+    assert.equal(presentReducer(late, { type: 'submit' }), late);
   });
 
   it('submits once: a second tap while sending changes nothing', () => {
@@ -174,7 +216,7 @@ describe('sharing: countdown and submit', () => {
       const back = presentReducer(submitting, { type: 'submitted', result: fail(code) });
       assert.deepEqual([back.phase, back.failure.code, back.claimSetIndex], ['consent', code, 1], code);
     }
-    for (const [code, action] of [['KEY_INVALIDATED', 'request-again'], ['KEY_NOT_FOUND', 'request-again'], ['VERIFIER_ERROR', 'close'], ['NETWORK_ERROR', 'retry'], ['REQUEST_EXPIRED', 'close'], ['REQUEST_INVALID', 'close'], ['STORAGE_ERROR', 'retry']]) {
+    for (const [code, action] of [['KEY_INVALIDATED', 'request-again'], ['KEY_NOT_FOUND', 'request-again'], ['VERIFIER_ERROR', 'scan-again'], ['NETWORK_ERROR', 'scan-again'], ['REQUEST_EXPIRED', 'close'], ['REQUEST_INVALID', 'close'], ['STORAGE_ERROR', 'retry']]) {
       const failed = presentReducer(submitting, { type: 'submitted', result: fail(code) });
       assert.deepEqual([failed.phase, failed.failure.code, failed.failure.action], ['failed', code, action], code);
     }
@@ -196,6 +238,11 @@ describe('sharing: the activity record', () => {
     for (const value of Object.values(CLAIMS)) assert.equal(text.includes(value), false, value);
     const unnamed = presentationActivityEntry({ id: 'x', now: new Date(NOW), verifierName: null, credentialId: 'c1', documentNameKey: 'wallet.documentTypes.diploma', claims: ['ho_ten'], outcome: 'failed', t });
     assert.deepEqual([unnamed.partner, unnamed.status, unnamed.title], ['Bên chưa được xác nhận', 'failed', 'Chia sẻ Bằng tốt nghiệp không thành công']);
+    const maybe = presentationActivityEntry({ id: 'y', now: new Date(NOW), verifierName: null, credentialId: 'c1', documentNameKey: 'wallet.documentTypes.diploma', claims: ['ho_ten'], outcome: 'uncertain', t });
+    assert.deepEqual([maybe.status, maybe.title], ['uncertain', 'Có thể đã gửi Bằng tốt nghiệp']);
+    // Only plain field names are kept as names; anything value-like is dropped from the record.
+    const odd = presentationActivityEntry({ id: 'z', now: new Date(NOW), verifierName: null, credentialId: 'c1', documentNameKey: 'wallet.documentTypes.diploma', claims: ['ho_ten', 'Nguyễn Văn A', 'x'.repeat(41)], outcome: 'success', t });
+    assert.deepEqual(odd.sharedClaims, ['ho_ten']);
   });
 
   it('is stored with the document link and field names, and anything value-like is dropped on load', () => {
@@ -206,5 +253,94 @@ describe('sharing: the activity record', () => {
     assert.equal(round.logs[0].credentialId, 'c1');
     const tampered = parsePersistedIdentityEnvelope(createPersistedIdentityEnvelope({ ...base, logs: [{ ...log, sharedClaims: ['Nguyễn Văn A'] }] }));
     assert.equal('sharedClaims' in tampered.logs[0], false);
+  });
+});
+
+describe('sharing: the screen\'s actions (what is really submitted)', () => {
+  function screen(req, statuses) {
+    const calls = { submit: [], decline: 0 };
+    let answer = { ok: true };
+    let release = null;
+    const wallet = {
+      presentations: {
+        submit: (r, choice) => {
+          calls.submit.push(choice);
+          return release === 'hold' ? new Promise((resolve) => (release = () => resolve(answer))) : Promise.resolve(answer);
+        },
+        decline: () => {
+          calls.decline += 1;
+          return { ok: true };
+        },
+      },
+    };
+    const box = { state: resolved(req) };
+    if (statuses) box.state = presentReducer(box.state, { type: 'statuses', statuses });
+    const session = { get: () => box.state, dispatch: (e) => (box.state = presentReducer(box.state, e)) };
+    return { box, calls, actions: createPresentationActions(wallet, session), dispatch: session.dispatch, answer: (a) => (answer = a), hold: () => (release = 'hold'), release: () => release() };
+  }
+
+  it('sends allowUntrusted ONLY after the second confirmation', async () => {
+    const trusted = screen(request());
+    await trusted.actions.share();
+    assert.deepEqual(trusted.calls.submit, [{ credentialId: 'c1', claimSetIndex: 0 }]);
+
+    const u = screen(untrusted());
+    assert.equal(await u.actions.share(), null, 'nothing from the warning');
+    u.dispatch({ type: 'share-untrusted' });
+    assert.equal(await u.actions.share(), null, 'nothing while confirming');
+    assert.deepEqual(u.calls.submit, []);
+    u.dispatch({ type: 'confirm-untrusted' });
+    await u.actions.share();
+    assert.deepEqual(u.calls.submit, [{ credentialId: 'c1', claimSetIndex: 0, allowUntrusted: true }]);
+  });
+
+  it('submits the reducer\'s selection: the chosen document and claim set', async () => {
+    const s = screen(request({ matches: [match('a'), match('b')] }));
+    s.dispatch({ type: 'select-document', credentialId: 'b' });
+    s.dispatch({ type: 'select-claim-set', index: 1 });
+    const attempt = await s.actions.share();
+    assert.deepEqual(s.calls.submit, [{ credentialId: 'b', claimSetIndex: 1 }]);
+    assert.deepEqual([attempt.outcome, attempt.credentialId, attempt.claims, attempt.documentNameKey], ['success', 'b', ['ho_ten', 'nganh'], 'wallet.documentTypes.diploma']);
+  });
+
+  it('submits at most once at a time (double tap)', async () => {
+    const s = screen(request());
+    s.hold();
+    const first = s.actions.share();
+    assert.equal(await s.actions.share(), null);
+    assert.equal(s.calls.submit.length, 1);
+    s.release();
+    assert.equal((await first).outcome, 'success');
+  });
+
+  it('records the outcome: sent, may have been sent, failed, or nothing when back on the consent screen', async () => {
+    for (const [result, outcome] of [[{ ok: true }, 'success'], [fail('NETWORK_ERROR'), 'uncertain'], [fail('VERIFIER_ERROR'), 'uncertain'], [fail('KEY_INVALIDATED'), 'failed'], [fail('REQUEST_EXPIRED'), 'failed']]) {
+      const s = screen(request());
+      s.answer(result);
+      assert.equal((await s.actions.share()).outcome, outcome, JSON.stringify(result));
+      assert.equal(shareOutcomeOf(s.box.state), outcome);
+    }
+    const cancelled = screen(request());
+    cancelled.answer(fail('USER_CANCELLED'));
+    assert.equal(await cancelled.actions.share(), null);
+    assert.equal(cancelled.box.state.phase, 'consent');
+  });
+
+  it('never submits a blocked document', async () => {
+    const s = screen(request(), { c1: 'invalid' });
+    assert.equal(await s.actions.share(), null);
+    assert.deepEqual(s.calls.submit, []);
+  });
+
+  it('declines on leaving (back, unmount) only while the request is unanswered', async () => {
+    const s = screen(request());
+    s.actions.leave();
+    assert.equal(s.calls.decline, 1);
+    await s.actions.share();
+    s.actions.leave();
+    assert.equal(s.calls.decline, 1, 'an answered request is not declined');
+    const none = screen(request({ matches: [] }));
+    none.actions.leave();
+    assert.equal(none.calls.decline, 1, 'the no-match state declines too');
   });
 });

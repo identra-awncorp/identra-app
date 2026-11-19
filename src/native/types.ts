@@ -91,7 +91,8 @@ export interface ActivityLog {
   timestamp: string;
   expiresAt?: string;
   type: 'verify' | 'share' | 'add' | 'security' | 'scan';
-  status?: 'success' | 'pending' | 'failed';
+  /** `uncertain`: a sharing answer was posted without a confirmation (it may have arrived). */
+  status?: 'success' | 'pending' | 'failed' | 'uncertain';
   title: string;
   description: string;
   partner: string;

@@ -7,7 +7,12 @@ import type { I18nKey } from '../../i18n';
 
 /** Codes the app adds: the start-up self-check failed; the wallet database was written by a newer app. */
 export type AppWalletCode = 'DEVICE_UNSUPPORTED' | 'DATABASE_TOO_NEW';
-export type FailureCode = ErrorCode | AppWalletCode;
+/**
+ * Codes the SDK is adding and the integration checkout does not have yet (read defensively until
+ * then): `TX_CODE_REQUIRED` = a PIN is needed and none was given (local, nothing was sent).
+ */
+export type PendingSdkCode = 'TX_CODE_REQUIRED';
+export type FailureCode = ErrorCode | AppWalletCode | PendingSdkCode;
 
 /** What the person can do next. */
 export type FailureAction = 'retry-pin' | 'retry' | 'scan-again' | 'contact-issuer' | 'request-again' | 'close';
@@ -46,6 +51,7 @@ export const failureSentenceKeys: Record<FailureCode, I18nKey> = {
   OFFER_INVALID: 'wallet.errors.OFFER_INVALID',
   URL_NOT_ALLOWED: 'wallet.errors.URL_NOT_ALLOWED',
   TX_CODE_WRONG: 'wallet.errors.TX_CODE_WRONG',
+  TX_CODE_REQUIRED: 'wallet.errors.TX_CODE_REQUIRED',
   OFFER_EXPIRED: 'wallet.errors.OFFER_EXPIRED',
   NETWORK_ERROR: 'wallet.errors.NETWORK_ERROR',
   ISSUER_ERROR: 'wallet.errors.ISSUER_ERROR',
@@ -91,6 +97,7 @@ const actions: Partial<Record<FailureCode, FailureAction>> = {
   OFFER_INVALID: 'scan-again',
   URL_NOT_ALLOWED: 'scan-again',
   TX_CODE_WRONG: 'retry-pin',
+  TX_CODE_REQUIRED: 'retry-pin',
   OFFER_EXPIRED: 'contact-issuer',
   NETWORK_ERROR: 'retry',
   ISSUER_ERROR: 'contact-issuer',
@@ -115,6 +122,11 @@ export const failureTitleKeys: Record<FailureAction, I18nKey> = {
   close: 'wallet.failureTitles.close',
 };
 
+/** A title more precise than the action's, where the action's would say something untrue. */
+const titleOverrides: Partial<Record<FailureCode, I18nKey>> = {
+  TX_CODE_REQUIRED: 'wallet.failureTitles.pinNeeded',
+};
+
 export interface FailureView {
   code: FailureCode;
   action: FailureAction;
@@ -135,7 +147,132 @@ export function failureView(code: unknown, checks?: readonly Check[]): FailureVi
     const failed = checks?.find((c) => !c.ok && !c.skipped);
     if (failed) detailKey = failed.code && isFailureCode(failed.code) ? failureSentenceKeys[failed.code] : checkSentenceKeys[failed.id];
   }
-  return { code: known, action, titleKey: failureTitleKeys[action], sentenceKey: failureSentenceKeys[known], detailKey };
+  return { code: known, action, titleKey: titleOverrides[known] ?? failureTitleKeys[action], sentenceKey: failureSentenceKeys[known], detailKey };
+}
+
+// ---------------------------------------------------------------- sharing (OpenID4VP)
+
+/** Where a sharing failure happened: opening the requester's code, or signing and sending. */
+export type PresentationStage = 'resolve' | 'submit';
+
+/**
+ * Sharing has its own sentences: a bad request is about the REQUESTER's code (never "the issuer's
+ * signature", never "your document may have been altered"), a failed send is about delivery.
+ * Keyed by every code like the tables above, so a new SDK code does not compile until it is worded.
+ */
+const REQUEST_BAD: I18nKey = 'wallet.presentErrors.requestBad';
+const OTHER: I18nKey = 'wallet.presentErrors.other';
+export const presentationSentenceKeys: Record<FailureCode, I18nKey> = {
+  MALFORMED: REQUEST_BAD,
+  TYP_INVALID: REQUEST_BAD,
+  TOO_LARGE: REQUEST_BAD,
+  ALG_NOT_ALLOWED: REQUEST_BAD,
+  CERT_CHAIN_MALFORMED: REQUEST_BAD,
+  CERT_CHAIN_UNTRUSTED: REQUEST_BAD,
+  CERT_NOT_YET_VALID: REQUEST_BAD,
+  CERT_EXPIRED: REQUEST_BAD,
+  CERT_CONSTRAINT_INVALID: REQUEST_BAD,
+  CERT_KEY_NOT_ALLOWED: REQUEST_BAD,
+  SIGNATURE_INVALID: REQUEST_BAD,
+  CLIENT_ID_MISMATCH: REQUEST_BAD,
+  NONCE_MISMATCH: REQUEST_BAD,
+  AUD_MISMATCH: REQUEST_BAD,
+  REQUEST_INVALID: REQUEST_BAD,
+  OFFER_INVALID: REQUEST_BAD,
+  URL_NOT_ALLOWED: 'wallet.presentErrors.URL_NOT_ALLOWED',
+  REQUEST_EXPIRED: 'wallet.presentErrors.REQUEST_EXPIRED',
+  TRUST_LIST_UNAVAILABLE: 'wallet.presentErrors.TRUST_LIST_UNAVAILABLE',
+  NETWORK_ERROR: 'wallet.presentErrors.NETWORK_ERROR',
+  VERIFIER_ERROR: 'wallet.presentErrors.VERIFIER_ERROR',
+  VERIFIER_NOT_TRUSTED: 'wallet.presentErrors.VERIFIER_NOT_TRUSTED',
+  TOO_MANY_ATTEMPTS: 'wallet.errors.TOO_MANY_ATTEMPTS',
+  USER_CANCELLED: 'wallet.presentErrors.USER_CANCELLED',
+  DEVICE_LOCKED: 'wallet.presentErrors.DEVICE_LOCKED',
+  STORAGE_ERROR: 'wallet.presentErrors.STORAGE_ERROR',
+  KEY_INVALIDATED: 'wallet.errors.KEY_INVALIDATED',
+  KEY_NOT_FOUND: 'wallet.errors.KEY_NOT_FOUND',
+  CREDENTIAL_NOT_FOUND: 'wallet.errors.CREDENTIAL_NOT_FOUND',
+  QUERY_NOT_SATISFIED: 'wallet.errors.QUERY_NOT_SATISFIED',
+  DATABASE_TOO_NEW: 'wallet.errors.DATABASE_TOO_NEW',
+  DEVICE_UNSUPPORTED: 'wallet.errors.DEVICE_UNSUPPORTED',
+  // Codes of receiving or of checking a received document: not expected while sharing.
+  ISSUER_MISMATCH: OTHER,
+  NOT_YET_VALID: OTHER,
+  EXPIRED: OTHER,
+  VCT_UNSUPPORTED: OTHER,
+  ISSUER_NOT_TRUSTED: OTHER,
+  REVOKED: OTHER,
+  SUSPENDED: OTHER,
+  STATUS_UNAVAILABLE: OTHER,
+  DISCLOSURE_INVALID: OTHER,
+  KB_INVALID: OTHER,
+  CHAIN_BROKEN: OTHER,
+  DID_RESOLUTION_FAILED: OTHER,
+  SKIPPED: OTHER,
+  TX_CODE_WRONG: OTHER,
+  TX_CODE_REQUIRED: OTHER,
+  OFFER_EXPIRED: OTHER,
+  ISSUER_ERROR: OTHER,
+  CREDENTIAL_INVALID: OTHER,
+  CNF_MISMATCH: OTHER,
+  CLAIMS_INCOMPLETE: OTHER,
+};
+
+/** After "Chia sẻ" the same codes mean something else: the answer may have left the phone. */
+const presentationSubmitSentenceKeys: Partial<Record<FailureCode, I18nKey>> = {
+  NETWORK_ERROR: 'wallet.presentErrors.submit.NETWORK_ERROR',
+  VERIFIER_ERROR: 'wallet.presentErrors.submit.VERIFIER_ERROR',
+  REQUEST_INVALID: 'wallet.presentErrors.submit.REQUEST_INVALID',
+  REQUEST_EXPIRED: 'wallet.presentErrors.submit.REQUEST_EXPIRED',
+  STORAGE_ERROR: 'wallet.presentErrors.submit.STORAGE_ERROR',
+};
+
+/** Submit failures after which the answer may have reached the requester (the POST was attempted). */
+export const MAYBE_SENT_CODES: ReadonlySet<FailureCode> = new Set(['NETWORK_ERROR', 'VERIFIER_ERROR']);
+
+const sharedTitles: Partial<Record<FailureCode, I18nKey>> = {
+  DEVICE_LOCKED: 'wallet.presentTitles.deviceLocked',
+  USER_CANCELLED: 'wallet.presentTitles.cancelled',
+  KEY_INVALIDATED: 'wallet.failureTitles.requestAgain',
+  KEY_NOT_FOUND: 'wallet.failureTitles.requestAgain',
+};
+const presentationTitleKeys: Record<PresentationStage, { byCode: Partial<Record<FailureCode, I18nKey>>; otherwise: I18nKey }> = {
+  resolve: {
+    byCode: {
+      ...sharedTitles,
+      TRUST_LIST_UNAVAILABLE: 'wallet.presentTitles.checkLater',
+      NETWORK_ERROR: 'wallet.presentTitles.checkLater',
+      VERIFIER_ERROR: 'wallet.presentTitles.requesterNoAnswer',
+      STORAGE_ERROR: 'wallet.presentTitles.walletNotOpened',
+      DATABASE_TOO_NEW: 'wallet.presentTitles.walletNotOpened',
+    },
+    otherwise: 'wallet.presentTitles.requestBad',
+  },
+  submit: {
+    byCode: {
+      ...sharedTitles,
+      NETWORK_ERROR: 'wallet.presentTitles.maybeSent',
+      VERIFIER_ERROR: 'wallet.presentTitles.maybeSent',
+      REQUEST_EXPIRED: 'wallet.presentTitles.requestExpired',
+      REQUEST_INVALID: 'wallet.presentTitles.requestClosed',
+      STORAGE_ERROR: 'wallet.presentTitles.notSigned',
+    },
+    otherwise: 'wallet.presentTitles.notSent',
+  },
+};
+
+/** A sharing failure → what the consent screen says, worded for the stage it happened in. */
+export function presentationFailureView(code: unknown, stage: PresentationStage): FailureView {
+  const base = failureView(code);
+  const titles = presentationTitleKeys[stage];
+  const maybeSent = stage === 'submit' && MAYBE_SENT_CODES.has(base.code);
+  return {
+    code: base.code,
+    action: maybeSent ? 'scan-again' : base.action,
+    titleKey: titles.byCode[base.code] ?? titles.otherwise,
+    sentenceKey: (stage === 'submit' ? presentationSubmitSentenceKeys[base.code] : undefined) ?? presentationSentenceKeys[base.code],
+    detailKey: null,
+  };
 }
 
 /** A thrown error (SecretStorageError, WalletKeyError, WalletDatabaseError, anything) → a failure code, as the SDK maps them. */

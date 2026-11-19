@@ -18,7 +18,7 @@ const { createDataKeySecretStorage, createWalletKeySecretStorage } = require('..
 const { createAsyncStorageSeenStore } = require('../.tmp-test/src/native/data/wallet/seenStore');
 const { createSqliteCredentialRepository } = require('../.tmp-test/src/native/data/wallet/credentialRepository');
 const { credentialOfferQrText, parseQrScanValue } = require('../.tmp-test/src/native/domain/scan/qrScan');
-const { initialReceiveState, receiveReducer, shouldClearPin, detailReducer, initialDetailState } = require('../.tmp-test/src/native/domain/wallet/walletFlows');
+const { initialReceiveState, receiveReducer, runAccept, shouldClearPin, detailReducer, initialDetailState } = require('../.tmp-test/src/native/domain/wallet/walletFlows');
 const { credentialDetailView, credentialListItems, offerView } = require('../.tmp-test/src/native/domain/wallet/walletViews');
 const { translate } = require('../.tmp-test/src/native/i18n');
 const { createFakeSecureStore } = require('./helpers/fakeSecureStore');
@@ -36,13 +36,13 @@ function memoryStorage() {
 }
 
 /** The app's container exactly as walletRuntime builds it, with Node stand-ins for the Expo modules. */
-function appWallet(world) {
+function appWallet(world, { fetch: platformFetch = (url, init) => fetch(url, init) } = {}) {
   const phone = { secureStore: createFakeSecureStore(), db: openExpoSqliteDouble(), catalogue: null, plain: memoryStorage(), seen: memoryStorage() };
   phone.wallet = createWallet({
     random: createExpoRandomSource((a) => webcrypto.getRandomValues(a)),
     clock: world.clock,
     // Development build with EXPO_PUBLIC_IDENTRA_API_URL pointing at the local listener.
-    fetch: createWalletHttpFetch({ fetch: (url, init) => fetch(url, init), apiUrl: listener.localOrigin, production: false }),
+    fetch: createWalletHttpFetch({ fetch: platformFetch, apiUrl: listener.localOrigin, production: false }),
     seen: createAsyncStorageSeenStore(phone.seen),
     keySecrets: createWalletKeySecretStorage(phone.secureStore, { authenticationPrompt: () => 'prompt' }),
     dataKeySecrets: createDataKeySecretStorage(phone.secureStore),
@@ -140,24 +140,50 @@ describe('the app wallet receives and keeps a diploma from a real issuer (no dev
     assert.deepEqual(JSON.parse(phone.catalogue).items, []);
   });
 
-  it('a cancelled fingerprint prompt after the right PIN resumes without the PIN (code not wasted)', async () => {
+  /** The receive screen: reducer state + the screen's submit handler (runAccept) + the PIN in component state. */
+  async function receiveScreen(wallet, qr) {
+    const box = { state: receiveReducer(initialReceiveState, { type: 'device-checked', ready: true }) };
+    box.state = receiveReducer(box.state, { type: 'resolved', result: await wallet.offers.resolve(credentialOfferQrText(parseQrScanValue(qr).offerUri)) });
+    return { box, session: { get: () => box.state, dispatch: (e) => (box.state = receiveReducer(box.state, e)) } };
+  }
+
+  it('a cancelled fingerprint prompt after the right PIN completes on the same code (no second credential)', async () => {
     const world = await createWorld(listener);
     const phone = appWallet(world);
     const { offerUri: qr, txCode } = await world.offer();
-    let state = receiveReducer(initialReceiveState, { type: 'device-checked', ready: true });
-    state = receiveReducer(state, { type: 'resolved', result: await phone.wallet.offers.resolve(credentialOfferQrText(parseQrScanValue(qr).offerUri)) });
-    state = receiveReducer(state, { type: 'submit' });
+    const { box, session } = await receiveScreen(phone.wallet, qr);
     phone.secureStore.state.cancelNextPrompt = true; // the person dismisses the prompt for the new key
-    const cancelled = await phone.wallet.offers.accept(state.offer, { txCode });
-    assert.deepEqual([cancelled.ok, cancelled.code, cancelled.retryable], [false, 'USER_CANCELLED', true]);
-    state = receiveReducer(state, { type: 'accepted', result: cancelled });
-    assert.equal(state.phase, 'resume');
-    state = receiveReducer(state, { type: 'submit' });
-    assert.equal(state.resuming, true);
-    const resumed = await phone.wallet.offers.accept(state.offer, {}); // no PIN on resume
-    state = receiveReducer(state, { type: 'accepted', result: resumed });
-    assert.equal(state.phase, 'received', JSON.stringify(resumed));
+    const answers = [];
+    const wallet = { offers: { ...phone.wallet.offers, accept: async (o, i) => { const r = await phone.wallet.offers.accept(o, i); answers.push(r); return r; } } };
+    await runAccept(session, wallet, txCode, 6);
+    assert.deepEqual([answers[0].code, answers[0].retryable], ['USER_CANCELLED', true]);
+    // With the SDK's codeRedeemed: "Thử lại" without the PIN. Without it (older SDK): the PIN step, PIN kept.
+    assert.equal(box.state.phase, answers[0].codeRedeemed === true ? 'resume' : 'consent');
+    await runAccept(session, wallet, txCode, 6);
+    assert.equal(box.state.phase, 'received', JSON.stringify(answers));
     assert.equal(world.issued.length, 1, 'one credential issued for one code');
+  });
+
+  it('reviewer\'s network-loss sequence: the PIN request got no answer, the code still works, the retry receives it', async () => {
+    const world = await createWorld(listener);
+    let dropToken = true;
+    const phone = appWallet(world, {
+      fetch: async (url, init) => {
+        if (dropToken && String(url).includes('/token')) {
+          dropToken = false;
+          throw new TypeError('fetch failed'); // no answer at all
+        }
+        return fetch(url, init);
+      },
+    });
+    const { offerUri: qr, txCode } = await world.offer();
+    const { box, session } = await receiveScreen(phone.wallet, qr);
+    await runAccept(session, phone.wallet, txCode, 6);
+    assert.deepEqual([box.state.phase, box.state.failure.code], ['consent', 'NETWORK_ERROR'], 'back to the PIN step, not "code spent"');
+    assert.equal(translate('vi', box.state.failure.sentenceKey), 'Chưa gửi được mã tới nơi cấp, hãy thử lại. Mã PIN bạn đã nhập vẫn được giữ.');
+    await runAccept(session, phone.wallet, txCode, 6); // the PIN stayed in the component
+    assert.equal(box.state.phase, 'received', JSON.stringify(box.state));
+    assert.equal(world.issued.length, 1);
   });
 
   it('refuses a QR code pointing anywhere but the Identra API origin, before any network call', async () => {

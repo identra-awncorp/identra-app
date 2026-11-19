@@ -35,9 +35,13 @@ function CredentialDetail({ id, onBack }: { id: string; onBack: () => void }) {
   const { colors } = useAppRouterState();
   const { state, view, refresh, remove, retry } = useCredentialDetail(id);
 
+  const { removeCredentialActivity } = store;
   useEffect(() => {
-    if (state.phase === 'removed') onBack();
-  }, [onBack, state.phase]);
+    if (state.phase !== 'removed') return;
+    // The document is gone: so are the records of whom it was shown to.
+    removeCredentialActivity(id);
+    onBack();
+  }, [id, onBack, removeCredentialActivity, state.phase]);
 
   return (
     <CredentialDetailScreen

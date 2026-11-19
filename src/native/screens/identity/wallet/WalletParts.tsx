@@ -1,7 +1,8 @@
 // Small building blocks shared by the wallet screens (receive, list, detail, restore).
 import { CircleAlert } from 'lucide-react-native';
-import { useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, AppState, Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { FailureView } from '../../../domain/wallet/walletMessages';
 import { useI18n } from '../../../i18n';
@@ -9,6 +10,34 @@ import type { AppColors } from '../../../theme';
 import { border, radius, spacing, touchTarget, typography } from '../../../theme';
 
 /** A flat block: surface, hairline border, no shadow (design.md §8, §18). */
+/**
+ * "Hiện"/"Ẩn" state for sensitive values that masks again as soon as the app is inactive or in the
+ * background (app switcher, another app, a system prompt).
+ */
+export function useRevealedWhileActive() {
+  const [revealed, setRevealed] = useState(false);
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (next) => {
+      if (next !== 'active') setRevealed(false);
+    });
+    return () => subscription.remove();
+  }, []);
+  return [revealed, setRevealed] as const;
+}
+
+/** Speaks a state change to TalkBack / VoiceOver (Android does not announce `alert` roles by itself). */
+export function useAnnouncement(message: string | null) {
+  useEffect(() => {
+    if (message) AccessibilityInfo.announceForAccessibility(message);
+  }, [message]);
+}
+
+/** The decision buttons, always visible under the scrolling content, above the home indicator. */
+export function StickyFooter({ colors, children }: { colors: AppColors; children: React.ReactNode }) {
+  const insets = useSafeAreaInsets();
+  return <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, spacing.md) }]}>{children}</View>;
+}
+
 export function Panel({ colors, children, style }: { colors: AppColors; children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
   return <View style={[styles.panel, { backgroundColor: colors.surface, borderColor: colors.border }, style]}>{children}</View>;
 }
@@ -125,6 +154,7 @@ export const walletStyles = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
+  footer: { borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: spacing.lg, paddingTop: spacing.md, gap: spacing.xs },
   panel: { borderWidth: border.thin, borderRadius: radius.xl, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   notice: { flexDirection: 'row', gap: spacing.md, borderRadius: radius.lg, padding: spacing.lg },
   noticeIcon: { marginTop: 1 },

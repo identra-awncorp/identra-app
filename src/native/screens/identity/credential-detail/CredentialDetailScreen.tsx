@@ -1,5 +1,4 @@
 import { Building2, CalendarDays, Eye, EyeOff, RefreshCw } from 'lucide-react-native';
-import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader, CredentialIcon, PrimaryButton, ScreenScroll, StatusPill } from '../../../components/AppUiPrimitives';
@@ -10,7 +9,7 @@ import { useI18n } from '../../../i18n';
 import type { AppColors } from '../../../theme';
 import { spacing } from '../../../theme';
 import type { ActivityLog, CredentialStatus } from '../../../types';
-import { FailureNotice, Panel, TextAction, walletStyles } from '../wallet/WalletParts';
+import { FailureNotice, Panel, TextAction, useRevealedWhileActive, walletStyles } from '../wallet/WalletParts';
 
 /**
  * One document from the vault: what it is, who issued it, whether it still holds, its fields.
@@ -41,7 +40,7 @@ export function CredentialDetailScreen({
   onOpenPortal: (url: string) => void;
 }) {
   const { locale, t } = useI18n();
-  const [revealed, setRevealed] = useState(false);
+  const [revealed, setRevealed] = useRevealedWhileActive();
   const statusMeaning: Record<CredentialStatus, string> = {
     verified: t('identity.detail.statuses.verified.description'),
     pending: t('identity.detail.statuses.pending.description'),
@@ -145,9 +144,8 @@ export function CredentialDetailScreen({
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={revealed ? t('wallet.detail.hideValues') : t('wallet.detail.showValues')}
-                  hitSlop={8}
                   onPress={() => setRevealed((v) => !v)}
-                  style={styles.inline}
+                  style={[styles.inline, styles.revealButton]}
                 >
                   {revealed ? <EyeOff color={colors.primaryDark} size={18} /> : <Eye color={colors.primaryDark} size={18} />}
                   <Text style={[walletStyles.label, { color: colors.primaryDark }]}>{revealed ? t('wallet.detail.hideValues') : t('wallet.detail.showValues')}</Text>
@@ -178,7 +176,7 @@ export function CredentialDetailScreen({
                     <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{log.description}</Text>
                     <Text style={[walletStyles.meta, { color: log.status === 'failed' ? colors.danger : colors.textSecondary }]}>
                       {formatWalletDate(log.timestamp, locale)}
-                      {log.status === 'failed' ? ` · ${t('wallet.detail.shareFailed')}` : ''}
+                      {log.status === 'failed' ? ` · ${t('wallet.detail.shareFailed')}` : log.status === 'uncertain' ? ` · ${t('wallet.detail.shareMaybeSent')}` : ''}
                     </Text>
                   </View>
                 ))}
@@ -209,6 +207,7 @@ const styles = StyleSheet.create({
   heroTop: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
   heroTitle: { fontSize: 22, lineHeight: 28 },
   inline: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs + 2 },
+  revealButton: { minHeight: 44, minWidth: 44, paddingHorizontal: spacing.sm, justifyContent: 'center' },
   section: { gap: spacing.sm },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 },
   statusPanel: { gap: spacing.sm, paddingVertical: spacing.lg },

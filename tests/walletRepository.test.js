@@ -144,6 +144,17 @@ describe('CredentialRepository on expo-sqlite (SQL executed by node:sqlite)', ()
     await assert.rejects(repo.update('r2', { status_cache: 'bogus', status_checked_at: null }), WalletDatabaseError);
   });
 
+  it('rebuilds a version-0 database that already holds the v1 table (reviewer case), keeping its rows', async () => {
+    const db = openExpoSqliteDouble();
+    db.raw.exec(`CREATE TABLE IF NOT EXISTS credentials (id TEXT PRIMARY KEY NOT NULL, vct TEXT NOT NULL, issuer TEXT NOT NULL, key_id TEXT NOT NULL, ciphertext TEXT NOT NULL, status_cache TEXT CHECK (status_cache IN ('valid', 'revoked', 'suspended', 'unavailable')), status_checked_at TEXT, created_at TEXT NOT NULL)`);
+    db.raw.prepare("INSERT INTO credentials VALUES ('id0', 'vct', 'iss', 'k0', 'ct0', 'valid', NULL, '2026-01-01')").run();
+    assert.equal(db.raw.prepare('PRAGMA user_version').get().user_version, 0);
+    await migrateWalletDatabase(db);
+    assert.equal(db.raw.prepare('PRAGMA user_version').get().user_version, WALLET_SCHEMA_VERSION);
+    db.raw.exec("UPDATE credentials SET status_cache = 'invalid' WHERE id = 'id0'");
+    assert.deepEqual({ ...db.raw.prepare('SELECT id, ciphertext, status_cache FROM credentials').get() }, { id: 'id0', ciphertext: 'ct0', status_cache: 'invalid' });
+  });
+
   it('rolls the migration back when it fails: the old table and rows stay', async () => {
     const db = openExpoSqliteDouble();
     db.raw.exec(`CREATE TABLE credentials (id TEXT PRIMARY KEY NOT NULL, vct TEXT NOT NULL, issuer TEXT NOT NULL, key_id TEXT NOT NULL, ciphertext TEXT NOT NULL, status_cache TEXT, status_checked_at TEXT, created_at TEXT NOT NULL);

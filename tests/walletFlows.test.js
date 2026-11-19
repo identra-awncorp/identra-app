@@ -3,12 +3,15 @@ const { describe, it } = require('node:test');
 
 const { VCT } = require('@identra/sdk-core');
 const {
+  abandonOffer,
+  acceptInput,
   detailReducer,
   initialDetailState,
   initialReceiveState,
   initialRestoreState,
   receiveReducer,
   restoreReducer,
+  runAccept,
   shouldClearPin,
 } = require('../.tmp-test/src/native/domain/wallet/walletFlows');
 const {
@@ -70,7 +73,7 @@ describe('receive flow', () => {
   });
 
   it('keeps the offer after a wrong PIN and asks to clear the PIN (only then)', () => {
-    const wrong = receiveReducer(accepting, { type: 'accepted', result: fail('TX_CODE_WRONG') });
+    const wrong = receiveReducer(accepting, { type: 'accepted', result: { ...fail('TX_CODE_WRONG'), retryable: true } });
     assert.equal(wrong.phase, 'consent');
     assert.equal(wrong.offer, offer);
     assert.equal(wrong.failure.code, 'TX_CODE_WRONG');
@@ -80,27 +83,86 @@ describe('receive flow', () => {
     assert.equal(receiveReducer(wrong, { type: 'submit' }).attempt, 2);
   });
 
-  it('after the PIN was accepted, never sends the person back to type it (the code is spent)', () => {
+  const failed = (code, retryable, codeRedeemed, extra = {}) => ({ ...fail(code), retryable, ...(codeRedeemed === undefined ? {} : { codeRedeemed }), ...extra });
+
+  it('routes a retryable failure with the code redeemed to "Thử lại" without the PIN', () => {
+    for (const code of ['USER_CANCELLED', 'DEVICE_LOCKED', 'NETWORK_ERROR', 'STORAGE_ERROR']) {
+      const resume = receiveReducer(accepting, { type: 'accepted', result: failed(code, true, true) });
+      assert.deepEqual([resume.phase, resume.failure.action], ['resume', 'retry'], code);
+    }
+    const resume = receiveReducer(accepting, { type: 'accepted', result: failed('USER_CANCELLED', true, true) });
+    assert.equal(resume.failure.sentenceKey, 'wallet.receive.resume.USER_CANCELLED');
+    const again = receiveReducer(resume, { type: 'submit' });
+    assert.deepEqual([again.phase, again.resuming], ['accepting', true]);
+    assert.deepEqual(acceptInput(resume, '123456', 6), {}, 'no PIN is sent on resume');
+    // The resolved offer can carry the flag too.
+    const viaOffer = receiveReducer({ ...accepting, offer: { ...offer, codeRedeemed: true } }, { type: 'accepted', result: failed('USER_CANCELLED', true) });
+    assert.equal(viaOffer.phase, 'resume');
+  });
+
+  it('routes a retryable failure with the code NOT redeemed back to the PIN step, truthfully, PIN kept', () => {
+    const notSent = receiveReducer(accepting, { type: 'accepted', result: failed('NETWORK_ERROR', true, false) });
+    assert.deepEqual([notSent.phase, notSent.failure.code], ['consent', 'NETWORK_ERROR']);
+    assert.equal(translate('vi', notSent.failure.sentenceKey), 'Chưa gửi được mã tới nơi cấp, hãy thử lại. Mã PIN bạn đã nhập vẫn được giữ.');
+    assert.equal(shouldClearPin(accepting, notSent), false, 'the PIN stays');
+    assert.deepEqual(acceptInput(notSent, '123456', 6), { txCode: '123456' }, 'the PIN is sent again');
+    // An SDK without the field: undefined reads as not redeemed.
+    assert.equal(receiveReducer(accepting, { type: 'accepted', result: failed('NETWORK_ERROR', true) }).phase, 'consent');
+    // A PIN was needed and none was given (local): the PIN step with its own sentence.
+    const required = receiveReducer({ ...accepting, resuming: true }, { type: 'accepted', result: failed('TX_CODE_REQUIRED', true, false) });
+    assert.deepEqual([required.phase, translate('vi', required.failure.titleKey)], ['consent', 'Cần nhập mã PIN']);
+    assert.equal(shouldClearPin(accepting, required), false);
+  });
+
+  it('says the code is used only when it was redeemed or the issuer says it is gone; otherwise a new code is needed', () => {
     for (const code of ['USER_CANCELLED', 'DEVICE_LOCKED', 'NETWORK_ERROR', 'STORAGE_ERROR', 'KEY_INVALIDATED']) {
-      const s = receiveReducer(accepting, { type: 'accepted', result: fail(code) });
+      const s = receiveReducer(accepting, { type: 'accepted', result: failed(code, false, true) });
       assert.deepEqual([s.phase, s.codeSpent, s.failure.action], ['accept-failed', true, 'contact-issuer'], code);
       assert.match(s.failure.sentenceKey, /^wallet\.receive\.afterPin\./, code);
       assert.equal(/chưa có gì thay đổi/.test(translate('vi', s.failure.sentenceKey)), false, `${code}: never "nothing changed"`);
     }
-    assert.equal(receiveReducer(accepting, { type: 'accept-threw', code: 'USER_CANCELLED' }).codeSpent, true);
-    const expired = receiveReducer(accepting, { type: 'accepted', result: fail('OFFER_EXPIRED') });
-    assert.deepEqual([expired.phase, expired.codeSpent], ['accept-failed', false]);
+    const expired = receiveReducer(accepting, { type: 'accepted', result: failed('OFFER_EXPIRED', false, false) });
+    assert.deepEqual([expired.phase, expired.codeSpent], ['accept-failed', true]);
+    for (const result of [failed('ISSUER_ERROR', false, false), failed('NETWORK_ERROR', false), fail('ISSUER_ERROR')]) {
+      const s = receiveReducer(accepting, { type: 'accepted', result });
+      assert.deepEqual([s.phase, s.codeSpent, s.failure.action], ['accept-failed', false, 'contact-issuer'], JSON.stringify(result));
+      assert.equal(/afterPin/.test(s.failure.sentenceKey), false);
+    }
+    assert.equal(receiveReducer(accepting, { type: 'accept-threw', code: 'USER_CANCELLED' }).codeSpent, false, 'a thrown error proves nothing about the code');
+    assert.equal(receiveReducer(accepting, { type: 'accepted', result: failed('URL_NOT_ALLOWED', false, false) }).failure.action, 'scan-again');
   });
 
-  it('resumes without the PIN when the SDK says the failure is retryable', () => {
-    const resume = receiveReducer(accepting, { type: 'accepted', result: { ...fail('USER_CANCELLED'), retryable: true } });
-    assert.deepEqual([resume.phase, resume.failure.action, resume.failure.sentenceKey], ['resume', 'retry', 'wallet.receive.resume.USER_CANCELLED']);
-    const again = receiveReducer(resume, { type: 'submit' });
-    assert.deepEqual([again.phase, again.resuming], ['accepting', true]);
-    // A wrong-PIN answer while resuming cannot happen in the protocol; it is final, not a PIN prompt.
-    assert.equal(receiveReducer(again, { type: 'accepted', result: fail('TX_CODE_WRONG') }).phase, 'accept-failed');
-    const final = receiveReducer(accepting, { type: 'accepted', result: { ...fail('NETWORK_ERROR'), retryable: false } });
-    assert.equal(final.phase, 'accept-failed');
+  it("submits through the screen's handler: the reducer's offer, the PIN only when complete, one call at a time", async () => {
+    const calls = [];
+    let release;
+    const wallet = { offers: { accept: (o, input) => { calls.push([o, input]); return new Promise((r) => (release = r)); }, discard: async () => undefined } };
+    const box = { state: consent };
+    const session = { get: () => box.state, dispatch: (e) => (box.state = receiveReducer(box.state, e)) };
+    await runAccept(session, wallet, '12', 6);
+    assert.deepEqual(calls, [], 'an incomplete PIN submits nothing');
+    const first = runAccept(session, wallet, '123456', 6);
+    await runAccept(session, wallet, '123456', 6);
+    assert.equal(calls.length, 1, 'a double tap accepts once');
+    assert.deepEqual(calls[0], [offer, { txCode: '123456' }]);
+    release({ ok: false, code: 'NETWORK_ERROR', retryable: true, codeRedeemed: true });
+    await first;
+    assert.equal(box.state.phase, 'resume');
+    const second = runAccept(session, wallet, '123456', 6);
+    release({ ok: true, credentialId: 'c1', vct: VCT.diploma, issuerName: 'X' });
+    await second;
+    assert.deepEqual(calls[1], [offer, {}], 'resume sends no PIN');
+    assert.equal(box.state.phase, 'received');
+  });
+
+  it('discards an abandoned offer (token and waiting key), never a received one', () => {
+    const discarded = [];
+    const wallet = { offers: { discard: async (o) => void discarded.push(o) } };
+    for (const s of [consent, accepting, receiveReducer(accepting, { type: 'accepted', result: failed('USER_CANCELLED', true, true) })]) abandonOffer(s, offer, wallet);
+    abandonOffer(receiveReducer(accepting, { type: 'accepted', result: failed('ISSUER_ERROR', false, true) }), offer, wallet);
+    assert.equal(discarded.length, 4);
+    abandonOffer(receiveReducer(accepting, { type: 'accepted', result: { ok: true, credentialId: 'c1', vct: VCT.diploma, issuerName: 'X' } }), offer, wallet);
+    abandonOffer(ready, null, wallet);
+    assert.equal(discarded.length, 4);
   });
 
   it('ends with nothing saved when the credential failed its checks', () => {

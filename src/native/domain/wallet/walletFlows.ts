@@ -4,8 +4,8 @@ import type { AcceptResult, CredentialDetails, ResolvedOffer, WalletFailure } fr
 import type { Check } from '@identra/sdk-core';
 
 import type { I18nKey } from '../../i18n';
-import { failureView, type FailureCode, type FailureView } from './walletMessages';
-import type { WalletStartupState } from './walletContainer';
+import { failureCodeOfError, failureView, type FailureCode, type FailureView } from './walletMessages';
+import type { WalletApi, WalletStartupState } from './walletContainer';
 
 /** A wallet failure, or one the app produced from a thrown error (SecretStorageError codes). */
 export type Failed = WalletFailure | { ok: false; code: FailureCode; checks?: Check[] };
@@ -19,14 +19,21 @@ export type ReceiveState =
   | { phase: 'resolving' }
   /** The code could not be opened; nothing was created. */
   | { phase: 'resolve-failed'; failure: FailureView }
-  /** Who offers what, PIN entry. `failure`: only a wrong PIN comes back here (the code is not spent). */
+  /**
+   * Who offers what, PIN entry. `failure`: the one-time code was NOT redeemed (wrong PIN, PIN
+   * missing, or the request got no answer): the PIN step again; the PIN stays in the component
+   * except after a wrong one.
+   */
   | { phase: 'consent'; offer: ResolvedOffer; failure: FailureView | null; attempt: number }
-  /** The PIN was accepted and the SDK can resume (`retryable: true`): "Thử lại" without the PIN. */
+  /** The code was redeemed and the SDK can resume (`retryable && codeRedeemed`): "Thử lại" without the PIN. */
   | { phase: 'resume'; offer: ResolvedOffer; failure: FailureView; attempt: number }
   | { phase: 'accepting'; offer: ResolvedOffer; attempt: number; resuming: boolean }
   /** `status`: `unknown` when the lists were unreachable at receipt (the SDK keeps the document). */
   | { phase: 'received'; credentialId: string; vct: string; issuerName: string | null; issuerUri: string; status: 'valid' | 'unknown' }
-  /** Final: nothing was saved. `codeSpent`: the PIN was accepted, so this code cannot be used again. */
+  /**
+   * Final: nothing was saved and this offer cannot complete; a new code is needed. `codeSpent`:
+   * the code is known to be used (redeemed by this wallet, or the issuer says it is gone).
+   */
   | { phase: 'accept-failed'; failure: FailureView; issuerUri: string; codeSpent: boolean };
 
 export type ReceiveEvent =
@@ -39,7 +46,7 @@ export type ReceiveEvent =
 
 export const initialReceiveState: ReceiveState = { phase: 'checking-device' };
 
-/** Failures with their own sentence once the code is spent (the generic one could claim "nothing changed"). */
+/** Failures with their own sentence once the code was redeemed (the generic one could claim "nothing changed"). */
 const AFTER_PIN_SENTENCES: Partial<Record<FailureCode, I18nKey>> = {
   USER_CANCELLED: 'wallet.receive.afterPin.USER_CANCELLED',
   DEVICE_LOCKED: 'wallet.receive.afterPin.DEVICE_LOCKED',
@@ -53,21 +60,51 @@ const RESUME_SENTENCES: Partial<Record<FailureCode, I18nKey>> = {
   DEVICE_LOCKED: 'wallet.receive.resume.DEVICE_LOCKED',
   NETWORK_ERROR: 'wallet.receive.resume.NETWORK_ERROR',
 };
+/** Back on the PIN step with the code not redeemed: say that it was not sent, not that it is spent. */
+const NOT_REDEEMED_SENTENCES: Partial<Record<FailureCode, I18nKey>> = {
+  NETWORK_ERROR: 'wallet.receive.notSent',
+};
 
-/** Codes the SDK returns before the one-time code is spent (the token request itself refused it). */
-const BEFORE_PIN: ReadonlySet<FailureCode> = new Set(['TX_CODE_WRONG', 'OFFER_EXPIRED']);
+/** What an `accept` failure says about the offer. Fields the SDK is adding are read defensively. */
+export interface AcceptOutcome {
+  code: FailureCode;
+  checks?: Check[];
+  /** The same offer can still complete. */
+  retryable: boolean;
+  /** The one-time code was redeemed (never sent again). Undefined from an older SDK: false. */
+  codeRedeemed: boolean;
+}
 
-function acceptFailure(state: Extract<ReceiveState, { phase: 'accepting' }>, code: FailureCode, checks: Check[] | undefined, retryable: unknown): ReceiveState {
-  const base = failureView(code, checks);
-  if (code === 'TX_CODE_WRONG' && !state.resuming) return { phase: 'consent', offer: state.offer, failure: base, attempt: state.attempt };
-  // The SDK marks failures it can resume on the same offer (access token kept); until it does,
-  // every failure after the PIN is final: the one-time code is spent.
-  if (retryable === true) {
+export function acceptOutcomeOf(failure: { code: FailureCode; checks?: Check[] }, offer: ResolvedOffer): AcceptOutcome {
+  const f = failure as { retryable?: unknown; codeRedeemed?: unknown };
+  const offerRedeemed = (offer as { codeRedeemed?: unknown }).codeRedeemed === true;
+  return {
+    code: failure.code,
+    ...(failure.checks ? { checks: failure.checks } : {}),
+    retryable: f.retryable === true,
+    codeRedeemed: typeof f.codeRedeemed === 'boolean' ? f.codeRedeemed : offerRedeemed,
+  };
+}
+
+function acceptFailure(state: Extract<ReceiveState, { phase: 'accepting' }>, outcome: AcceptOutcome): ReceiveState {
+  const { code, retryable, codeRedeemed } = outcome;
+  const base = failureView(code, outcome.checks);
+  if (retryable && !codeRedeemed) {
+    // The code still works: the PIN step again (the PIN is kept, except after a wrong one).
+    return { phase: 'consent', offer: state.offer, attempt: state.attempt, failure: { ...base, sentenceKey: NOT_REDEEMED_SENTENCES[code] ?? base.sentenceKey } };
+  }
+  if (retryable) {
     return { phase: 'resume', offer: state.offer, attempt: state.attempt, failure: { ...base, action: 'retry', sentenceKey: RESUME_SENTENCES[code] ?? base.sentenceKey } };
   }
-  const codeSpent = state.resuming || !BEFORE_PIN.has(code);
-  const sentenceKey = codeSpent ? (AFTER_PIN_SENTENCES[code] ?? base.sentenceKey) : base.sentenceKey;
-  return { phase: 'accept-failed', issuerUri: state.offer.issuerUri, codeSpent, failure: { ...base, sentenceKey, action: codeSpent ? 'contact-issuer' : base.action } };
+  // "Used" only when it is known: redeemed here, or the issuer no longer serves the offer.
+  const codeSpent = codeRedeemed || code === 'OFFER_EXPIRED';
+  const sentenceKey = codeRedeemed ? (AFTER_PIN_SENTENCES[code] ?? base.sentenceKey) : base.sentenceKey;
+  return {
+    phase: 'accept-failed',
+    issuerUri: state.offer.issuerUri,
+    codeSpent,
+    failure: { ...base, sentenceKey, action: base.action === 'scan-again' ? 'scan-again' : 'contact-issuer' },
+  };
 }
 
 export function receiveReducer(state: ReceiveState, event: ReceiveEvent): ReceiveState {
@@ -95,9 +132,8 @@ export function receiveReducer(state: ReceiveState, event: ReceiveEvent): Receiv
         // issuerName is null when the trust list could not be read at receipt (status unknown).
         return { phase: 'received', credentialId: event.result.credentialId, vct: event.result.vct, issuerName: event.result.issuerName, issuerUri: state.offer.issuerUri, status };
       }
-      if (event.type === 'accept-threw') return acceptFailure(state, event.code, undefined, false);
-      const failed = event.result as WalletFailure & { retryable?: unknown };
-      return acceptFailure(state, failed.code, failed.checks, failed.retryable);
+      if (event.type === 'accept-threw') return acceptFailure(state, { code: event.code, retryable: false, codeRedeemed: false });
+      return acceptFailure(state, acceptOutcomeOf(event.result as WalletFailure, state.offer));
     }
   }
 }
@@ -105,6 +141,41 @@ export function receiveReducer(state: ReceiveState, event: ReceiveEvent): Receiv
 /** The PIN field must be emptied after this transition (wrong PIN): the component owns the PIN. */
 export function shouldClearPin(previous: ReceiveState, next: ReceiveState): boolean {
   return previous.phase === 'accepting' && next.phase === 'consent' && next.failure?.code === 'TX_CODE_WRONG';
+}
+
+/**
+ * What "Nhận" / "Thử lại" sends, or null when the state does not allow a submit: the PIN only on
+ * the PIN step and only when complete; on resume nothing (the SDK holds the token).
+ */
+export function acceptInput(state: ReceiveState, pin: string, pinLength: number | null): { txCode?: string } | null {
+  if (state.phase === 'resume') return {};
+  if (state.phase !== 'consent') return null;
+  if (pinLength === null) return {};
+  return pin.length === pinLength ? { txCode: pin } : null;
+}
+
+export interface FlowSession<S, E> {
+  get(): S;
+  dispatch(event: E): void;
+}
+
+/** The receive screen's submit: one accept of the reducer's offer at a time (the reducer leaves consent/resume at once). */
+export async function runAccept(session: FlowSession<ReceiveState, ReceiveEvent>, wallet: Pick<WalletApi, 'offers'>, pin: string, pinLength: number | null): Promise<void> {
+  const current = session.get();
+  const input = acceptInput(current, pin, pinLength);
+  if (!input || (current.phase !== 'consent' && current.phase !== 'resume')) return;
+  session.dispatch({ type: 'submit' });
+  try {
+    session.dispatch({ type: 'accepted', result: await wallet.offers.accept(current.offer, input) });
+  } catch (error) {
+    session.dispatch({ type: 'accept-threw', code: failureCodeOfError(error) });
+  }
+}
+
+/** Leaving the receive screen without the document: the SDK forgets the offer's token and any key waiting for a retried save. */
+export function abandonOffer(state: ReceiveState, lastOffer: ResolvedOffer | null, wallet: Pick<WalletApi, 'offers'>): void {
+  const offer = state.phase === 'consent' || state.phase === 'resume' || state.phase === 'accepting' ? state.offer : state.phase === 'accept-failed' ? lastOffer : null;
+  if (offer) void wallet.offers.discard(offer).catch(() => undefined);
 }
 
 // ---------------------------------------------------------------- credential detail

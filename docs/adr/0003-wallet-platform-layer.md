@@ -25,7 +25,13 @@ dependencies) and ADR-0004 (React Native runtime facts).
   key without). A non-secret presence marker per wallet key turns SecureStore's ambiguous `null`
   after a biometric change into `KEY_INVALIDATED`.
 - Credentials live in `identra-wallet.db` (expo-sqlite), sealed per row by the SDK.
-- The backup catalogue is a file in the document directory.
+- The backup catalogue is a file in the document directory (`src/native/data/wallet/catalogueFile.ts`).
+  expo-file-system's `move(dest, { overwrite: true })` deletes an existing destination before it
+  renames, and the moved `File` object then points at `dest` (Android and iOS alike), so a write
+  never reuses a `File` object and never moves onto an existing file: write `<name>.next` and read
+  it back, move the current file to `<name>.prev`, move `.next` into place, drop `.prev`. `read()`
+  falls back to `.prev` while `<name>` is missing; `.next` is never read. Any failed step leaves the
+  previous list readable.
 - Android backup: `plugins/withIdentraBackupRules.js` sets `allowBackup`, `fullBackupContent`
   and `dataExtractionRules` to include only the catalogue file and the shared preferences minus
   `SecureStore.xml`. expo-secure-store's own rules are switched off (`configureAndroidBackup: false`).
@@ -65,6 +71,34 @@ option) that sets `NSURLIsExcludedFromBackupKey` on the database directory.
 - The activity log records each presentation with the document id and the claim NAMES only.
 - Pending SDK changes are read defensively: offer `issuerOrigin`, accept `status: 'unknown'`.
   `createWallet({ allowedOrigins })` is not set yet (not in the SDK at 0930192).
+
+## Review fixes (added 2026-11-19)
+
+- Receiving: the screen routes an `accept` failure by `retryable` and `codeRedeemed` (SDK field
+  being added; read defensively, `undefined` = not redeemed): redeemed and retryable → "Thử lại"
+  without the PIN; not redeemed and retryable (no answer to the PIN request, `TX_CODE_REQUIRED`) →
+  the PIN step again with the PIN kept; not retryable → a new code. "Đã được dùng" only when
+  redeemed or `OFFER_EXPIRED`. With the SDK at 0930192 every retryable failure takes the PIN step
+  (the SDK ignores the PIN while it still holds a token), which always completes.
+- Sharing route `/present-credential` is behind the same `CredentialAccessGate` and setting as the
+  detail screen; the request is resolved (documents decrypted) only after the gate passed. Two
+  biometric prompts remain when the gate is on and its 2-minute grace has run out: the gate's own
+  (expo-local-authentication) and, at "Chia sẻ", the signing key's (expo-secure-store
+  `requireAuthentication`, a per-use keychain/Keystore authorisation that cannot reuse the first:
+  expo-secure-store 56 has no validity-duration or shared `LAContext` option). Within the grace the
+  gate does not prompt, and a successful signature renews the grace. From "Chia sẻ" until the app
+  goes to the background the gate stands aside so that the signing prompt (iOS reports `inactive`
+  during it) cannot unmount the screen mid-send; values are re-masked on `inactive`.
+- Activity log and backups: sharing records (verifier name, field names, dates, no values) live in
+  the app store's identity envelope in SecureStore (service `identra.native.identity`). Android:
+  not in any backup (`SecureStore.xml` is excluded by `plugins/withIdentraBackupRules.js`, and its
+  key is in the Keystore). iOS: the keychain items use expo-secure-store's default
+  `WHEN_UNLOCKED` class, which iOS includes in encrypted (iCloud / encrypted Finder) backups and
+  restores to a new phone, so the log can travel with such a backup. A document's records are
+  deleted when the document is removed.
+- Sharing failures have their own sentence table (`presentationSentenceKeys`, keyed by every code):
+  a bad request is about the requester's code, a failed send about delivery; `NETWORK_ERROR` /
+  `VERIFIER_ERROR` after "Chia sẻ" are recorded as "có thể đã gửi" (`uncertain`).
 
 ## Consequences
 

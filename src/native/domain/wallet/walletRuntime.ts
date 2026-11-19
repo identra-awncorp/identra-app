@@ -7,6 +7,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { openDatabaseAsync } from 'expo-sqlite';
 
+import { createCatalogueFile } from '../../data/wallet/catalogueFile';
 import { createSqliteCredentialRepository, WALLET_DATABASE_NAME } from '../../data/wallet/credentialRepository';
 import { createWalletHttpFetch, type PlatformFetch } from '../../data/wallet/httpFetch';
 import { createExpoRandomSource } from '../../data/wallet/randomSource';
@@ -17,7 +18,7 @@ import { harness } from 'identra-wallet-harness';
 import { getWalletRuntimeCheck } from '../../platform/installGlobals';
 import type { RuntimeProblem } from '../../platform/runtimeGlobals';
 import { credentialOfferQrText, presentationRequestQrText, type WalletQrRequest } from '../scan/qrScan';
-import { CATALOGUE_FILE_NAME, createWallet, type CatalogueFile, type Wallet, type WalletApi } from './walletContainer';
+import { CATALOGUE_FILE_NAME, createWallet, type Wallet, type WalletApi } from './walletContainer';
 
 export class WalletUnavailableError extends Error {
   readonly problems: RuntimeProblem[];
@@ -26,26 +27,6 @@ export class WalletUnavailableError extends Error {
     this.name = 'WalletUnavailableError';
     this.problems = problems;
   }
-}
-
-/** In the document directory, which the OS backup includes (iOS Documents; Android files/, see plugins/). */
-function createCatalogueFile(): CatalogueFile {
-  const file = new File(Paths.document, CATALOGUE_FILE_NAME);
-  const next = new File(Paths.document, `${CATALOGUE_FILE_NAME}.next`);
-  return {
-    async read() {
-      // An interrupted swap can leave only the new file.
-      if (file.exists) return file.text();
-      return next.exists ? next.text() : null;
-    },
-    async write(text) {
-      // Write the whole new list beside the old one, then swap: a crash leaves one complete file.
-      if (next.exists) next.delete();
-      next.create();
-      next.write(text);
-      await next.move(file, { overwrite: true });
-    },
-  };
 }
 
 let instance: Wallet | null = null;
@@ -72,7 +53,8 @@ export function getWallet(options: { authenticationPrompt: string }): Wallet {
     keySecrets: createWalletKeySecretStorage(SecureStore, { authenticationPrompt: () => authenticationPrompt }),
     dataKeySecrets: createDataKeySecretStorage(SecureStore),
     repository: createSqliteCredentialRepository(() => openDatabaseAsync(WALLET_DATABASE_NAME)),
-    catalogueFile: createCatalogueFile(),
+    // In the document directory, which the OS backup includes (iOS Documents; Android files/, see plugins/).
+    catalogueFile: createCatalogueFile((name) => new File(Paths.document, name), CATALOGUE_FILE_NAME),
     plainStorage: AsyncStorage,
   });
   return instance;

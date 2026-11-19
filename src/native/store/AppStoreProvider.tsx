@@ -15,6 +15,7 @@ import {
   expirePendingActivityLogsInAppState,
   markAllActivityLogsReadInAppState,
   removeActivityLogFromAppState,
+  removeCredentialActivityFromAppState,
   removeDemoDataFromAppState,
   updateActivityLogInAppState,
   updateProfileInAppState,
@@ -35,6 +36,7 @@ export interface AppStore extends PersistedAppState {
   addActivityLog: (log: ActivityLog) => void;
   updateActivityLog: (id: string, updates: Partial<ActivityLog>) => void;
   removeActivityLog: (id: string) => void;
+  removeCredentialActivity: (credentialId: string) => void;
   markAllActivityLogsRead: () => void;
   clearNewActivityHighlights: () => void;
   updateProfile: (profile: PersonalInfo) => void;
@@ -137,6 +139,10 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
     setState((current) => removeActivityLogFromAppState(current, id));
   }, []);
 
+  const removeCredentialActivity = useCallback((credentialId: string) => {
+    setState((current) => removeCredentialActivityFromAppState(current, credentialId));
+  }, []);
+
   const markAllActivityLogsRead = useCallback(() => {
     setState((current) => markAllActivityLogsReadInAppState(current));
   }, []);
@@ -177,6 +183,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       addActivityLog,
       updateActivityLog,
       removeActivityLog,
+      removeCredentialActivity,
       markAllActivityLogsRead,
       clearNewActivityHighlights,
       updateProfile,
@@ -194,6 +201,7 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       addActivityLog,
       updateActivityLog,
       removeActivityLog,
+      removeCredentialActivity,
       markAllActivityLogsRead,
       clearNewActivityHighlights,
       updateProfile,

@@ -97,6 +97,9 @@ const typePin = (pin, submit = true) => async (page) => {
     ...['CERT_CHAIN_UNTRUSTED', 'CLIENT_ID_MISMATCH', 'SIGNATURE_INVALID', 'REQUEST_INVALID', 'REQUEST_EXPIRED', 'URL_NOT_ALLOWED', 'TRUST_LIST_UNAVAILABLE'].map((code) => ({ name: `present-refused-${code.toLowerCase()}`, url: present, presentation: `openid4vp://?${code}` })),
     { name: 'present-nomatch', url: present, presentation: 'openid4vp://?nomatch' },
     { name: 'present-revoked', url: present, presentation: 'openid4vp://?revoked' },
+    { name: 'present-invalid', url: present, presentation: 'openid4vp://?invalid-doc' },
+    { name: 'present-three-options', url: present, presentation: 'openid4vp://?three-sets' },
+    { name: 'present-three-options-middle', url: present, presentation: 'openid4vp://?three-sets', act: tap(/^(Gửi|Sends): [^,]+, [^,]+, (Hạng tốt nghiệp|Degree classification)$/) },
     { name: 'present-expired', url: present, presentation: 'openid4vp://?short', settle: 5600 },
     { name: 'present-sending', url: present, act: share(300) },
     { name: 'present-sent', url: present, act: share() },
@@ -112,6 +115,7 @@ const typePin = (pin, submit = true) => async (page) => {
     { name: 'receive-success', url: '/receive-credential', act: typePin('123456') },
     { name: 'receive-device-not-ready', url: '/receive-credential', biometrics: 'off' },
     { name: 'receive-resume', url: '/receive-credential', act: typePin('444444') },
+    { name: 'receive-resume-offline', url: '/receive-credential', act: typePin('555555') },
     { name: 'detail-invalid', url: '/credentials/h4' },
     { name: 'receive-invalid-credential', url: '/receive-credential', act: typePin('111111') },
     { name: 'receive-expired-on-accept', url: '/receive-credential', act: typePin('222222') },
@@ -141,7 +145,7 @@ const typePin = (pin, submit = true) => async (page) => {
   for (const width of [390, 360]) {
     for (const s of all) await shot(browser, { ...s, width, height: width === 360 ? 740 : 844 });
   }
-  const themed = ['receive-consent', 'receive-wrong-pin', 'list-held', 'detail-valid', 'restore-confirm', 'present-trusted', 'present-trusted-less', 'present-chooser', 'present-untrusted', 'present-untrusted-confirm', 'present-refused-cert_chain_untrusted', 'present-refused-trust_list_unavailable', 'present-nomatch', 'present-revoked', 'present-expired', 'present-sent', 'present-submit-key_invalidated'];
+  const themed = ['receive-consent', 'receive-wrong-pin', 'list-held', 'detail-valid', 'restore-confirm', 'present-trusted', 'present-trusted-less', 'present-chooser', 'present-untrusted', 'present-untrusted-confirm', 'present-refused-cert_chain_untrusted', 'present-refused-trust_list_unavailable', 'present-nomatch', 'present-revoked', 'present-invalid', 'present-three-options', 'present-expired', 'present-sent', 'present-submit-key_invalidated'];
   for (const s of all.filter((x) => themed.includes(x.name))) {
     await shot(browser, { ...s, theme: 'dark' });
     await shot(browser, { ...s, language: 'en' });

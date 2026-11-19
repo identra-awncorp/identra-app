@@ -51,9 +51,13 @@ export async function migrateWalletDatabase(db: SqliteDatabaseLike): Promise<voi
   if (version > WALLET_SCHEMA_VERSION) throw new WalletDatabaseError('SCHEMA_TOO_NEW');
   if (version === WALLET_SCHEMA_VERSION) return;
   if (version === 0) {
-    // A new database (or a v0 one with no table yet): the current DDL directly.
-    await inTransaction(db, `${CREDENTIALS_TABLE_DDL};\nPRAGMA user_version = ${WALLET_SCHEMA_VERSION};`);
-    return;
+    // A v0 file can already hold the v1 table (an older first run stopped before stamping it):
+    // that one is rebuilt below like a v1 table, or 'invalid' could never be stored.
+    const table = await db.getFirstAsync<{ n: number }>("SELECT count(*) AS n FROM sqlite_master WHERE type = 'table' AND name = 'credentials'", []);
+    if (!table?.n) {
+      await inTransaction(db, `${CREDENTIALS_TABLE_DDL};\nPRAGMA user_version = ${WALLET_SCHEMA_VERSION};`);
+      return;
+    }
   }
   // 1 -> 2: recreate with the new CHECK and copy every row unchanged.
   await inTransaction(
