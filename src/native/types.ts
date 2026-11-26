@@ -103,6 +103,12 @@ export interface ActivityLog {
   credentialId?: string;
   /** For a presentation: the claim NAMES shared (never values). */
   sharedClaims?: string[];
+  /** For a presentation: the requester's QR (verifier and request address), to find this entry again for the same request. */
+  requestRef?: string;
+  /** For a presentation: how many times it was sent (the requester holds that many signed copies). */
+  sends?: number;
+  /** For a share the requester received without a result: until when the request stays locked to what was sent. */
+  lockedUntil?: string;
 }
 
 export interface PersonalInfo {

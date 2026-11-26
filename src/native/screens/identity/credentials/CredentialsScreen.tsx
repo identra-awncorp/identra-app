@@ -93,7 +93,8 @@ export function CredentialsScreen({
                       <Text numberOfLines={1} style={[walletStyles.value, { color: colors.text }]}>{t(item.nameKey)}</Text>
                       {/* Never clipped: a cut-off identifier could pass for another issuer's (the dense form is the rule's). */}
                       <Text numberOfLines={item.trustPath === 'did' ? undefined : 1} style={[walletStyles.meta, { color: colors.textSecondary }]}>{issuerText(item, t, 'dense')}</Text>
-                      <Text numberOfLines={2} style={[walletStyles.meta, { color: colors.textSecondary }]}>{t(trustPathKey(item))}</Text>
+                      {/* Never clipped either: the test-network marker is at its end. */}
+                      <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t(trustPathKey(item))}</Text>
                       <Text numberOfLines={1} style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.list.receivedOn', { date: item.receivedDate })}</Text>
                       <View style={styles.pill}>
                         <StatusPill status={item.status} compact colors={colors} />

@@ -166,6 +166,9 @@ function parseActivityLog(value: unknown): ActivityLog | null {
     ...(Array.isArray(value.sharedClaims) && value.sharedClaims.every((n) => typeof n === 'string' && /^[a-z_]{1,40}$/.test(n))
       ? { sharedClaims: value.sharedClaims as string[] }
       : {}),
+    ...(optionalString(value.requestRef) && (value.requestRef as string).length <= 4096 ? { requestRef: value.requestRef as string } : {}),
+    ...(Number.isInteger(value.sends) && (value.sends as number) > 0 && (value.sends as number) < 100 ? { sends: value.sends as number } : {}),
+    ...(optionalString(value.lockedUntil) ? { lockedUntil: value.lockedUntil as string } : {}),
   };
 }
 

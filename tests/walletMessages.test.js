@@ -161,11 +161,25 @@ describe('wallet code → sentence tables', () => {
     assert.deepEqual([view.code, view.action, view.titleKey, view.sentenceKey], ['DID_RESOLUTION_UNAVAILABLE', 'retry', 'wallet.presentTitles.notCheckedYet', 'wallet.presentErrors.submit.DID_RESOLUTION_UNAVAILABLE']);
     assert.equal(MAYBE_SENT_CODES.has('DID_RESOLUTION_UNAVAILABLE'), false);
     assert.equal(translate('vi', view.titleKey), 'Bên yêu cầu chưa kiểm tra được giấy tờ — thử lại sau');
-    assert.match(translate('vi', view.sentenceKey), /đã nhận thông tin bạn gửi nhưng chưa kiểm tra được.*CertNet.*Sau ít phút, bấm Gửi lại để gửi lại đúng những thông tin này/);
-    assert.match(translate('en', view.sentenceKey), /received what you sent.*could not reach CertNet.*tap Send again to send exactly the same/);
+    assert.match(translate('vi', view.sentenceKey), /đã nhận thông tin bạn gửi\. Họ cho biết chưa kiểm tra được vì chưa liên hệ được CertNet.*Sau ít phút, bấm Gửi lại để gửi lại đúng những thông tin này/);
+    assert.match(translate('en', view.sentenceKey), /received what you sent\. They say they could not check it yet because they could not reach CertNet.*tap Send again to send exactly the same/);
+    // The wallet has only the requester's word for why: never stated as a fact.
+    assert.equal(/vì họ chưa liên hệ|because it could not reach/.test(`${translate('vi', view.sentenceKey)} ${translate('en', view.sentenceKey)}`), false);
     assert.notEqual(translate('en', view.titleKey), view.titleKey);
     // Before "Chia sẻ" the code keeps its generic sentence; "check later" says the requester could not be checked, which is not this.
     assert.equal(presentationFailureView('DID_RESOLUTION_UNAVAILABLE', 'resolve').sentenceKey, 'wallet.presentErrors.other');
+  });
+
+  it('after a delivered share, a key failure on the resend keeps its own message (request the document again), not "the request is closed"', () => {
+    for (const code of ['KEY_INVALIDATED', 'KEY_NOT_FOUND']) {
+      const view = presentationFailureView(code, 'submit', { delivered: true });
+      assert.deepEqual([view.action, view.titleKey, view.sentenceKey], ['request-again', 'wallet.failureTitles.requestAgain', `wallet.errors.${code}`], code);
+    }
+    // Anything else after a delivery is the closed request, at resolve too (the same QR with its sends used up).
+    for (const stage of ['submit', 'resolve']) {
+      const closed = presentationFailureView('REQUEST_INVALID', stage, { delivered: true });
+      assert.deepEqual([closed.action, closed.titleKey, closed.sentenceKey], ['scan-again', 'wallet.presentTitles.requestClosed', 'wallet.presentErrors.afterDelivered'], stage);
+    }
   });
 
   it('asks for the PIN when the SDK says one is needed and none was given', () => {

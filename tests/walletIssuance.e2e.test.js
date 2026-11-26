@@ -74,7 +74,7 @@ describe('the app wallet receives and keeps a diploma from a real issuer (no dev
     state = receiveReducer(state, { type: 'resolved', result: await wallet.offers.resolve(qrText) });
     assert.equal(state.phase, 'consent', JSON.stringify(state));
     const view = offerView(state.offer, 'vi');
-    assert.deepEqual({ ...view, issuerOrigin: undefined }, { issuerName: 'Trường Mẫu', issuerId: null, issuerOrigin: undefined, documentNameKey: 'wallet.documentTypes.diploma', pin: { length: 6, numeric: true } });
+    assert.deepEqual({ ...view, issuerOrigin: undefined }, { issuerName: 'Trường Mẫu', issuerId: null, issuerTestNetwork: false, issuerOrigin: undefined, documentNameKey: 'wallet.documentTypes.diploma', pin: { length: 6, numeric: true } });
     assert.equal(secureStore.state.items.size, 0, 'resolving creates no key');
 
     // A wrong PIN: back to the PIN field, PIN cleared, retry on the same offer.

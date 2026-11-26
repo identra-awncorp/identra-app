@@ -24,14 +24,16 @@ document beside five of the DID trust path: valid with the gateway's usual 16-ch
 checked yet, issuer no longer recognised, not checked because the build has no CertNet configuration,
 valid with a 64-character identifier that has no place to break a line;
 "Kiểm tra lại" answers with that state's checks); an offer QR containing `did` comes from a DID
-issuer (`longdid`: the 64-character identifier) (containing `unsupported`: refused, this build has no CertNet), where PIN `666666` gives an issuer CertNet could not resolve (resumes without the PIN); PIN
+issuer (`longdid`: the 64-character identifier; `testdid`: a test-network identifier) (containing `unsupported`: refused, this build has no CertNet), where PIN `666666` gives an issuer CertNet could not resolve (resumes without the PIN); PIN
 `000000` wrong, `111111` credential fails its checks, `222222` expired, `333333` no answer to the PIN
 (code not redeemed: PIN step again), `444444` cancelled prompt and `555555` offline after the PIN
 (both resume without the PIN).
 Sharing: `identra.harness.presentation` QR containing `untrusted`, `two-docs`, `did-doc`, `long-did`, `mixed-docs` (scenario `did`), `revoked`,
 `invalid-doc`, `three-sets`, `nomatch`, `short`, or a refusal code; `identra.harness.submit` = `ok` or a wallet code, or a
 comma list answering the sends of one request in turn (`DID_RESOLUTION_UNAVAILABLE,ok`: received but not checked, then
-sent again; like the SDK the third send after `DID_RESOLUTION_UNAVAILABLE` is `VERIFIER_ERROR`). `CAPTURE_ONLY` takes
+sent again; like the SDK the request is then pinned per QR, the third send after `DID_RESOLUTION_UNAVAILABLE` is `VERIFIER_ERROR`
+and a resolve after it is `REQUEST_INVALID`). The `present-delivered-reopened` / `-used-up` states leave the screen and open
+the same QR again through expo-router's own router (found in the dev bundle's module table), so the store keeps the history. `CAPTURE_ONLY` takes
 comma-separated name prefixes. The `present-delivered-history*` states reach the activity list and the document through
 the app's own navigation (a reload starts a new store). `CAPTURE_ONLY=present`
 limits the capture to the sharing states. Long screens also get a `-bottom.png`.

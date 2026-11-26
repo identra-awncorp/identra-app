@@ -185,7 +185,7 @@ describe('receive flow', () => {
   });
 
   it('describes the offer and keeps only what a PIN field may hold', () => {
-    assert.deepEqual(offerView(offer, 'vi'), { issuerName: 'Trường Mẫu', issuerId: null, issuerOrigin: null, documentNameKey: 'wallet.documentTypes.diploma', pin: { length: 6, numeric: true } });
+    assert.deepEqual(offerView(offer, 'vi'), { issuerName: 'Trường Mẫu', issuerId: null, issuerTestNetwork: false, issuerOrigin: null, documentNameKey: 'wallet.documentTypes.diploma', pin: { length: 6, numeric: true } });
     assert.equal(offerView({ ...offer, issuerOrigin: 'https://api-identra.awncorp.vn' }, 'vi').issuerOrigin, 'api-identra.awncorp.vn');
     assert.equal(offerView({ ...offer, issuerOrigin: 'http://evil.example' }, 'vi').issuerOrigin, null);
     assert.equal(offerView(offer, 'en').issuerName, 'Sample University');
@@ -195,6 +195,10 @@ describe('receive flow', () => {
     const certNet = offerView({ ...offer, issuerDid: 'did:certnet:testnet:4f9c2a7e1b3d8f60a5c4e2b9d7f1a3c8', issuerOrigin: 'https://api-identra.awncorp.vn' }, 'vi');
     assert.deepEqual([certNet.issuerName, certNet.issuerId, certNet.issuerOrigin], [null, '4f9c2a7e1b3d8f60a5c4e2b9d7f1a3c8', 'api-identra.awncorp.vn']);
     assert.equal(offerView({ ...offer, issuerDid: null }, 'vi').issuerId, null);
+    // The identifier shown is the part after the network, so the network is said on its own line: a test one must not pass for a real one.
+    assert.equal(certNet.issuerTestNetwork, true);
+    assert.equal(offerView({ ...offer, issuerDid: 'did:certnet:local:4f9c2a7e1b3d8f60a5c4e2b9d7f1a3c8' }, 'vi').issuerTestNetwork, true);
+    assert.equal(offerView({ ...offer, issuerDid: 'did:certnet:mainnet:4f9c2a7e1b3d8f60a5c4e2b9d7f1a3c8' }, 'vi').issuerTestNetwork, false);
     assert.equal(offerView({ ...offer, txCode: { length: null, inputMode: 'numeric', description: null } }, 'vi').pin.length, 6);
     const pin = { length: 6, numeric: true };
     assert.equal(sanitizePin('12 34-56', pin), '123456');
@@ -303,6 +307,21 @@ describe('restore flow', () => {
 });
 
 describe('DID trust path (ADR-0020): receipt, views and re-check results', () => {
+  it('never clips the line that says how the issuer is checked (its test-network marker is at the end), on any wallet screen', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const dir = path.join(__dirname, '../src/native/screens/identity');
+    const files = fs.readdirSync(dir, { recursive: true }).filter((f) => f.endsWith('.tsx'));
+    let lines = 0;
+    for (const f of files) {
+      for (const tag of fs.readFileSync(path.join(dir, f), 'utf8').match(/<Text\b[^>]*>\{t\(trustPathKey\(/g) ?? []) {
+        lines += 1;
+        assert.equal(/numberOfLines/.test(tag), false, `${f}: ${tag}`);
+      }
+    }
+    assert.ok(lines >= 4, 'the list, the received screen, the share consent and the detail');
+  });
+
   const { documentChoices } = require('../.tmp-test/src/native/domain/wallet/presentationFlow');
   const { isTestNetworkIssuer, issuerIdText, issuerText, issuerViewOf, statusSentenceKeys, trustPathKey, ISSUER_ID_DENSE_MAX, ISSUER_ID_KEEP } = require('../.tmp-test/src/native/domain/wallet/walletViews');
   const translate = require('../.tmp-test/src/native/i18n').translate;

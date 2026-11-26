@@ -301,6 +301,28 @@ describe('the issuer-name cache and the known-issuer table on the DID path (ADR-
     assert.deepEqual(JSON.parse(other.map.get(KEY)), { [ISSUER_B]: 'Tên tự xưng' });
   });
 
+  it('keeps names away from a CertNet-path row by EITHER sign of it (the path, or the identifier alone)', async () => {
+    const row = { vct: DIPLOMA, issuerUri: ISSUER_A, status: 'valid', statusCheckedAt: null, createdAt: '2026-11-19T00:00:00Z' };
+    const only = (summaries, details, accepted) => ({
+      offers: { accept: async () => ({ ok: true, credentialId: 'c', vct: DIPLOMA, issuerName: 'Tên tự xưng', status: 'valid', ...accepted }) },
+      credentials: { list: async () => summaries, get: async (id) => ({ ok: true, credential: { id, ...row, issuerName: 'Tên tự xưng', iat: 1, claims: {}, ...details } }) },
+    });
+    // accept: the offer declared a CertNet identifier, the result does not repeat it (and the other way round).
+    for (const [offer, accepted] of [[{ issuerUri: ISSUER_A, issuerDid: DID }, {}], [{ issuerUri: ISSUER_A, issuerDid: null }, { issuerDid: DID }]]) {
+      const st = storage();
+      await withIssuerNames(st, only([], {}, accepted)).accept(offer, {});
+      assert.deepEqual(st.writes, [], JSON.stringify({ offer, accepted }));
+    }
+    // list and get: only the path, or only the identifier.
+    for (const sign of [{ trustPath: 'did', issuerDid: null }, { issuerDid: DID }]) {
+      const listed = await withIssuerNames(storage({ [ISSUER_A]: 'Đại học A' }), only([{ id: 'r', ...row, ...sign }], {}, {})).list();
+      assert.equal(listed[0].issuerName, null, `list ${JSON.stringify(sign)}`);
+      const st = storage();
+      await withIssuerNames(st, only([], sign, {})).get('r');
+      assert.deepEqual(st.writes, [], `get ${JSON.stringify(sign)}`);
+    }
+  });
+
   it('never reads the cached name of its issuer URL for a DID-path document', async () => {
     const byId = Object.fromEntries((await withIssuerNames(storage({ [ISSUER_A]: 'Đại học A' }), sdk).list()).map((c) => [c.id, c.issuerName]));
     assert.deepEqual(byId, { d: null, x: 'Đại học A' });

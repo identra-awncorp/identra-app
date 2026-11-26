@@ -203,7 +203,7 @@ export function ReceiveCredentialScreen({
                     <>
                       <Text style={[walletStyles.value, { color: colors.text }]}>{view.issuerOrigin ?? issuerDisplayName(offer.issuerUri)}</Text>
                       <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.trustPath.issuerId', { id: view.issuerId ?? '' })}</Text>
-                      <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.receive.issuerCheckedCertNet')}</Text>
+                      <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t(view.issuerTestNetwork ? 'wallet.receive.issuerCheckedCertNetTest' : 'wallet.receive.issuerCheckedCertNet')}</Text>
                     </>
                   ) : (
                     <>

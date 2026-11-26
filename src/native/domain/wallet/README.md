@@ -80,8 +80,9 @@ configures it, stores one column and says on screen which path was used.
   nhận được giấy tờ này", only what the issuer itself says (its documents are checked through CertNet), no word on the QR code, action `scan-again` (another code, never a retry
   of this one). The receive screen of a DID issuer (`ResolvedOffer.issuerDid`, declared and not yet
   verified) shows no name, not even the self-declared one: the web address, "Mã nơi cấp <complete id>"
-  and "will be checked through CertNet when you receive it" (`offerView`: `issuerName` null,
-  `issuerId`). A stored DID credential re-checked in such a build is `unknown`, and
+  and "will be checked through CertNet when you receive it", with "(mạng thử nghiệm)" for a `local` /
+  `testnet` identifier, since the identifier shown lacks the network (`offerView`: `issuerName` null,
+  `issuerId`, `issuerTestNetwork`). A stored DID credential re-checked in such a build is `unknown`, and
   `statusSentenceKeys` reads the SDK's `did_resolution` / `DID_RESOLUTION_FAILED` on an `unknown` DID
   document as `wallet.didPath.unsupported` ("this version of the app cannot check this document"),
   never "CertNet did not answer" (CertNet was not asked). With CertNet configured that same failure
@@ -97,7 +98,26 @@ configures it, stores one column and says on screen which path was used.
   id: what was shared counts once); anything else (the request closed, the SDK's last allowed send
   answered `VERIFIER_ERROR`, a lost connection, stopping) leaves it as "sent, no result" and ends the
   flow with "Yêu cầu không còn dùng được" (never "nothing was sent"); a cancelled prompt returns to the
-  locked screen.
+  locked screen. The sentence says why only as the requester's word ("Họ cho biết…"): the wallet cannot
+  know whether they really could not reach CertNet.
+- **The lock outlives the screen** (re-review N1): the pin belongs to the request (the QR), not to the
+  mounted screen. Leaving the screen (background and the access gate, back, "Dừng") declines the resolved
+  object only; the same QR resolved again (a remount, a second scan, a retried "check later") comes back
+  with the SDK's `pinned` and opens directly on the locked screen (same wording, "Gửi lại" / "Dừng",
+  an untrusted requester counted as confirmed, as on the screen that sent it). The history entry is found
+  again by `requestRef` (the QR text the request came from, i.e. verifier `client_id` + `request_uri`:
+  what the SDK keys its pin by), status `pending`: every later send updates that entry (`sends`,
+  "Đã gửi N lần" when more than once; a send that may have arrived counts too), so there is one entry
+  per request. `REQUEST_INVALID` at resolve for a QR with such an entry (its sends are used up) is
+  "Yêu cầu không còn dùng được" with "what was sent stays sent", not "this code is not valid"; without
+  the entry (history off or cleared) the app cannot tell and says the generic sentence.
+- **Across an app restart** the SDK's pin is gone (memory only). The history entry is enough to restore it,
+  so the app does: within `lockedUntil` (600 s from the first delivery, never extended), the same QR opens
+  locked to that document and the claim set with exactly those field names, keeps the count (the
+  larger of the SDK's and the entry's) and closes the request at `MAX_PRESENTATION_SENDS` in all.
+  Limits: it needs the sharing history (setting on, entry not deleted); after the 600 s the QR is an
+  ordinary request again, as with the SDK's own pin; if the requester no longer offers exactly those
+  fields, the request is closed, never opened unlocked.
 - **Network**: `dpki.network` is the configured network: an offer declaring an identifier of another
   CertNet network is `TRUST_PATH_UNSUPPORTED` at resolve, before the PIN ("Ví chưa nhận được giấy tờ này").
 - **CertNet wording only on the DID path**: `wallet.errors.DID_RESOLUTION_*` are neutral; the CertNet

@@ -298,11 +298,12 @@ const presentationTitleKeys: Record<PresentationStage, { byCode: Partial<Record<
  * `delivered`: the requester already received this document once and concluded nothing
  * (DID_RESOLUTION_UNAVAILABLE): a failure that ends the flow then says the request is closed and
  * that the requester has what was sent, never "nothing was sent" (except the key failures, whose own
- * sentence says what to do with the document).
+ * sentence says what to do with the document). Also at resolve: the same QR opened again once its
+ * sends are used up (REQUEST_INVALID) is that ending, not "this code is not valid".
  */
 export function presentationFailureView(code: unknown, stage: PresentationStage, o: { delivered?: boolean } = {}): FailureView {
   const base = failureView(code);
-  if (stage === 'submit' && o.delivered && base.action !== 'request-again') {
+  if (o.delivered && base.action !== 'request-again') {
     return { code: base.code, action: 'scan-again', titleKey: 'wallet.presentTitles.requestClosed', sentenceKey: 'wallet.presentErrors.afterDelivered', detailKey: null };
   }
   const titles = presentationTitleKeys[stage];

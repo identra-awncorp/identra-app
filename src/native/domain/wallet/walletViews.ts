@@ -134,6 +134,8 @@ export interface OfferView {
   issuerName: string | null;
   /** The complete identifier the issuer declared (not verified until the document is accepted); null for a certificate issuer. */
   issuerId: string | null;
+  /** The declared identifier is of a CertNet test network (its network segment), which the offer says like the other screens. */
+  issuerTestNetwork: boolean;
   /** The web origin the offer came from (new in the SDK; shown small under the name), or null. */
   issuerOrigin: string | null;
   documentNameKey: I18nKey;
@@ -161,6 +163,7 @@ export function offerView(offer: ResolvedOffer, locale: Locale): OfferView {
   return {
     issuerName: did ? null : (displayNameFor(offer.issuerDisplay, locale) ?? issuerLabel(offer.issuerUri, null, locale)),
     issuerId: did ? issuerIdOf(did) : null,
+    issuerTestNetwork: did ? isTestNetworkIssuer({ issuerDid: did }) : false,
     issuerOrigin: originHost((offer as { issuerOrigin?: unknown }).issuerOrigin),
     documentNameKey: documentNameKeys[documentTypeOf(offer.configuration.vct)],
     pin: tx ? { length: tx.length && tx.length > 0 && tx.length <= 12 ? tx.length : 6, numeric: tx.inputMode === 'numeric' } : null,

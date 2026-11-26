@@ -9,7 +9,7 @@
 // check), d3 issuer no longer recognised, d4 not checked because this build has no CertNet
 // configuration ("Kiểm tra lại" says so), d5 valid with a 64-character identifier.
 // QR text containing "expired" / "offline" / "invalid" / "unsupported" (a CertNet issuer, no CertNet in this build) fails resolve accordingly; containing "did" it
-// is an offer from a DID issuer ("longdid": with the 64-character identifier). PIN 000000 is wrong, 111111 gives a credential that fails its
+// is an offer from a DID issuer ("longdid": with the 64-character identifier; "testdid": a test-network one). PIN 000000 is wrong, 111111 gives a credential that fails its
 // checks, 222222 an expired offer, 333333 no answer to the PIN (code not redeemed), 444444 a
 // cancelled prompt and 555555 no network after the PIN was accepted (both resumable), 666666 (DID
 // offer) a received credential whose issuer CertNet could not resolve (resumable without the PIN).
@@ -19,8 +19,9 @@
 // SIGNATURE_INVALID, REQUEST_INVALID, REQUEST_EXPIRED, TRUST_LIST_UNAVAILABLE, URL_NOT_ALLOWED) to fail
 // resolve. Submit outcome: localStorage 'identra.harness.submit' (ok or a wallet code; a comma list answers
 // the sends of one request in turn, e.g. "DID_RESOLUTION_UNAVAILABLE,ok"). DID_RESOLUTION_UNAVAILABLE is the
-// SDK's "the verifier received it but could not reach CertNet" (`delivered`); like the SDK, the third send
-// of a request is then VERIFIER_ERROR.
+// SDK's "the verifier received it but could not reach CertNet" (`delivered`); like the SDK, the request is
+// then pinned to that choice per QR (a later resolve of the same QR, in this page, returns `pinned`), the
+// third send of a request is VERIFIER_ERROR and a resolve after it is REQUEST_INVALID.
 import type { AcceptResult, CredentialDetails, ResolvedOffer, ResolvedPresentation } from '@identra/sdk-app';
 import { VCT, type Check } from '@identra/sdk-core';
 
@@ -89,7 +90,11 @@ export function getHarnessWallet(): WalletApi {
   // Its self-declared name stays in issuerDisplay on purpose: the receive screen must not show it.
   const didOffer: ResolvedOffer = { ...offer, issuerUri: DID_ISS, issuerDid: DID_MAIN, codeRedeemed: false };
   const longDidOffer: ResolvedOffer = { ...didOffer, issuerDid: DID_LONG };
-  const sends = new Map<ResolvedPresentation, number>();
+  const testDidOffer: ResolvedOffer = { ...didOffer, issuerDid: DID_TEST };
+  // Like the SDK: per QR (the request), not per resolved object.
+  const qrOf = new Map<ResolvedPresentation, string>();
+  const sends = new Map<string, number>();
+  const pins = new Map<string, { credentialId: string; claimSetIndex: number }>();
   const sets = [
     { index: 0, claims: ['ho_ten', 'nganh', 'hang_tot_nghiep', 'nam_tot_nghiep'] },
     { index: 1, claims: ['ho_ten', 'nganh'] },
@@ -112,7 +117,7 @@ export function getHarnessWallet(): WalletApi {
         if (qr.includes('offline')) return { ok: false, code: 'NETWORK_ERROR' };
         if (qr.includes('invalid')) return { ok: false, code: 'OFFER_INVALID' };
         if (qr.includes('unsupported')) return { ok: false, code: 'TRUST_PATH_UNSUPPORTED' };
-        return { ok: true, offer: qr.includes('longdid') ? longDidOffer : qr.includes('did') ? didOffer : offer };
+        return { ok: true, offer: qr.includes('longdid') ? longDidOffer : qr.includes('testdid') ? testDidOffer : qr.includes('did') ? didOffer : offer };
       },
       async discard(o) {
         pendingDid.delete(o);
@@ -149,6 +154,8 @@ export function getHarnessWallet(): WalletApi {
         await wait(700);
         const code = presentationCodes.find((c) => qr.includes(c));
         if (code) return { ok: false, code };
+        const pin = pins.get(qr);
+        if (pin && (sends.get(qr) ?? 0) >= 3) return { ok: false, code: 'REQUEST_INVALID' };
         const untrusted = qr.includes('untrusted');
         const ids = qr.includes('nomatch') ? [] : qr.includes('mixed-docs') ? ['h1', 'd1'] : qr.includes('did-doc') ? ['d1'] : qr.includes('long-did') ? ['d5'] : qr.includes('two-docs') ? ['h1', 'h2'] : qr.includes('revoked') ? ['h3'] : qr.includes('invalid-doc') ? ['h4'] : ['h1'];
         const request: ResolvedPresentation = {
@@ -161,16 +168,22 @@ export function getHarnessWallet(): WalletApi {
             return { credentialId: id, vct: VCT.diploma, ...path, claimSets: qr.includes('three-sets') ? threeSets : sets };
           }),
           expiresAt: new Date(Date.now() + (qr.includes('short') ? 4000 : 272000)).toISOString(),
+          pinned: pin ? { ...pin, sends: sends.get(qr) ?? 0 } : null,
         };
+        qrOf.set(request, qr);
         return { ok: true, request };
       },
-      async submit(request) {
+      async submit(request, choice) {
         await wait(1200);
-        const n = (sends.get(request) ?? 0) + 1;
-        sends.set(request, n);
+        const qr = qrOf.get(request) ?? '';
+        const pin = pins.get(qr);
+        if (pin && (pin.credentialId !== choice.credentialId || pin.claimSetIndex !== choice.claimSetIndex)) return { ok: false, code: 'REQUEST_INVALID' };
+        const n = (sends.get(qr) ?? 0) + 1;
+        sends.set(qr, n);
         const answers = (localStorage.getItem('identra.harness.submit') ?? 'ok').split(',');
         const outcome = answers[Math.min(n, answers.length) - 1]!;
         if (outcome === 'ok') return { ok: true };
+        if (outcome === 'DID_RESOLUTION_UNAVAILABLE' && n < 3) pins.set(qr, { credentialId: choice.credentialId, claimSetIndex: choice.claimSetIndex });
         if (outcome === 'DID_RESOLUTION_UNAVAILABLE') return n < 3 ? { ok: false, code: outcome, delivered: true } : { ok: false, code: 'VERIFIER_ERROR' };
         return { ok: false, code: outcome as 'VERIFIER_ERROR' };
       },

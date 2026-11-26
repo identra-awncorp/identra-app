@@ -16,6 +16,7 @@ import {
   presentReducer,
   purposeText,
   secondsLeft,
+  sentShareOf,
   shareBlock,
   type ClaimSetChoice,
   type ConsentField,
@@ -56,6 +57,7 @@ export function PresentCredentialScreen({
   onScanAgain,
   onOpenPortal,
   onRecordActivity,
+  history,
   historyKept,
   onSigningStarted,
   onSigned,
@@ -68,6 +70,8 @@ export function PresentCredentialScreen({
   onOpenPortal: (url: string) => void;
   /** A history entry with the id of an earlier one replaces it (one entry per request). */
   onRecordActivity: (entry: ActivityLog) => void;
+  /** The sharing history: a delivered share of this same QR reopens locked to what was sent and updates its entry. */
+  history: readonly ActivityLog[];
   /** The person keeps a sharing history (setting): only then may the screen say a share is in it. */
   historyKept: boolean;
   /** The signing key is about to be used: its own biometric prompt follows. */
@@ -91,13 +95,18 @@ export function PresentCredentialScreen({
   }, []);
   const actions = useMemo(() => createPresentationActions(wallet, { get: () => stateRef.current, dispatch }), [wallet, dispatch]);
 
+  // The history as it is when the request resolves (a delivered share of this QR locks it again).
+  const historyRef = useRef(history);
+  historyRef.current = history;
+
   // Resolve the request; leaving the screen before it was answered declines it (no network).
   useEffect(() => {
     let live = true;
+    const resolved = (result: Extract<PresentEvent, { type: 'resolved' }>['result']) => live && dispatch({ type: 'resolved', result, nowMs: Date.now(), sent: sentShareOf(historyRef.current, qrText) });
     wallet.presentations
       .resolve(qrText)
-      .then((result) => live && dispatch({ type: 'resolved', result, nowMs: Date.now() }))
-      .catch((error: unknown) => live && dispatch({ type: 'resolved', result: { ok: false, code: failureCodeOfError(error) }, nowMs: Date.now() }));
+      .then(resolved)
+      .catch((error: unknown) => resolved({ ok: false, code: failureCodeOfError(error) }));
     return () => {
       live = false;
       actions.leave();
@@ -151,6 +160,9 @@ export function PresentCredentialScreen({
         claims: result.claims,
         outcome: result.outcome,
         t,
+        requestRef: qrText,
+        sends: result.sends,
+        lockedUntil: result.lockedUntil,
       }),
     );
   };

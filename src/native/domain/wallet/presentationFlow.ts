@@ -1,6 +1,6 @@
 // Sharing a document with a verifier (OpenID4VP; ADR-0011, ADR-0008 §5, ADR-0015 §5): the state
 // machine of the consent screen and what it shows. Pure: screens dispatch SDK results and render.
-import type { PresentationMatch, ResolvedPresentation, WalletFailure } from '@identra/sdk-app';
+import { MAX_PRESENTATION_SENDS, type PresentationMatch, type ResolvedPresentation, type WalletFailure } from '@identra/sdk-app';
 import { VCT } from '@identra/sdk-core';
 
 import type { I18nKey } from '../../i18n';
@@ -46,6 +46,37 @@ export interface ConsentState {
    * the same again and stopping.
    */
   delivered: boolean;
+  /** How many times this request was sent so far (the SDK's count, or the history's after a restart). */
+  sends: number;
+  /** The history entry of this request's earlier sends, found again after a remount or a restart; null: none yet. */
+  record: ShareRecord | null;
+}
+
+/** A history entry a later send of the same request updates (one entry per request). */
+export interface ShareRecord {
+  id: string;
+  /** Until when the request stays locked to what was sent (600 s from the first delivery, like the SDK's pin). */
+  lockedUntil: string | null;
+}
+
+/** The SDK's pin lasts 600 s from the first delivery (architecture.md §9); the history entry keeps the same deadline. */
+export const PIN_MS = 600_000;
+
+/** What this wallet already sent for a QR and has no result for: its history entry (pending), if any. */
+export interface SentShare extends ShareRecord {
+  credentialId: string;
+  claims: readonly string[];
+  sends: number;
+}
+
+/**
+ * The history entry this wallet wrote for this QR (`requestRef`) when the requester received the
+ * document and gave no result (status pending): how the lock and the entry are found again after a
+ * remount, and after an app restart, when the SDK's in-memory pin is gone.
+ */
+export function sentShareOf(logs: readonly ActivityLog[], requestRef: string): SentShare | null {
+  const log = logs.find((l) => l.type === 'share' && l.status === 'pending' && l.requestRef === requestRef && l.credentialId && l.sharedClaims);
+  return log ? { id: log.id, lockedUntil: log.lockedUntil ?? null, credentialId: log.credentialId!, claims: log.sharedClaims!, sends: log.sends ?? 1 } : null;
 }
 
 export type PresentState =
@@ -62,8 +93,11 @@ export type PresentState =
   | { phase: 'declined' };
 
 export type PresentEvent =
-  /** `nowMs`: a request already past its expiry is expired from the start, not from the first tick. */
-  | { type: 'resolved'; result: { ok: true; request: ResolvedPresentation } | WalletFailure | { ok: false; code: FailureCode }; nowMs: number }
+  /**
+   * `nowMs`: a request already past its expiry is expired from the start, not from the first tick.
+   * `sent`: this QR's history entry of a delivered share (`sentShareOf`), if any.
+   */
+  | { type: 'resolved'; result: { ok: true; request: ResolvedPresentation } | WalletFailure | { ok: false; code: FailureCode }; nowMs: number; sent?: SentShare | null }
   | { type: 'statuses'; statuses: Record<string, CredentialStatus> }
   | { type: 'select-document'; credentialId: string }
   | { type: 'select-claim-set'; index: number }
@@ -102,23 +136,60 @@ function firstChoice(request: ResolvedPresentation, statuses: Record<string, Cre
   return request.matches.find((m) => !isBlocking(statuses[m.credentialId])) ?? request.matches[0]!;
 }
 
+/** The end of a request the requester already received: nothing more can be sent, what was sent stays sent. */
+const closedAfterDelivery = (credentialId: string): PresentState => ({ phase: 'failed', failure: presentationFailureView('REQUEST_INVALID', 'resolve', { delivered: true }), credentialId, delivered: true });
+
+const sameNames = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((n) => b.includes(n));
+
+/**
+ * The selection a resolved request is locked to because this wallet already delivered it: the SDK's
+ * pin, or, when the SDK has none (its memory is gone after an app restart), this QR's history entry
+ * within its 600 s. 'closed': locked, but it can no longer be sent (that document or those fields are
+ * no longer offered, or the sends are used up). null: never delivered, an ordinary consent.
+ */
+function lockOf(request: ResolvedPresentation, sent: SentShare | null, nowMs: number): { credentialId: string; claimSetIndex: number; sends: number; record: ShareRecord | null } | 'closed' | null {
+  const pin = request.pinned;
+  const restored = !pin && sent !== null && sent.lockedUntil !== null && nowMs < Date.parse(sent.lockedUntil);
+  if (!pin && !restored) return null;
+  const credentialId = pin ? pin.credentialId : sent!.credentialId;
+  const entry = sent?.credentialId === credentialId ? sent : null;
+  // The SDK counts again from zero after a restart; the history keeps the sends made before it.
+  const sends = Math.max(pin?.sends ?? 0, entry?.sends ?? 0);
+  const claimSets = request.matches.find((m) => m.credentialId === credentialId)?.claimSets ?? [];
+  const set = pin ? claimSets.find((c) => c.index === pin.claimSetIndex) : claimSets.find((c) => sameNames(c.claims, sent!.claims));
+  if (!set || sends >= MAX_PRESENTATION_SENDS) return 'closed';
+  return { credentialId, claimSetIndex: set.index, sends, record: entry ? { id: entry.id, lockedUntil: entry.lockedUntil } : null };
+}
+
 export function presentReducer(state: PresentState, event: PresentEvent): PresentState {
   switch (event.type) {
     case 'resolved': {
       if (state.phase !== 'resolving') return state;
       const result = event.result;
+      const sent = event.sent ?? null;
       if (!result.ok) {
+        // The same QR once its sends are used up: the history says it was sent, so not "this code is not valid".
+        if (sent && result.code === 'REQUEST_INVALID') return closedAfterDelivery(sent.credentialId);
         const failure = presentationFailureView(result.code, 'resolve');
         return { phase: 'refused', failure, retryLater: RETRY_LATER_CODES.has(failure.code) };
       }
       const request = result.request;
+      // A request already delivered opens locked, as after the first "could not check" answer, never as an ordinary consent.
+      const lock = lockOf(request, sent, event.nowMs);
+      if (lock === 'closed') return closedAfterDelivery(request.pinned?.credentialId ?? sent!.credentialId);
       if (request.matches.length === 0) {
         return { phase: 'no-match', request, documentNameKey: documentNameKeys[documentTypeOf(VCT.diploma)] };
       }
       const first = firstChoice(request);
       return {
-        phase: 'consent', request, credentialId: first.credentialId, claimSetIndex: first.claimSets[0]!.index,
-        untrusted: request.verifier.trusted ? null : 'warning', statuses: {}, refreshing: false, expired: event.nowMs >= Date.parse(request.expiresAt), failure: null, delivered: false,
+        phase: 'consent', request,
+        credentialId: lock ? lock.credentialId : first.credentialId,
+        claimSetIndex: lock ? lock.claimSetIndex : first.claimSets[0]!.index,
+        // An untrusted requester was confirmed twice before that first send, as on the screen that sent it.
+        untrusted: request.verifier.trusted ? null : lock ? 'confirmed' : 'warning',
+        statuses: {}, refreshing: false, expired: event.nowMs >= Date.parse(request.expiresAt),
+        failure: lock ? presentationFailureView('DID_RESOLUTION_UNAVAILABLE', 'submit') : null,
+        delivered: lock !== null, sends: lock?.sends ?? 0, record: lock?.record ?? null,
       };
     }
     case 'statuses': {
@@ -167,7 +238,11 @@ export function presentReducer(state: PresentState, event: PresentEvent): Presen
         return { phase: 'sent', verifierName: state.request.verifier.trusted ? state.request.verifier.ten : null, credentialId: state.credentialId, claims: [...claims] };
       }
       const failure = presentationFailureView(event.result.code, 'submit');
-      if (wasDelivered(event.result)) return { ...state, phase: 'consent', failure, delivered: true };
+      if (wasDelivered(event.result)) {
+        // The SDK answers the last allowed send with VERIFIER_ERROR; after a restart its count starts again, the history's does not.
+        const sends = state.sends + 1;
+        return sends >= MAX_PRESENTATION_SENDS ? closedAfterDelivery(state.credentialId) : { ...state, phase: 'consent', failure, delivered: true, sends };
+      }
       if (BACK_TO_CONSENT.has(failure.code)) return { ...state, phase: 'consent', failure };
       // Never back to a consent screen after that: the request is used up (REQUEST_INVALID, the last send's VERIFIER_ERROR...).
       return { phase: 'failed', failure: presentationFailureView(event.result.code, 'submit', { delivered: state.delivered }), credentialId: state.credentialId, delivered: state.delivered };
@@ -308,20 +383,31 @@ export function presentationActivityEntry(input: {
   claims: readonly string[];
   outcome: ShareOutcome;
   t: (key: I18nKey, params?: Record<string, string>) => string;
+  /** The requester's QR: how a later send of the same request finds this entry again. */
+  requestRef?: string;
+  /** How many times it was sent; said in the entry when more than once. */
+  sends?: number;
+  /** A delivered share: until when the request stays locked to what was sent. */
+  lockedUntil?: string | null;
 }): ActivityLog {
   const { t } = input;
   const labels = input.claims.map((n) => t(labelKeyOf(n) ?? ('wallet.present.unknownField' as I18nKey)));
+  const sends = input.sends ?? 0;
   return {
     id: input.id,
     timestamp: input.now.toISOString(),
     type: 'share',
     status: input.outcome === 'delivered' ? 'pending' : input.outcome,
     title: t(ACTIVITY_TITLES[input.outcome], { document: t(input.documentNameKey) }),
-    description: labels.join(', '),
+    // Sent more than once: the requester holds that many signed copies (kept on one line: no-break spaces).
+    description: sends > 1 ? `${labels.join(', ')} ·\u00a0${t('wallet.present.activity.sentTimes', { count: String(sends) }).replace(/ /g, '\u00a0')}` : labels.join(', '),
     partner: input.verifierName ?? t('wallet.present.activity.unverifiedPartner'),
     credentialId: input.credentialId,
     sharedClaims: input.claims.filter((n) => /^[a-z_]{1,40}$/.test(n)),
     unread: false,
+    ...(input.requestRef ? { requestRef: input.requestRef } : {}),
+    ...(sends > 0 ? { sends } : {}),
+    ...(input.outcome === 'delivered' && input.lockedUntil ? { lockedUntil: input.lockedUntil } : {}),
   };
 }
 
@@ -352,6 +438,10 @@ export interface ShareAttempt {
   credentialId: string;
   /** The field names of the submitted claim set. */
   claims: string[];
+  /** How many times this request was sent, this attempt included. */
+  sends: number;
+  /** For a delivered share: until when the request stays locked (kept from the first delivery). */
+  lockedUntil: string | null;
 }
 
 function randomRecordId(): string {
@@ -365,13 +455,15 @@ function randomRecordId(): string {
  * double tap does nothing) and returns what to record; `leave` declines locally when the request
  * is still unanswered (back button, unmount).
  *
- * History after the requester received the document once (`delivered`): the entry says so; sending
- * again replaces it only when that send succeeds (or is again `delivered`). Any other ending (request
- * closed, last send refused, the person stops) leaves it as it is: sent, no result from the requester.
+ * History after the requester received the document once (`delivered`): the entry says so; every
+ * later send of the same request updates THAT entry (found again after a remount or a restart:
+ * `ConsentState.record`): a success makes it "shared", any other send that left the phone keeps it
+ * "sent, no result" with the new count. Anything that sent nothing (request closed, a key failure,
+ * the person stops) leaves it as it is.
  */
-export function createPresentationActions(wallet: Pick<WalletApi, 'presentations'>, session: FlowSession<PresentState, PresentEvent>, newRecordId: () => string = randomRecordId) {
+export function createPresentationActions(wallet: Pick<WalletApi, 'presentations'>, session: FlowSession<PresentState, PresentEvent>, newRecordId: () => string = randomRecordId, now: () => number = Date.now) {
   let inFlight = false;
-  let record: { request: ResolvedPresentation; id: string } | null = null;
+  let record: { request: ResolvedPresentation; entry: ShareRecord } | null = null;
   return {
     /** `onSubmit`: right before the signing key is used (its biometric prompt follows). */
     async share(onSubmit?: () => void): Promise<ShareAttempt | null> {
@@ -390,11 +482,21 @@ export function createPresentationActions(wallet: Pick<WalletApi, 'presentations
           result = { ok: false, code: failureCodeOfError(error) };
         }
         session.dispatch({ type: 'submitted', result });
-        const outcome = shareOutcomeOf(session.get());
-        if (!outcome || (reachedBefore && outcome !== 'success' && outcome !== 'delivered')) return null;
-        if (record?.request !== s.request) record = { request: s.request, id: newRecordId() };
+        // The answer left the phone: received (ok, delivered) or maybe received (no confirmation).
+        const posted = result.ok || wasDelivered(result) || MAYBE_SENT_CODES.has(result.code);
+        let outcome = shareOutcomeOf(session.get());
+        if (reachedBefore) {
+          if (!posted) return null;
+          outcome = result.ok ? 'success' : 'delivered';
+        }
+        if (!outcome) return null;
+        const entry = s.record ?? (record?.request === s.request ? record.entry : { id: newRecordId(), lockedUntil: new Date(now() + PIN_MS).toISOString() });
+        record = { request: s.request, entry };
         const match = s.request.matches.find((m) => m.credentialId === choice.credentialId)!;
-        return { recordId: record.id, outcome, documentNameKey: documentNameKeys[documentTypeOf(match.vct)], request: s.request, credentialId: choice.credentialId, claims: [...match.claimSets.find((c) => c.index === choice.claimSetIndex)!.claims] };
+        return {
+          recordId: entry.id, outcome, documentNameKey: documentNameKeys[documentTypeOf(match.vct)], request: s.request, credentialId: choice.credentialId,
+          claims: [...match.claimSets.find((c) => c.index === choice.claimSetIndex)!.claims], sends: s.sends + (posted ? 1 : 0), lockedUntil: entry.lockedUntil,
+        };
       } finally {
         inFlight = false;
       }

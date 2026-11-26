@@ -36,6 +36,9 @@ const untrusted = (o = {}) => request({ verifier: { trusted: false }, warning: '
 const resolved = (req, nowMs = NOW) => presentReducer(initialPresentState, { type: 'resolved', result: { ok: true, request: req }, nowMs });
 const fail = (code) => ({ ok: false, code });
 const t = (key, params) => translate('vi', key, params);
+const QR = 'openid4vp://?client_id=x509_hash%3Aabc&request_uri=https%3A%2F%2Fapi-identra.awncorp.vn%2Foid4vp%2Frequest%2Fr1';
+/** The history entry the screen writes for an attempt (PresentCredentialScreen.share). */
+const entryOf = (a, qr = QR, now = NOW) => presentationActivityEntry({ id: a.recordId, now: new Date(now), verifierName: a.request.verifier.trusted ? a.request.verifier.ten : null, credentialId: a.credentialId, documentNameKey: a.documentNameKey, claims: a.claims, outcome: a.outcome, t, requestRef: qr, sends: a.sends, lockedUntil: a.lockedUntil });
 
 describe('sharing: resolving', () => {
   it('shows no consent at all after a failed verifier check, and tells "check later" apart from "unusable code"', () => {
@@ -367,7 +370,7 @@ describe('sharing: the screen\'s actions (what is really submitted)', () => {
     let n = 0;
     const actions = createPresentationActions(wallet, session, () => `share-${++n}`);
     let app = { logs: [], settings: { flowSettings: { identity: { activityLogging: true } } } };
-    const record = (a) => a && (app = addActivityLogToAppState(app, presentationActivityEntry({ id: a.recordId, now: new Date(NOW), verifierName: 'Nhà Tuyển Dụng Mẫu (TEST)', credentialId: a.credentialId, documentNameKey: a.documentNameKey, claims: a.claims, outcome: a.outcome, t })));
+    const record = (a) => a && (app = addActivityLogToAppState(app, entryOf(a)));
     session.dispatch({ type: 'select-document', credentialId: 'b' });
     session.dispatch({ type: 'select-claim-set', index: 1 });
     for (const step of steps) {
@@ -380,6 +383,7 @@ describe('sharing: the screen\'s actions (what is really submitted)', () => {
     return { state: box.state, sent: wallet.sent, declined: wallet.declined(), logs: app.logs.map((l) => ({ id: l.id, status: l.status, title: l.title, description: l.description, sharedClaims: l.sharedClaims })) };
   };
   const SENT_ENTRY = { id: 'share-1', status: 'pending', title: 'Đã gửi Bằng tốt nghiệp, chưa có kết quả', description: 'Họ và tên, Ngành', sharedClaims: ['ho_ten', 'nganh'] };
+  const sentTimes = (n) => ({ ...SENT_ENTRY, description: `Họ và tên, Ngành ·\u00a0Đã\u00a0gửi\u00a0${n}\u00a0lần` });
 
   it('a requester that received the document but could not reach CertNet: the history says it was sent, the consent is locked to what was sent', async () => {
     const r = await historyAfter(['503'], ['share']);
@@ -401,15 +405,16 @@ describe('sharing: the screen\'s actions (what is really submitted)', () => {
     const success = await historyAfter(['503', 'ok'], ['share', { type: 'select-claim-set', index: 0 }, 'share']);
     assert.deepEqual(success.sent, [{ credentialId: 'b', claimSetIndex: 1 }, { credentialId: 'b', claimSetIndex: 1 }], 'sent again exactly as the first time');
     assert.equal(success.state.phase, 'sent');
-    assert.deepEqual(success.logs, [{ ...SENT_ENTRY, status: 'success', title: 'Đã chia sẻ Bằng tốt nghiệp' }]);
+    assert.deepEqual(success.logs, [{ ...sentTimes(2), status: 'success', title: 'Đã chia sẻ Bằng tốt nghiệp' }], 'one entry, which says it was sent twice');
 
     const stopped = await historyAfter(['503'], ['share', 'leave', { type: 'decline' }]);
     assert.deepEqual([stopped.state.phase, stopped.declined, stopped.logs], ['declined', true, [SENT_ENTRY]]);
 
-    for (const [answers, code] of [[['503', 'REQUEST_INVALID'], 'REQUEST_INVALID'], [['503', 'NETWORK_ERROR'], 'NETWORK_ERROR'], [['503', 'REQUEST_EXPIRED'], 'REQUEST_EXPIRED']]) {
+    // NETWORK_ERROR: the resend left the phone (it may have arrived), so the entry counts it.
+    for (const [answers, code, entry] of [[['503', 'REQUEST_INVALID'], 'REQUEST_INVALID', SENT_ENTRY], [['503', 'NETWORK_ERROR'], 'NETWORK_ERROR', sentTimes(2)], [['503', 'REQUEST_EXPIRED'], 'REQUEST_EXPIRED', SENT_ENTRY]]) {
       const ended = await historyAfter(answers, ['share', 'share', 'share']);
       assert.deepEqual([ended.state.phase, ended.state.delivered, ended.state.failure.code], ['failed', true, code], code);
-      assert.deepEqual(ended.logs, [SENT_ENTRY], `${code}: never "failed" or "may have been sent" for what the requester received`);
+      assert.deepEqual(ended.logs, [entry], `${code}: never "failed" or "may have been sent" for what the requester received`);
       assert.equal(ended.sent.length, answers.length, `${code}: the flow ended, no further send`);
     }
   });
@@ -419,7 +424,7 @@ describe('sharing: the screen\'s actions (what is really submitted)', () => {
     const r = await historyAfter(['503'], Array(MAX_PRESENTATION_SENDS + 2).fill('share'));
     assert.equal(r.sent.length, MAX_PRESENTATION_SENDS);
     assert.deepEqual([r.state.phase, r.state.failure.code, r.state.failure.action], ['failed', 'VERIFIER_ERROR', 'scan-again']);
-    assert.deepEqual(r.logs, [SENT_ENTRY]);
+    assert.deepEqual(r.logs, [sentTimes(MAX_PRESENTATION_SENDS)], 'the last send reached the requester too: it holds that many copies');
     for (const locale of ['vi', 'en']) {
       const text = `${translate(locale, r.state.failure.titleKey)} ${translate(locale, r.state.failure.sentenceKey)}`;
       assert.match(text, locale === 'vi' ? /không còn dùng được.*đã nhận thông tin bạn gửi/ : /can no longer be used.*received what you sent/, locale);
@@ -443,5 +448,255 @@ describe('sharing: the screen\'s actions (what is really submitted)', () => {
     const none = screen(request({ matches: [] }));
     none.actions.leave();
     assert.equal(none.calls.decline, 1, 'the no-match state declines too');
+  });
+});
+
+/**
+ * Finding N1 (re-review): the lock after a delivered share must survive the screen being unmounted
+ * (background, access gate, back, a second scan of the same QR) and an app restart. A fake SDK with
+ * the semantics of sdk-app aff28b8: the pin belongs to the QR (600 s, in memory per wallet instance),
+ * `resolve` returns `pinned`, `submit` takes only the pinned choice, the MAX_PRESENTATION_SENDS-th 503
+ * is VERIFIER_ERROR and a resolve after it REQUEST_INVALID; `decline` forgets the object, not the pin.
+ * `received` is the verifier's side: every presentation that reached it.
+ */
+describe('sharing: a delivered request stays locked across remounts and restarts (N1)', () => {
+  const { MAX_PRESENTATION_SENDS } = require('@identra/sdk-app');
+  const { sentShareOf, PIN_MS } = require('../.tmp-test/src/native/domain/wallet/presentationFlow');
+  const offered = () => request({ matches: [match('a'), match('b')] });
+  function pinningSdk({ answers, received = [], offer = offered, resolveFailures = [] }) {
+    const pins = new Map();
+    const open = new Map();
+    const failures = [...resolveFailures];
+    return {
+      received,
+      presentations: {
+        async resolve(qr) {
+          if (failures.length) return fail(failures.shift());
+          const pin = pins.get(qr);
+          if (pin && pin.sends >= MAX_PRESENTATION_SENDS) return fail('REQUEST_INVALID');
+          const r = { ...offer(), pinned: pin ? { ...pin } : null };
+          open.set(r, qr);
+          return { ok: true, request: r };
+        },
+        async submit(r, choice) {
+          const qr = open.get(r);
+          if (!qr) return fail('REQUEST_INVALID');
+          const pin = pins.get(qr);
+          if (pin && (pin.credentialId !== choice.credentialId || pin.claimSetIndex !== choice.claimSetIndex)) return open.delete(r), fail('REQUEST_INVALID');
+          const answer = answers[Math.min(received.length, answers.length - 1)];
+          if (answer === 'cancel') return fail('USER_CANCELLED');
+          open.delete(r);
+          received.push({ credentialId: choice.credentialId, claims: r.matches.find((m) => m.credentialId === choice.credentialId).claimSets.find((c) => c.index === choice.claimSetIndex).claims.join(',') });
+          if (answer === 'ok') return { ok: true };
+          const sends = (pin?.sends ?? 0) + 1;
+          pins.set(qr, { credentialId: choice.credentialId, claimSetIndex: choice.claimSetIndex, sends });
+          if (sends >= MAX_PRESENTATION_SENDS) return fail('VERIFIER_ERROR');
+          open.set(r, qr);
+          return { ok: false, code: 'DID_RESOLUTION_UNAVAILABLE', delivered: true };
+        },
+        decline: (r) => (open.delete(r) ? { ok: true } : fail('REQUEST_INVALID')),
+      },
+    };
+  }
+  /** The phone: the app's history (store) and the wallet; `mount` is one PresentCredentialScreen on a QR, as it resolves and records. */
+  function phone(sdk) {
+    let ids = 0;
+    const world = { sdk, app: { logs: [], settings: { flowSettings: { identity: { activityLogging: true } } } } };
+    world.mount = async (nowMs = NOW, qr = QR) => {
+      const box = { state: initialPresentState };
+      const session = { get: () => box.state, dispatch: (e) => (box.state = presentReducer(box.state, e)) };
+      const actions = createPresentationActions(world.sdk, session, () => `share-${++ids}`, () => nowMs);
+      const resolve = async () => session.dispatch({ type: 'resolved', result: await world.sdk.presentations.resolve(qr), nowMs, sent: sentShareOf(world.app.logs, qr) });
+      await resolve();
+      return {
+        get state() { return box.state; },
+        dispatch: session.dispatch,
+        async share() {
+          const a = await actions.share();
+          if (a) world.app = addActivityLogToAppState(world.app, entryOf(a, qr, nowMs));
+          return a;
+        },
+        /** The app went to the background: the access gate unmounts the screen (cleanup: leave). */
+        unmount: () => actions.leave(),
+        /** Back gesture / "Dừng". */
+        back: () => (actions.leave(), session.dispatch({ type: 'decline' })),
+        async retry() { session.dispatch({ type: 'retry' }); await resolve(); },
+      };
+    };
+    world.entries = () => world.app.logs.map((l) => ({ id: l.id, status: l.status, description: l.description, sharedClaims: l.sharedClaims, sends: l.sends }));
+    return world;
+  }
+  const NARROW = 'ho_ten,nganh';
+  /** The first mount: the person picks document b and the narrow option, shares; the requester could not reach CertNet. */
+  async function deliveredOnce(answers = ['503', 'ok'], offer = offered) {
+    const p = phone(pinningSdk({ answers, offer }));
+    const m = await p.mount();
+    m.dispatch({ type: 'select-document', credentialId: 'b' });
+    m.dispatch({ type: 'select-claim-set', index: 1 });
+    if (m.state.untrusted) for (const type of ['share-untrusted', 'confirm-untrusted']) m.dispatch({ type });
+    await m.share();
+    assert.deepEqual([m.state.phase, m.state.delivered, m.state.credentialId, m.state.claimSetIndex], ['consent', true, 'b', 1]);
+    return { p, m, lockedLook: m.state };
+  }
+  const locked = (s, look) => {
+    assert.deepEqual([s.phase, s.delivered, s.credentialId, s.claimSetIndex, s.untrusted], ['consent', true, 'b', 1, look.untrusted]);
+    assert.deepEqual(s.failure, look.failure, 'the same wording and actions as after the first "could not check" answer');
+  };
+
+  it('the re-reviewer\'s scenario: share, "could not check", the app goes to the background (unmount), remount on the same QR → locked; the requester never gets another claim set; one history entry', async () => {
+    const { p, m, lockedLook } = await deliveredOnce();
+    m.unmount();
+    const again = await p.mount(NOW + 30_000);
+    locked(again.state, lockedLook);
+    assert.equal(again.state.request.pinned.sends, 1);
+    // Nothing on the reopened screen changes the selection.
+    for (const e of [{ type: 'select-claim-set', index: 0 }, { type: 'select-document', credentialId: 'a' }, { type: 'statuses', statuses: { b: 'verified', a: 'verified' } }]) again.dispatch(e);
+    assert.deepEqual([again.state.credentialId, again.state.claimSetIndex], ['b', 1]);
+    await again.share();
+    assert.equal(again.state.phase, 'sent');
+    assert.deepEqual(p.sdk.received, [{ credentialId: 'b', claims: NARROW }, { credentialId: 'b', claims: NARROW }], 'only what was sent the first time, never the broad set');
+    assert.deepEqual(p.entries(), [{ id: 'share-1', status: 'success', description: 'Họ và tên, Ngành ·\u00a0Đã\u00a0gửi\u00a02\u00a0lần', sharedClaims: ['ho_ten', 'nganh'], sends: 2 }], 'the first entry is updated: no second entry, no double counting');
+
+    // With the sharing history off there is no entry to find: the SDK's pin alone locks the reopened screen.
+    const off = await deliveredOnce();
+    off.p.app = { ...off.p.app, logs: [] };
+    off.m.unmount();
+    const pinnedOnly = await off.p.mount(NOW + 30_000);
+    locked(pinnedOnly.state, off.lockedLook);
+    assert.equal(pinnedOnly.state.record, null);
+
+    // An untrusted requester: confirmed twice before the first send, so the reopened screen is that same locked "Gửi lại" screen.
+    const u = await deliveredOnce(['503', 'ok'], () => untrusted({ matches: [match('a'), match('b')] }));
+    assert.equal(u.lockedLook.untrusted, 'confirmed');
+    u.m.unmount();
+    const reopened = await u.p.mount(NOW + 30_000);
+    locked(reopened.state, u.lockedLook);
+    await reopened.share();
+    assert.deepEqual(u.p.sdk.received.map((r) => r.claims), [NARROW, NARROW]);
+  });
+
+  it('every way of leaving and coming back reopens locked: background, back/stop then scanning again, the same QR opened again on top, a "check later" resolve retried', async () => {
+    const paths = {
+      background: async (p, m) => (m.unmount(), p.mount(NOW + 10_000)),
+      'back then scan again': async (p, m) => (m.back(), p.mount(NOW + 10_000)),
+      'same QR again on top': async (p) => p.mount(NOW + 10_000),
+      'check later, then retried': async (p, m) => {
+        m.unmount();
+        const resolve = p.sdk.presentations.resolve;
+        p.sdk.presentations.resolve = async () => ((p.sdk.presentations.resolve = resolve), fail('NETWORK_ERROR'));
+        const again = await p.mount(NOW + 10_000);
+        assert.deepEqual([again.state.phase, again.state.retryLater], ['refused', true]);
+        await again.retry();
+        return again;
+      },
+    };
+    for (const [name, leave] of Object.entries(paths)) {
+      const { p, m, lockedLook } = await deliveredOnce();
+      const again = await leave(p, m);
+      assert.equal(again.state.phase, 'consent', name);
+      locked(again.state, lockedLook);
+    }
+  });
+
+  it('no event on a locked screen leads to an ordinary, selectable consent (every sequence of up to three events)', async () => {
+    const { m } = await deliveredOnce();
+    const start = m.state;
+    const events = [
+      { type: 'statuses', statuses: { b: 'revoked', a: 'verified' } }, { type: 'statuses', statuses: { b: 'verified' } },
+      { type: 'select-document', credentialId: 'a' }, { type: 'select-claim-set', index: 0 },
+      { type: 'share-untrusted' }, { type: 'confirm-untrusted' }, { type: 'cancel-untrusted' },
+      { type: 'refresh-status' }, { type: 'status-refreshed', credentialId: 'b', status: 'verified' },
+      { type: 'tick', nowMs: NOW + 400_000 }, { type: 'submit' }, { type: 'decline' }, { type: 'retry' },
+      ...['USER_CANCELLED', 'DEVICE_LOCKED', 'DID_RESOLUTION_UNAVAILABLE', 'KEY_INVALIDATED', 'REQUEST_INVALID', 'VERIFIER_ERROR'].map((code) => ({ type: 'submitted', result: { ok: false, code, ...(code === 'DID_RESOLUTION_UNAVAILABLE' ? { delivered: true } : {}) } })),
+    ];
+    let frontier = [start];
+    for (let depth = 0; depth < 3; depth++) {
+      const next = [];
+      for (const s of frontier) {
+        for (const e of events) {
+          const after = presentReducer(s, e);
+          assert.notEqual(after.phase, 'resolving');
+          if (after.phase === 'consent' || after.phase === 'submitting') assert.deepEqual([after.delivered, after.credentialId, after.claimSetIndex], [true, 'b', 1], JSON.stringify(e));
+          if (after.phase === 'failed') assert.equal(after.delivered, true, 'an ending says what was sent stays sent');
+          if (after !== s) next.push(after);
+        }
+      }
+      frontier = next;
+    }
+  });
+
+  it('sends used up: the last send ends the flow; the same QR opened again says the request can no longer be used and what was sent stays sent (not "invalid code")', async () => {
+    const { p, m } = await deliveredOnce(['503']);
+    m.unmount();
+    const second = await p.mount(NOW + 60_000);
+    await second.share();
+    assert.deepEqual([second.state.phase, second.state.sends], ['consent', 2]);
+    second.unmount();
+    const third = await p.mount(NOW + 120_000);
+    assert.equal(third.state.sends, 2);
+    await third.share();
+    assert.deepEqual([third.state.phase, third.state.delivered, third.state.failure.sentenceKey], ['failed', true, 'wallet.presentErrors.afterDelivered']);
+    assert.equal(p.sdk.received.length, MAX_PRESENTATION_SENDS);
+    assert.deepEqual(p.entries(), [{ id: 'share-1', status: 'pending', description: `Họ và tên, Ngành ·\u00a0Đã\u00a0gửi\u00a0${MAX_PRESENTATION_SENDS}\u00a0lần`, sharedClaims: ['ho_ten', 'nganh'], sends: MAX_PRESENTATION_SENDS }]);
+
+    const fourth = await p.mount(NOW + 180_000);
+    assert.deepEqual([fourth.state.phase, fourth.state.delivered, fourth.state.failure.titleKey, fourth.state.failure.sentenceKey], ['failed', true, 'wallet.presentTitles.requestClosed', 'wallet.presentErrors.afterDelivered']);
+    assert.match(`${t(fourth.state.failure.titleKey)} ${t(fourth.state.failure.sentenceKey)}`, /không còn dùng được.*đã nhận thông tin bạn gửi/);
+    // Without the history entry (history off, or cleared) the app cannot tell: the generic message is fine.
+    p.app = { ...p.app, logs: [] };
+    const unknown = await p.mount(NOW + 180_000);
+    assert.deepEqual([unknown.state.phase, unknown.state.failure.sentenceKey], ['refused', 'wallet.presentErrors.requestBad']);
+  });
+
+  it('after an app restart (the SDK\'s pin is gone) the history entry restores the lock for its 600 s, keeps the count and is the entry updated', async () => {
+    const { parsePersistedIdentityEnvelope, createPersistedIdentityEnvelope } = require('../.tmp-test/src/native/domain/app-store/appStatePersistence');
+    const base = { credentials: [], profile: { fullName: '', dob: '', studentId: '', school: '', nationalId: '', email: '', phone: '', address: '', did: '' }, settings: {} };
+    const restart = (p, sdkOptions) => {
+      // What survives: the stored history (through the real load), not the wallet instance.
+      const stored = parsePersistedIdentityEnvelope(createPersistedIdentityEnvelope({ ...base, logs: p.app.logs }));
+      p.app = { ...p.app, logs: stored.logs };
+      p.sdk = pinningSdk({ received: p.sdk.received, ...sdkOptions });
+    };
+
+    const { p, m } = await deliveredOnce(['503']);
+    m.unmount();
+    restart(p, { answers: ['ok'] });
+    const after = await p.mount(NOW + 120_000);
+    assert.equal(after.state.request.pinned, null, 'the new wallet instance remembers nothing');
+    assert.deepEqual([after.state.phase, after.state.delivered, after.state.credentialId, after.state.claimSetIndex, after.state.sends, after.state.record.id], ['consent', true, 'b', 1, 1, 'share-1']);
+    after.dispatch({ type: 'select-claim-set', index: 0 });
+    after.dispatch({ type: 'select-document', credentialId: 'a' });
+    await after.share();
+    assert.deepEqual(p.sdk.received, [{ credentialId: 'b', claims: NARROW }, { credentialId: 'b', claims: NARROW }], 'this SDK instance would take any choice: the app\'s lock is what holds');
+    assert.deepEqual(p.entries(), [{ id: 'share-1', status: 'success', description: 'Họ và tên, Ngành ·\u00a0Đã\u00a0gửi\u00a02\u00a0lần', sharedClaims: ['ho_ten', 'nganh'], sends: 2 }]);
+
+    // The count carries over: after two sends before the restart, the next one is the last.
+    const two = await deliveredOnce(['503']);
+    two.m.unmount();
+    const before = await two.p.mount(NOW + 30_000);
+    await before.share();
+    before.unmount();
+    restart(two.p, { answers: ['503'] });
+    const last = await two.p.mount(NOW + 60_000);
+    assert.equal(last.state.sends, 2);
+    await last.share();
+    assert.deepEqual([last.state.phase, last.state.delivered, last.state.failure.sentenceKey], ['failed', true, 'wallet.presentErrors.afterDelivered']);
+    assert.equal(two.p.sdk.received.length, MAX_PRESENTATION_SENDS, 'never more than the SDK\'s limit in all');
+    const usedUp = await two.p.mount(NOW + 90_000);
+    assert.deepEqual([usedUp.state.phase, usedUp.state.failure.sentenceKey], ['failed', 'wallet.presentErrors.afterDelivered']);
+
+    // The requester no longer offers what was sent: closed, never an ordinary consent.
+    const gone = await deliveredOnce(['503']);
+    gone.m.unmount();
+    restart(gone.p, { answers: ['ok'], offer: () => request({ matches: [match('a'), match('b', [SETS[0]])] }) });
+    const changed = await gone.p.mount(NOW + 60_000);
+    assert.deepEqual([changed.state.phase, changed.state.delivered], ['failed', true]);
+
+    // Past the pin's 600 s (as the SDK's own pin): an ordinary request again.
+    const late = await deliveredOnce(['503']);
+    late.m.unmount();
+    restart(late.p, { answers: ['ok'] });
+    const expired = await late.p.mount(NOW + PIN_MS + 1);
+    assert.deepEqual([expired.state.phase, expired.state.delivered], ['consent', false]);
   });
 });
