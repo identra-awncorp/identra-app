@@ -1,4 +1,4 @@
-import type { ActivityLog, AppSettings, Credential, PersonalInfo } from '../../types';
+import type { ActivityLog, AppSettings, Credential, PersonalInfo, ShareLock } from '../../types';
 import { normalizeAppSettings } from './appSettingsDefaults';
 
 export interface PersistedAppState {
@@ -6,6 +6,8 @@ export interface PersistedAppState {
   logs: ActivityLog[];
   profile: PersonalInfo;
   settings: AppSettings;
+  /** Delivered shares' locks kept while the sharing history is off (none in older stored data). */
+  shareLocks?: ShareLock[];
 }
 
 export interface CreateActivityLogInput {
@@ -50,18 +52,41 @@ export function createActivityLog(
   };
 }
 
+/** The lock part of a delivered share's entry ("sent, no result", with its deadline); null for anything else. */
+function shareLockOf(log: ActivityLog): ShareLock | null {
+  const { id, requestRef, credentialId, sharedClaims, sends, lockedUntil } = log;
+  return log.type === 'share' && log.status === 'pending' && requestRef && credentialId && sharedClaims && sends && lockedUntil
+    ? { id, requestRef, credentialId, sharedClaims, sends, lockedUntil }
+    : null;
+}
+
 export function addActivityLogToAppState(
   state: PersistedAppState,
   log: ActivityLog,
 ): PersistedAppState {
+  // A newer write for the same request replaces its lock (history on: the entry carries it from now on).
+  const locks = state.shareLocks ?? [];
+  const others = locks.filter((l) => l.id !== log.id && (!log.requestRef || l.requestRef !== log.requestRef));
+
   if (!state.settings.flowSettings.identity.activityLogging) {
-    return state;
+    // History off: nothing is recorded, except what keeps a delivered request locked until its deadline.
+    const lock = shareLockOf(log);
+    if (!lock && others.length === locks.length) return state;
+    return { ...state, shareLocks: lock ? [lock, ...others] : others };
   }
 
   return {
     ...state,
     logs: [{ ...log, unread: true, isNew: true }, ...state.logs.filter((item) => item.id !== log.id)],
+    shareLocks: others,
   };
+}
+
+/** A share lock is a 600 s lock, not a record: it goes once its deadline has passed. */
+export function dropExpiredShareLocksInAppState(state: PersistedAppState, nowMs: number): PersistedAppState {
+  const locks = state.shareLocks ?? [];
+  const kept = locks.filter((l) => Date.parse(l.lockedUntil) > nowMs);
+  return kept.length === locks.length ? state : { ...state, shareLocks: kept };
 }
 
 export function updateActivityLogInAppState(

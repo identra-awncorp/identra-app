@@ -47,6 +47,7 @@ export default function PresentCredentialRoute() {
         onOpenPortal={(url) => void Linking.openURL(url).catch(() => undefined)}
         onRecordActivity={store.addActivityLog}
         history={store.logs}
+        shareLocks={store.shareLocks ?? []}
         historyKept={store.settings.flowSettings.identity.activityLogging}
         onSigningStarted={() => setSigning(true)}
         onSigned={noteCredentialKeyAuthentication}

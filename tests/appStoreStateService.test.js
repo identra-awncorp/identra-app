@@ -101,6 +101,26 @@ describe('appStoreStateService', () => {
     assert.deepEqual(next.logs, []);
   });
 
+  it('with logging off keeps only the lock of a delivered share (one per request, gone on success); with logging on the entry replaces it', () => {
+    const off = makeState();
+    off.settings.flowSettings.identity.activityLogging = false;
+    const delivered = { id: 'share-1', timestamp: '2026-06-28T12:00:00.000Z', type: 'share', status: 'pending', title: 'Đã gửi Bằng tốt nghiệp, chưa có kết quả', description: 'Họ và tên, Ngành', partner: 'Nhà Tuyển Dụng Mẫu', credentialId: 'b', sharedClaims: ['ho_ten', 'nganh'], unread: false, requestRef: 'qr-1', sends: 1, lockedUntil: '2026-06-28T12:10:00.000Z' };
+    const lock = { id: 'share-1', requestRef: 'qr-1', credentialId: 'b', sharedClaims: ['ho_ten', 'nganh'], sends: 1, lockedUntil: '2026-06-28T12:10:00.000Z' };
+
+    const first = addActivityLogToAppState(off, delivered);
+    assert.deepEqual([first.logs, first.shareLocks], [[], [lock]], 'no history entry, no unread count: only the lock');
+    const again = addActivityLogToAppState(first, { ...delivered, sends: 2 });
+    assert.deepEqual(again.shareLocks, [{ ...lock, sends: 2 }], 'the same request: one lock, with the new count');
+    const other = addActivityLogToAppState(again, { ...delivered, id: 'share-2', requestRef: 'qr-2' });
+    assert.deepEqual(other.shareLocks.map((l) => l.requestRef), ['qr-2', 'qr-1']);
+    assert.equal(addActivityLogToAppState(other, createActivityLog({ title: 'x', description: 'y', partner: 'z' })), other, 'any other log changes nothing');
+    assert.deepEqual(addActivityLogToAppState(other, { ...delivered, status: 'success' }).shareLocks.map((l) => l.requestRef), ['qr-2'], 'a success ends the lock');
+
+    const on = { ...other, settings: makeState().settings };
+    const logged = addActivityLogToAppState(on, { ...delivered, sends: 3 });
+    assert.deepEqual([logged.logs.map((l) => [l.id, l.sends]), logged.shareLocks.map((l) => l.requestRef)], [[['share-1', 3]], ['qr-2']], 'the history entry carries that request from now on');
+  });
+
   it('expires only pending activity logs whose deadline has passed', () => {
     const nowMs = Date.parse('2026-06-28T12:00:00.000Z');
     const state = makeState({

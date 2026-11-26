@@ -12,6 +12,7 @@ import {
   addActivityLogToAppState,
   clearNewActivityHighlightsInAppState,
   createActivityLog,
+  dropExpiredShareLocksInAppState,
   expirePendingActivityLogsInAppState,
   markAllActivityLogsReadInAppState,
   removeActivityLogFromAppState,
@@ -101,10 +102,13 @@ export function AppStoreProvider({ children }: PropsWithChildren) {
       const now = Date.now();
 
       setState((current) =>
-        expirePendingActivityLogsInAppState(
-          current,
+        dropExpiredShareLocksInAppState(
+          expirePendingActivityLogsInAppState(
+            current,
+            now,
+            translate(current.settings.language, 'activityLogs.failed'),
+          ),
           now,
-          translate(current.settings.language, 'activityLogs.failed'),
         ),
       );
     };

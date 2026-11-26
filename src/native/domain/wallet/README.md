@@ -39,8 +39,9 @@ configures it, stores one column and says on screen which path was used.
 - **Configuration** (public, inlined at build time, see `.env.example`): `EXPO_PUBLIC_CERTNET_GATEWAY_URL`
   (an `https://` origin, optionally with a path; no query, fragment or userinfo) and
   `EXPO_PUBLIC_CERTNET_NETWORK` (`local`, `testnet` or `mainnet`). Both or neither. Neither: the DID
-  path is off and the wallet behaves exactly as before (a DID issuer's offer is refused at resolve
-  with `TRUST_PATH_UNSUPPORTED`, before the PIN). `certNetConfigOf` validates them: one without the other, an
+  path is off. X.509 documents work as before; what differs is the DID path: a DID issuer's offer is
+  refused at resolve with its own `TRUST_PATH_UNSUPPORTED` message, before the PIN, and a DID
+  document already in the wallet shows as not checked (the app cannot check it). `certNetConfigOf` validates them: one without the other, an
   unknown network, `local` in a release build (anyone can write the local trust registry) or a URL
   the SDK refuses is a `WalletConfigError`; a development build stops on it, a release build runs
   with the DID path off rather than lose the X.509 wallet. The gateway is trusted configuration
@@ -110,14 +111,25 @@ configures it, stores one column and says on screen which path was used.
   "Đã gửi N lần" when more than once; a send that may have arrived counts too), so there is one entry
   per request. `REQUEST_INVALID` at resolve for a QR with such an entry (its sends are used up) is
   "Yêu cầu không còn dùng được" with "what was sent stays sent", not "this code is not valid"; without
-  the entry (history off or cleared) the app cannot tell and says the generic sentence.
-- **Across an app restart** the SDK's pin is gone (memory only). The history entry is enough to restore it,
-  so the app does: within `lockedUntil` (600 s from the first delivery, never extended), the same QR opens
-  locked to that document and the claim set with exactly those field names, keeps the count (the
-  larger of the SDK's and the entry's) and closes the request at `MAX_PRESENTATION_SENDS` in all.
-  Limits: it needs the sharing history (setting on, entry not deleted); after the 600 s the QR is an
-  ordinary request again, as with the SDK's own pin; if the requester no longer offers exactly those
-  fields, the request is closed, never opened unlocked.
+  the entry or lock (both gone: cleared, or past the 600 s) the app cannot tell and says the generic sentence.
+- **History off** (`flowSettings.identity.activityLogging`): no entry is written, but the lock must not
+  depend on that setting. `addActivityLogToAppState` keeps instead a `ShareLock` (`PersistedAppState.shareLocks`,
+  stored in the same encrypted identity envelope, validated as strictly as the logs): only the request
+  key (`requestRef`), the document id, the field NAMES, the send count, the deadline and the record id.
+  It is not in `logs`, so it never shows in the history or its unread count; one per request (a later
+  send replaces it, a success removes it), and it is dropped once `lockedUntil` has passed (the store's
+  1 s timer, which also runs right after loading). With the history on nothing changes: the entry is
+  the lock, and writing it removes a lock left for that request while the history was off.
+  `sentShareOf(logs, requestRef, locks)` reads the lock first (it exists only when the latest send was
+  made with the history off, so it is the newer).
+- **Across an app restart** the SDK's pin is gone (memory only). The history entry (or, history off, the
+  lock) is enough to restore it, so the app does: within `lockedUntil` (600 s from the first delivery,
+  never extended), the same QR opens locked to that document and the claim set with exactly those field
+  names, keeps the count (the larger of the SDK's and the stored one) and closes the request at
+  `MAX_PRESENTATION_SENDS` in all, whatever the history setting. Limits: the history entry deleted by
+  hand (history on) loses it; after the 600 s the QR is an ordinary request again, as with the SDK's
+  own pin; if the requester no longer offers exactly those fields, the request is closed, never opened
+  unlocked.
 - **Network**: `dpki.network` is the configured network: an offer declaring an identifier of another
   CertNet network is `TRUST_PATH_UNSUPPORTED` at resolve, before the PIN ("Ví chưa nhận được giấy tờ này").
 - **CertNet wording only on the DID path**: `wallet.errors.DID_RESOLUTION_*` are neutral; the CertNet

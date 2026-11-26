@@ -61,7 +61,22 @@ describe('appStatePersistence', () => {
       credentials: state.credentials,
       logs: state.logs,
       profile: state.profile,
+      shareLocks: [],
     });
+  });
+
+  it('keeps a delivered share\'s lock (history off) with only its fields, loads older data without locks, and rejects a malformed lock', () => {
+    const lock = { id: 'share-1', requestRef: 'openid4vp://?client_id=x&request_uri=y', credentialId: 'b', sharedClaims: ['ho_ten', 'nganh'], sends: 2, lockedUntil: '2026-11-19T10:10:00.000Z' };
+    const withExtra = createPersistedIdentityEnvelope({ ...state, shareLocks: [{ ...lock, partner: 'Nhà Tuyển Dụng', description: 'Họ và tên' }] });
+    assert.deepEqual(parsePersistedIdentityEnvelope(withExtra).shareLocks, [lock], 'nothing beyond the lock is loaded');
+
+    const { shareLocks: _none, ...older } = createPersistedIdentityEnvelope(state);
+    assert.deepEqual(parsePersistedIdentityEnvelope(older).shareLocks, []);
+
+    for (const bad of [{ ...lock, sends: 0 }, { ...lock, sends: 1.5 }, { ...lock, sharedClaims: [] }, { ...lock, sharedClaims: ['Nguyễn Văn An'] }, { ...lock, lockedUntil: 'soon' }, { ...lock, requestRef: '' }, { ...lock, credentialId: undefined }, 'lock']) {
+      assert.equal(parsePersistedIdentityEnvelope(createPersistedIdentityEnvelope({ ...state, shareLocks: [lock, bad] })), null, JSON.stringify(bad));
+    }
+    assert.equal(parsePersistedIdentityEnvelope({ ...createPersistedIdentityEnvelope(state), shareLocks: {} }), null);
   });
 
   it('accepts every real credential status and rejects anything else', () => {

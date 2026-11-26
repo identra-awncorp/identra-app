@@ -21,6 +21,9 @@ const { credentialOfferQrText, parseQrScanValue } = require('../.tmp-test/src/na
 const { initialReceiveState, receiveReducer, runAccept, shouldClearPin, detailReducer, initialDetailState } = require('../.tmp-test/src/native/domain/wallet/walletFlows');
 const { credentialDetailView, credentialListItems, issuerIdOf, offerView, statusSentenceKeys } = require('../.tmp-test/src/native/domain/wallet/walletViews');
 const { translate } = require('../.tmp-test/src/native/i18n');
+const { createPresentationActions, initialPresentState, presentationActivityEntry, presentReducer, sentShareOf } = require('../.tmp-test/src/native/domain/wallet/presentationFlow');
+const { addActivityLogToAppState } = require('../.tmp-test/src/native/domain/app-store/appStoreStateService');
+const { createPersistedIdentityEnvelope, parsePersistedIdentityEnvelope } = require('../.tmp-test/src/native/domain/app-store/appStatePersistence');
 const { createFakeSecureStore } = require('./helpers/fakeSecureStore');
 const { openExpoSqliteDouble } = require('./helpers/expoSqliteDouble');
 
@@ -53,9 +56,13 @@ function appWallet(world, { fetch: platformFetch = (url, init) => fetch(url, ini
     trustListUrl: TRUST_LIST_URL,
     // The DID path as walletRuntime wires it: validated configuration, the app's gateway fetch over
     // the SDK's fake CertNet gateway (an in-process stand-in for the platform fetch).
-    certNet: dpki ? { ...certNetConfigOf({ gatewayUrl: world.gateway.base, network }, { production: false }), fetch: createGatewayHttpFetch({ fetch: (url) => world.gateway.fetch(url), gatewayUrl: world.gateway.base }) } : null,
+    certNet: dpki ? certNetOf(world, network) : null,
   });
   return phone;
+}
+
+function certNetOf(world, network = 'local') {
+  return { ...certNetConfigOf({ gatewayUrl: world.gateway.base, network }, { production: false }), fetch: createGatewayHttpFetch({ fetch: (url) => world.gateway.fetch(url), gatewayUrl: world.gateway.base }) };
 }
 
 describe('the app wallet receives and keeps a diploma from a real issuer (no device)', { skip: missing }, () => {
@@ -329,6 +336,90 @@ describe('the app wallet receives a diploma from a DID issuer through CertNet (A
     assert.deepEqual([view.status, statusSentenceKeys(view.status, view.trustPath, detail.refreshChecks)], ['unknown', ['wallet.didPath.unsupported']]);
     assert.deepEqual(world.gateway.state.calls, [], 'CertNet was not asked');
     assert.equal(/chưa trả lời/.test(translate('vi', 'wallet.didPath.unsupported')), false, 'never says CertNet did not answer');
+  });
+
+  it('sharing it when the requester cannot reach CertNet, with the sharing history off: the REAL SDK pin locks a remount, the app\'s lock survives restarts, MAX_PRESENTATION_SENDS of the narrow set in all, nothing in the history', async () => {
+    const { MAX_PRESENTATION_SENDS } = require('@identra/sdk-app');
+    const world = await createWorld(listener, { did: {} });
+    const phone = appWallet(world, { dpki: true });
+    const { offerUri, txCode } = await world.offer();
+    const offer = await phone.wallet.offers.resolve(credentialOfferQrText(parseQrScanValue(offerUri).offerUri));
+    const { credentialId } = await phone.wallet.offers.accept(offer.offer, { txCode });
+    assert.ok(credentialId);
+
+    // One QR (client_id + request_uri: what the SDK pins by); each fetch of it is a fresh verifier session.
+    const verifier = await world.newVerifier({ dpki: true });
+    const newSession = async () => (await verifier.createSession({ scenario: 'ung-tuyen' })).session;
+    const clientId = new URLSearchParams((await newSession()).qr.split('?')[1]).get('client_id');
+    listener.routes.set('GET /oid4vp/request/fixed', async () => verifier.requestObject((await newSession()).requestId));
+    const qr = `openid4vp://?client_id=${encodeURIComponent(clientId)}&request_uri=${encodeURIComponent(`${sdkWorld.ORIGIN}/oid4vp/request/fixed`)}`;
+    // The verifier received each presentation and could not reach CertNet (sdk-server ISSUER_REGISTRY_UNAVAILABLE).
+    const posts = [];
+    listener.routes.set('POST /oid4vp/response/*', async (req) => (posts.push(req.body), { status: 503, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'issuer_registry_unavailable' }) }));
+
+    let wallet = phone.wallet;
+    let app = { logs: [], shareLocks: [], settings: { flowSettings: { identity: { activityLogging: false } } } };
+    let ids = 0;
+    const now = () => world.clock.now().getTime();
+    /** PresentCredentialScreen on the QR: resolve with what the app stored, "Chia sẻ" records as the screen does. */
+    const mount = async ({ stored = true } = {}) => {
+      const box = { state: initialPresentState };
+      const session = { get: () => box.state, dispatch: (e) => (box.state = presentReducer(box.state, e)) };
+      session.dispatch({ type: 'resolved', result: await wallet.presentations.resolve(qr), nowMs: now(), sent: stored ? sentShareOf(app.logs, qr, app.shareLocks) : null });
+      const actions = createPresentationActions(wallet, session, () => `share-${++ids}`, now);
+      return {
+        get state() { return box.state; },
+        dispatch: session.dispatch,
+        leave: () => actions.leave(),
+        async share() {
+          const a = await actions.share();
+          if (a) app = addActivityLogToAppState(app, presentationActivityEntry({ id: a.recordId, now: world.clock.now(), verifierName: a.request.verifier.ten, credentialId: a.credentialId, documentNameKey: a.documentNameKey, claims: a.claims, outcome: a.outcome, t: (k, p) => translate('vi', k, p), requestRef: qr, sends: a.sends, lockedUntil: a.lockedUntil }));
+          return a;
+        },
+      };
+    };
+    /** The app restarts: what it stored goes through the real load; a new SDK wallet over the same phone, with no pin. */
+    const restart = () => {
+      const stored = parsePersistedIdentityEnvelope(createPersistedIdentityEnvelope({ credentials: [], profile: { fullName: '', dob: '', studentId: '', school: '', nationalId: '', email: '', phone: '', address: '', did: '' }, logs: app.logs, shareLocks: app.shareLocks }));
+      app = { ...app, logs: stored.logs, shareLocks: stored.shareLocks };
+      wallet = createWallet({ ...phoneDeps(phone, world), trustedRoots: [rootDer()], trustListUrl: TRUST_LIST_URL, certNet: certNetOf(world) });
+    };
+    const tryBroader = (m) => m.dispatch({ type: 'select-claim-set', index: 0 });
+    const lockedNarrow = (m, sends) => assert.deepEqual([m.state.phase, m.state.delivered, m.state.credentialId, m.state.claimSetIndex, m.state.sends], ['consent', true, credentialId, 1, sends], JSON.stringify(m.state));
+
+    const first = await mount();
+    assert.deepEqual([first.state.phase, first.state.delivered, first.state.request.pinned], ['consent', false, null]);
+    first.dispatch({ type: 'select-claim-set', index: 1 }); // "Chia sẻ ít hơn": ho_ten, nganh
+    assert.equal((await first.share()).outcome, 'delivered');
+    lockedNarrow(first, 1);
+    first.leave();
+
+    // Remount, the SDK's own pin alone (nothing the app stored): locked by `request.pinned`.
+    const pinOnly = await mount({ stored: false });
+    assert.deepEqual(pinOnly.state.request.pinned, { credentialId, claimSetIndex: 1, sends: 1 });
+    tryBroader(pinOnly);
+    lockedNarrow(pinOnly, 1);
+    await pinOnly.share();
+    lockedNarrow(pinOnly, 2);
+    pinOnly.leave();
+
+    // Restart: the new SDK instance has no pin and would take the broad set; the app's lock holds, and the count goes on.
+    restart();
+    const afterRestart = await mount();
+    assert.equal(afterRestart.state.request.pinned, null);
+    tryBroader(afterRestart);
+    lockedNarrow(afterRestart, 2);
+    await afterRestart.share();
+    assert.deepEqual([afterRestart.state.phase, afterRestart.state.delivered], ['failed', true], 'the third send closes the request');
+
+    restart();
+    const usedUp = await mount();
+    assert.deepEqual([usedUp.state.phase, usedUp.state.delivered], ['failed', true], 'closed, never an ordinary consent');
+
+    assert.equal(posts.length, MAX_PRESENTATION_SENDS);
+    assert.equal(new Set(posts.map((b) => b.length)).size, 1, 'the same claims each time');
+    assert.deepEqual(app.logs, [], 'nothing in the history');
+    assert.deepEqual(app.shareLocks.map((l) => [l.requestRef, l.credentialId, l.sharedClaims, l.sends]), [[qr, credentialId, ['ho_ten', 'nganh'], MAX_PRESENTATION_SENDS]]);
   });
 });
 

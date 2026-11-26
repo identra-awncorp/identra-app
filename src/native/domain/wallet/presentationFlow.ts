@@ -4,7 +4,7 @@ import { MAX_PRESENTATION_SENDS, type PresentationMatch, type ResolvedPresentati
 import { VCT } from '@identra/sdk-core';
 
 import type { I18nKey } from '../../i18n';
-import type { ActivityLog, CredentialStatus } from '../../types';
+import type { ActivityLog, CredentialStatus, ShareLock } from '../../types';
 import { diplomaClaimLabelKeys, displayClaims, documentNameKeys, documentTypeOf, type DiplomaClaim } from './credentialPresentation';
 import type { WalletApi } from './walletContainer';
 import type { FlowSession } from './walletFlows';
@@ -71,11 +71,14 @@ export interface SentShare extends ShareRecord {
 
 /**
  * The history entry this wallet wrote for this QR (`requestRef`) when the requester received the
- * document and gave no result (status pending): how the lock and the entry are found again after a
- * remount, and after an app restart, when the SDK's in-memory pin is gone.
+ * document and gave no result (status pending), or with the history off its `ShareLock`: how the lock
+ * and the entry are found again after a remount, and after an app restart, when the SDK's in-memory
+ * pin is gone. A lock is there only when the latest send of that request was made with the history
+ * off (writing the entry removes it), so it is the newer of the two.
  */
-export function sentShareOf(logs: readonly ActivityLog[], requestRef: string): SentShare | null {
-  const log = logs.find((l) => l.type === 'share' && l.status === 'pending' && l.requestRef === requestRef && l.credentialId && l.sharedClaims);
+export function sentShareOf(logs: readonly ActivityLog[], requestRef: string, locks: readonly ShareLock[]): SentShare | null {
+  const log = locks.find((l) => l.requestRef === requestRef)
+    ?? logs.find((l) => l.type === 'share' && l.status === 'pending' && l.requestRef === requestRef && l.credentialId && l.sharedClaims);
   return log ? { id: log.id, lockedUntil: log.lockedUntil ?? null, credentialId: log.credentialId!, claims: log.sharedClaims!, sends: log.sends ?? 1 } : null;
 }
 

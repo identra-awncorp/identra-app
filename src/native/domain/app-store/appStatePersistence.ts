@@ -6,6 +6,7 @@ import type {
   CredentialIconName,
   CredentialStatus,
   PersonalInfo,
+  ShareLock,
 } from '../../types';
 import type { PersistedAppState } from './appStoreStateService';
 import { normalizeAppSettings } from './appSettingsDefaults';
@@ -21,6 +22,7 @@ export interface PersistedIdentityEnvelope {
   credentials: Credential[];
   logs: ActivityLog[];
   profile: PersonalInfo;
+  shareLocks: ShareLock[];
   version: typeof APP_STATE_STORAGE_VERSION;
 }
 
@@ -172,6 +174,39 @@ function parseActivityLog(value: unknown): ActivityLog | null {
   };
 }
 
+function parseShareLock(value: unknown): ShareLock | null {
+  if (
+    !isRecord(value) ||
+    !isString(value.id) || value.id.length === 0 || value.id.length > 128 ||
+    !isString(value.requestRef) || value.requestRef.length === 0 || value.requestRef.length > 4096 ||
+    !isString(value.credentialId) || value.credentialId.length === 0 ||
+    !Array.isArray(value.sharedClaims) || value.sharedClaims.length === 0 ||
+    !value.sharedClaims.every((n) => typeof n === 'string' && /^[a-z_]{1,40}$/.test(n)) ||
+    !Number.isInteger(value.sends) || (value.sends as number) < 1 || (value.sends as number) > 99 ||
+    !isString(value.lockedUntil) || !Number.isFinite(Date.parse(value.lockedUntil))
+  ) {
+    return null;
+  }
+
+  // Only the lock's fields: anything else stored beside them is not loaded.
+  return {
+    id: value.id,
+    requestRef: value.requestRef,
+    credentialId: value.credentialId,
+    sharedClaims: value.sharedClaims as string[],
+    sends: value.sends as number,
+    lockedUntil: value.lockedUntil,
+  };
+}
+
+/** Absent (data stored before locks existed): none. Present: every one must be valid, like the logs. */
+function parseShareLocks(value: unknown): ShareLock[] | null {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) return null;
+  const locks = value.map(parseShareLock);
+  return locks.every((lock): lock is ShareLock => Boolean(lock)) ? locks : null;
+}
+
 function parseProfile(value: unknown): PersonalInfo | null {
   if (!isRecord(value)) return null;
 
@@ -221,6 +256,7 @@ export function createPersistedIdentityEnvelope(state: PersistedAppState): Persi
     credentials: state.credentials,
     logs: state.logs,
     profile: state.profile,
+    shareLocks: state.shareLocks ?? [],
   };
 }
 
@@ -246,12 +282,13 @@ export function parsePersistedIdentityEnvelope(
   const credentials = parseCredentials(value.credentials);
   const logs = parseLogs(value.logs);
   const profile = parseProfile(value.profile);
+  const shareLocks = parseShareLocks(value.shareLocks);
 
-  if (!credentials || !logs || !profile) {
+  if (!credentials || !logs || !profile || !shareLocks) {
     return null;
   }
 
-  return { credentials, logs, profile };
+  return { credentials, logs, profile, shareLocks };
 }
 
 export function migrateLegacyAppState(

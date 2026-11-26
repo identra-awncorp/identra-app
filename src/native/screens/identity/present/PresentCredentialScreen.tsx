@@ -30,7 +30,7 @@ import { formatWalletDate, issuerPortalUrl, issuerText, MASKED_VALUE, trustPathK
 import { useI18n, type I18nKey } from '../../../i18n';
 import type { AppColors } from '../../../theme';
 import { border, radius, spacing, typography } from '../../../theme';
-import type { ActivityLog } from '../../../types';
+import type { ActivityLog, ShareLock } from '../../../types';
 import { FailureNotice, Panel, StickyFooter, TextAction, useAnnouncement, useRevealedWhileActive, walletStyles } from '../wallet/WalletParts';
 
 /** Why sharing is impossible now, with its sentence (the untrusted step is not a stop). */
@@ -58,6 +58,7 @@ export function PresentCredentialScreen({
   onOpenPortal,
   onRecordActivity,
   history,
+  shareLocks,
   historyKept,
   onSigningStarted,
   onSigned,
@@ -72,6 +73,8 @@ export function PresentCredentialScreen({
   onRecordActivity: (entry: ActivityLog) => void;
   /** The sharing history: a delivered share of this same QR reopens locked to what was sent and updates its entry. */
   history: readonly ActivityLog[];
+  /** With the history off: the locks of delivered shares, which do the same (never shown). */
+  shareLocks: readonly ShareLock[];
   /** The person keeps a sharing history (setting): only then may the screen say a share is in it. */
   historyKept: boolean;
   /** The signing key is about to be used: its own biometric prompt follows. */
@@ -95,14 +98,14 @@ export function PresentCredentialScreen({
   }, []);
   const actions = useMemo(() => createPresentationActions(wallet, { get: () => stateRef.current, dispatch }), [wallet, dispatch]);
 
-  // The history as it is when the request resolves (a delivered share of this QR locks it again).
-  const historyRef = useRef(history);
-  historyRef.current = history;
+  // The history and locks as they are when the request resolves (a delivered share of this QR locks it again).
+  const storedRef = useRef({ history, shareLocks });
+  storedRef.current = { history, shareLocks };
 
   // Resolve the request; leaving the screen before it was answered declines it (no network).
   useEffect(() => {
     let live = true;
-    const resolved = (result: Extract<PresentEvent, { type: 'resolved' }>['result']) => live && dispatch({ type: 'resolved', result, nowMs: Date.now(), sent: sentShareOf(historyRef.current, qrText) });
+    const resolved = (result: Extract<PresentEvent, { type: 'resolved' }>['result']) => live && dispatch({ type: 'resolved', result, nowMs: Date.now(), sent: sentShareOf(storedRef.current.history, qrText, storedRef.current.shareLocks) });
     wallet.presentations
       .resolve(qrText)
       .then(resolved)

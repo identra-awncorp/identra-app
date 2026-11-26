@@ -188,6 +188,7 @@ export async function loadPersistedAppState(): Promise<PersistedAppState | null>
     logs: identity?.logs ?? base.logs,
     profile: identity?.profile ?? base.profile,
     settings: settings ?? base.settings,
+    shareLocks: identity?.shareLocks ?? [],
   };
 
   if (legacyValue) {

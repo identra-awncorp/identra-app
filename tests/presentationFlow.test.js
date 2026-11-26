@@ -432,6 +432,27 @@ describe('sharing: the screen\'s actions (what is really submitted)', () => {
     }
   });
 
+  it('counts a send only when it left the phone: a first attempt that sent nothing is recorded with no send', async () => {
+    for (const [result, sends] of [[{ ok: true }, 1], [fail('NETWORK_ERROR'), 1], [{ ok: false, code: 'DID_RESOLUTION_UNAVAILABLE', delivered: true }, 1], [fail('KEY_INVALIDATED'), 0], [fail('REQUEST_EXPIRED'), 0], [fail('REQUEST_INVALID'), 0]]) {
+      const s = screen(request());
+      s.answer(result);
+      const attempt = await s.actions.share();
+      assert.equal(attempt.sends, sends, JSON.stringify(result));
+      assert.equal('sends' in entryOf(attempt), sends > 0, 'the entry has no count for what never left');
+    }
+  });
+
+  it('a resend on the locked screen that sent nothing (cancelled prompt, locked phone, key failure, request closed or expired) gives nothing to record: the entry is not rewritten, the key is not counted as used', async () => {
+    for (const code of ['USER_CANCELLED', 'DEVICE_LOCKED', 'KEY_INVALIDATED', 'REQUEST_INVALID', 'REQUEST_EXPIRED']) {
+      const s = screen(request());
+      s.answer({ ok: false, code: 'DID_RESOLUTION_UNAVAILABLE', delivered: true });
+      assert.deepEqual([(await s.actions.share()).outcome, s.box.state.delivered], ['delivered', true]);
+      s.answer(fail(code));
+      assert.equal(await s.actions.share(), null, code);
+      assert.equal(s.calls.submit.length, 2, code);
+    }
+  });
+
   it('never submits a blocked document', async () => {
     const s = screen(request(), { c1: 'invalid' });
     assert.equal(await s.actions.share(), null);
@@ -499,14 +520,14 @@ describe('sharing: a delivered request stays locked across remounts and restarts
     };
   }
   /** The phone: the app's history (store) and the wallet; `mount` is one PresentCredentialScreen on a QR, as it resolves and records. */
-  function phone(sdk) {
+  function phone(sdk, { history = true } = {}) {
     let ids = 0;
-    const world = { sdk, app: { logs: [], settings: { flowSettings: { identity: { activityLogging: true } } } } };
+    const world = { sdk, app: { logs: [], shareLocks: [], settings: { flowSettings: { identity: { activityLogging: history } } } } };
     world.mount = async (nowMs = NOW, qr = QR) => {
       const box = { state: initialPresentState };
       const session = { get: () => box.state, dispatch: (e) => (box.state = presentReducer(box.state, e)) };
       const actions = createPresentationActions(world.sdk, session, () => `share-${++ids}`, () => nowMs);
-      const resolve = async () => session.dispatch({ type: 'resolved', result: await world.sdk.presentations.resolve(qr), nowMs, sent: sentShareOf(world.app.logs, qr) });
+      const resolve = async () => session.dispatch({ type: 'resolved', result: await world.sdk.presentations.resolve(qr), nowMs, sent: sentShareOf(world.app.logs, qr, world.app.shareLocks) });
       await resolve();
       return {
         get state() { return box.state; },
@@ -528,8 +549,8 @@ describe('sharing: a delivered request stays locked across remounts and restarts
   }
   const NARROW = 'ho_ten,nganh';
   /** The first mount: the person picks document b and the narrow option, shares; the requester could not reach CertNet. */
-  async function deliveredOnce(answers = ['503', 'ok'], offer = offered) {
-    const p = phone(pinningSdk({ answers, offer }));
+  async function deliveredOnce(answers = ['503', 'ok'], offer = offered, settings = {}) {
+    const p = phone(pinningSdk({ answers, offer }), settings);
     const m = await p.mount();
     m.dispatch({ type: 'select-document', credentialId: 'b' });
     m.dispatch({ type: 'select-claim-set', index: 1 });
@@ -648,16 +669,15 @@ describe('sharing: a delivered request stays locked across remounts and restarts
     assert.deepEqual([unknown.state.phase, unknown.state.failure.sentenceKey], ['refused', 'wallet.presentErrors.requestBad']);
   });
 
-  it('after an app restart (the SDK\'s pin is gone) the history entry restores the lock for its 600 s, keeps the count and is the entry updated', async () => {
-    const { parsePersistedIdentityEnvelope, createPersistedIdentityEnvelope } = require('../.tmp-test/src/native/domain/app-store/appStatePersistence');
-    const base = { credentials: [], profile: { fullName: '', dob: '', studentId: '', school: '', nationalId: '', email: '', phone: '', address: '', did: '' }, settings: {} };
-    const restart = (p, sdkOptions) => {
-      // What survives: the stored history (through the real load), not the wallet instance.
-      const stored = parsePersistedIdentityEnvelope(createPersistedIdentityEnvelope({ ...base, logs: p.app.logs }));
-      p.app = { ...p.app, logs: stored.logs };
-      p.sdk = pinningSdk({ received: p.sdk.received, ...sdkOptions });
-    };
+  const base = { credentials: [], profile: { fullName: '', dob: '', studentId: '', school: '', nationalId: '', email: '', phone: '', address: '', did: '' }, settings: {} };
+  const restart = (p, sdkOptions) => {
+    // What survives: what the app stores (through the real load), not the wallet instance.
+    const stored = parsePersistedIdentityEnvelope(createPersistedIdentityEnvelope({ ...base, logs: p.app.logs, shareLocks: p.app.shareLocks }));
+    p.app = { ...p.app, logs: stored.logs, shareLocks: stored.shareLocks };
+    p.sdk = pinningSdk({ received: p.sdk.received, ...sdkOptions });
+  };
 
+  it('after an app restart (the SDK\'s pin is gone) the history entry restores the lock for its 600 s, keeps the count and is the entry updated', async () => {
     const { p, m } = await deliveredOnce(['503']);
     m.unmount();
     restart(p, { answers: ['ok'] });
@@ -698,5 +718,50 @@ describe('sharing: a delivered request stays locked across remounts and restarts
     restart(late.p, { answers: ['ok'] });
     const expired = await late.p.mount(NOW + PIN_MS + 1);
     assert.deepEqual([expired.state.phase, expired.state.delivered], ['consent', false]);
+  });
+
+  it('finds only this QR\'s "sent, no result" entry or lock: another request, another outcome or a missing count never lock it wrongly', () => {
+    const OTHER = QR.replace('r1', 'r2');
+    const until = new Date(NOW + PIN_MS).toISOString();
+    const entry = { id: 'share-1', timestamp: new Date(NOW).toISOString(), type: 'share', status: 'pending', title: 't', description: 'd', partner: 'p', credentialId: 'b', sharedClaims: ['ho_ten', 'nganh'], requestRef: QR, sends: 2, lockedUntil: until };
+    const found = { id: 'share-1', lockedUntil: until, credentialId: 'b', claims: ['ho_ten', 'nganh'], sends: 2 };
+    assert.deepEqual(sentShareOf([entry], QR, []), found);
+    assert.equal(sentShareOf([{ ...entry, requestRef: OTHER }], QR, []), null, 'another request\'s entry');
+    for (const status of ['success', 'failed', 'uncertain', undefined]) assert.equal(sentShareOf([{ ...entry, status }], QR, []), null, String(status));
+    const { sends: _sends, ...uncounted } = entry;
+    assert.equal(sentShareOf([uncounted], QR, []).sends, 1, 'an entry without a count was sent once');
+    const lock = { id: 'share-9', requestRef: QR, credentialId: 'b', sharedClaims: ['ho_ten', 'nganh'], sends: 3, lockedUntil: until };
+    assert.deepEqual(sentShareOf([entry], QR, [lock]), { ...found, id: 'share-9', sends: 3 }, 'a lock is newer than the entry');
+    assert.deepEqual(sentShareOf([], QR, [{ ...lock, requestRef: OTHER }]), null, 'another request\'s lock');
+
+    // On the screen: another request's pending entry leaves this one an ordinary consent.
+    const s = presentReducer(initialPresentState, { type: 'resolved', result: { ok: true, request: { ...offered(), pinned: null } }, nowMs: NOW, sent: sentShareOf([{ ...entry, requestRef: OTHER }], QR, []) });
+    assert.deepEqual([s.phase, s.delivered, s.credentialId, s.claimSetIndex], ['consent', false, 'a', 0]);
+  });
+
+  it('with the sharing history off nothing is recorded, yet after each restart the same QR opens locked to what was sent and the requester gets at most MAX_PRESENTATION_SENDS in all (re-review: 9 over 3 restarts)', async () => {
+    const { dropExpiredShareLocksInAppState } = require('../.tmp-test/src/native/domain/app-store/appStoreStateService');
+    const { p, lockedLook } = await deliveredOnce(['503'], offered, { history: false });
+    const phases = [];
+    for (let round = 1; round <= 3; round++) {
+      restart(p, { answers: ['503'] });
+      const m = await p.mount(NOW + round * 60_000);
+      phases.push(m.state.phase);
+      // The reviewer's attempt: every send tries the broad option and the other document.
+      for (let tries = 0; tries < 3 && m.state.phase === 'consent'; tries++) {
+        assert.equal(m.state.request.pinned, null, 'a new wallet instance remembers nothing');
+        locked(m.state, lockedLook);
+        m.dispatch({ type: 'select-claim-set', index: 0 });
+        m.dispatch({ type: 'select-document', credentialId: 'a' });
+        await m.share();
+      }
+    }
+    assert.deepEqual(phases, ['consent', 'failed', 'failed'], 'used up within the first restart, closed after the next ones');
+    assert.deepEqual(p.sdk.received, Array(MAX_PRESENTATION_SENDS).fill({ credentialId: 'b', claims: NARROW }), 'the same narrow set, never more than the limit in all');
+    assert.deepEqual(p.app.logs, [], 'the history (and its unread count) stays empty');
+    // Only what the lock needs is kept, and it goes once its 600 s are over.
+    assert.deepEqual(p.app.shareLocks, [{ id: 'share-1', requestRef: QR, credentialId: 'b', sharedClaims: ['ho_ten', 'nganh'], sends: MAX_PRESENTATION_SENDS, lockedUntil: new Date(NOW + PIN_MS).toISOString() }]);
+    assert.equal(dropExpiredShareLocksInAppState(p.app, NOW + PIN_MS - 1), p.app);
+    assert.deepEqual(dropExpiredShareLocksInAppState(p.app, NOW + PIN_MS).shareLocks, []);
   });
 });

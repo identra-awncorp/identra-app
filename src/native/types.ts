@@ -111,6 +111,19 @@ export interface ActivityLog {
   lockedUntil?: string;
 }
 
+/**
+ * With the sharing history off, what keeps a delivered share's request locked across restarts
+ * (the history entry does it otherwise): only the lock's fields, never shown, dropped at `lockedUntil`.
+ */
+export interface ShareLock {
+  id: string;
+  requestRef: string;
+  credentialId: string;
+  sharedClaims: string[];
+  sends: number;
+  lockedUntil: string;
+}
+
 export interface PersonalInfo {
   fullName: string;
   dob: string;
