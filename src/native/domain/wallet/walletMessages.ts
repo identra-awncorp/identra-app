@@ -50,6 +50,7 @@ export const failureSentenceKeys: Record<FailureCode, I18nKey> = {
   KEY_NOT_FOUND: 'wallet.errors.KEY_NOT_FOUND',
   SKIPPED: 'wallet.errors.SKIPPED',
   OFFER_INVALID: 'wallet.errors.OFFER_INVALID',
+  TRUST_PATH_UNSUPPORTED: 'wallet.errors.TRUST_PATH_UNSUPPORTED',
   URL_NOT_ALLOWED: 'wallet.errors.URL_NOT_ALLOWED',
   TX_CODE_WRONG: 'wallet.errors.TX_CODE_WRONG',
   TX_CODE_REQUIRED: 'wallet.errors.TX_CODE_REQUIRED',
@@ -97,6 +98,7 @@ export const checkSentenceKeys: Record<CheckId, I18nKey> = {
 
 const actions: Partial<Record<FailureCode, FailureAction>> = {
   OFFER_INVALID: 'scan-again',
+  TRUST_PATH_UNSUPPORTED: 'scan-again',
   URL_NOT_ALLOWED: 'scan-again',
   TX_CODE_WRONG: 'retry-pin',
   TX_CODE_REQUIRED: 'retry-pin',
@@ -127,6 +129,7 @@ export const failureTitleKeys: Record<FailureAction, I18nKey> = {
 
 /** A title more precise than the action's, where the action's would say something untrue. */
 const titleOverrides: Partial<Record<FailureCode, I18nKey>> = {
+  TRUST_PATH_UNSUPPORTED: 'wallet.failureTitles.notSupportedYet',
   TX_CODE_REQUIRED: 'wallet.failureTitles.pinNeeded',
 };
 
@@ -228,6 +231,7 @@ export const presentationSentenceKeys: Record<FailureCode, I18nKey> = {
   DID_RESOLUTION_FAILED: OTHER,
   DID_RESOLUTION_UNAVAILABLE: OTHER,
   SKIPPED: OTHER,
+  TRUST_PATH_UNSUPPORTED: OTHER,
   TX_CODE_WRONG: OTHER,
   TX_CODE_REQUIRED: OTHER,
   OFFER_EXPIRED: OTHER,

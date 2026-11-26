@@ -67,6 +67,23 @@ describe('wallet code → sentence tables', () => {
     assert.equal(failedCheckKey(null), null);
   });
 
+  it('says a CertNet issuer cannot be received yet in its own words, without blaming the QR code or offering a retry', () => {
+    assert.ok(ErrorCodes.TRUST_PATH_UNSUPPORTED, 'the SDK code this test is about');
+    for (const locale of ['vi', 'en']) {
+      const view = failureView('TRUST_PATH_UNSUPPORTED');
+      const [title, sentence] = [translate(locale, view.titleKey), translate(locale, view.sentenceKey)];
+      assert.match(sentence, /CertNet/);
+      assert.notEqual(sentence, translate(locale, failureView('OFFER_INVALID').sentenceKey));
+      assert.notEqual(title, translate(locale, failureView('OFFER_INVALID').titleKey));
+      assert.equal(/retry|try again|thử lại/i.test(`${title} ${sentence}`), false, `${locale}: no retry`);
+    }
+    assert.equal(failureView('TRUST_PATH_UNSUPPORTED').action, 'scan-again');
+    assert.equal(translate('vi', failureView('TRUST_PATH_UNSUPPORTED').titleKey), 'Ví chưa nhận được giấy tờ này');
+    assert.equal(translate('en', failureView('TRUST_PATH_UNSUPPORTED').titleKey), 'This wallet cannot receive this document yet');
+    assert.equal(translate('vi', 'wallet.errors.OFFER_INVALID'), 'Đây không phải mã nhận giấy tờ mà ví dùng được. Hãy quét đúng mã QR do nơi cấp đưa.', 'OFFER_INVALID means only "not a valid offer"');
+    assert.equal(presentationFailureView('TRUST_PATH_UNSUPPORTED', 'resolve').sentenceKey, 'wallet.presentErrors.other');
+  });
+
   it('never shows a technical term or a raw code anywhere in the wallet and backup copy', () => {
     for (const mod of [viModule, enModule]) {
       const locale = mod.default ?? mod.vi ?? mod.en;
@@ -129,6 +146,7 @@ describe('wallet code → sentence tables', () => {
       TX_CODE_WRONG: 'retry-pin',
       OFFER_EXPIRED: 'contact-issuer',
       OFFER_INVALID: 'scan-again',
+      TRUST_PATH_UNSUPPORTED: 'scan-again',
       URL_NOT_ALLOWED: 'scan-again',
       NETWORK_ERROR: 'retry',
       CREDENTIAL_INVALID: 'contact-issuer',

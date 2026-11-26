@@ -1985,6 +1985,7 @@ export const en = {
     didPath: {
       ISSUER_NOT_TRUSTED: 'The issuer is not currently recognised through CertNet for this kind of document.',
       TRUST_LIST_UNAVAILABLE: 'CertNet did not answer, so the wallet could not tell whether the issuer is still recognised. Check again when you are online.',
+      unsupported: 'This version of the app cannot check this document: its issuer is registered on CertNet, which the app does not use yet. The document stays in your wallet.',
     },
     receive: {
       pinProgress: '{{count}} of {{length}} digits entered',
@@ -2011,10 +2012,12 @@ export const en = {
       headerTitle: 'Receive a document',
       checking: 'Checking the code…',
       offerTitle: '{{issuer}} is sending you a {{document}}',
+      offerTitleCertNet: 'You are invited to receive a {{document}}',
       lead: 'Check who is issuing it and what it is before you accept.',
       documentLabel: 'Document',
       issuerLabel: 'Issued by',
       issuerChecked: 'The wallet checks that this issuer is recognised before saving.',
+      issuerCheckedCertNet: 'The issuer will be checked through CertNet when you receive the document.',
       pinLabel: 'The {{length}}-digit PIN the issuer gave you',
       pinHint: 'The PIN comes with the QR code, usually shown next to it on the school\'s page.',
       pinIncomplete: 'Enter the whole PIN to continue.',
@@ -2092,6 +2095,7 @@ export const en = {
       contactIssuer: 'The document was not saved',
       requestAgain: 'Needs to be issued again',
       close: 'This could not be done',
+      notSupportedYet: 'This wallet cannot receive this document yet',
     },
     errors: {
       DATABASE_TOO_NEW: 'The documents on this phone were saved by a newer version of the app. Update the app to open them.',
@@ -2127,6 +2131,7 @@ export const en = {
       KEY_NOT_FOUND: 'This document\'s key was not found on this phone.',
       SKIPPED: 'One check was not carried out.',
       OFFER_INVALID: 'This is not a code the wallet can use to receive a document. Scan the QR code your issuer gave you.',
+      TRUST_PATH_UNSUPPORTED: 'The issuer is registered on CertNet, which this version of the app does not use yet. There is nothing wrong with the QR code.',
       URL_NOT_ALLOWED: 'This code points to an address that is not safe, so the wallet will not open it.',
       TX_CODE_WRONG: 'The PIN does not match. Check the PIN that came with the QR code and enter it again.',
       TX_CODE_REQUIRED: 'The issuer needs the PIN that came with the QR code. Enter it and tap Receive document.',

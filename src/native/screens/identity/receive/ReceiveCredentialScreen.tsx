@@ -176,7 +176,9 @@ export function ReceiveCredentialScreen({
         {view && offer && (state.phase === 'consent' || state.phase === 'accepting' || state.phase === 'resume') ? (
           <>
             <View style={styles.intro}>
-              <Text style={[walletStyles.title, styles.offerTitle, { color: colors.text }]}>{t('wallet.receive.offerTitle', { issuer: view.issuerName, document: t(view.documentNameKey) })}</Text>
+              <Text style={[walletStyles.title, styles.offerTitle, { color: colors.text }]}>
+                {view.issuerName === null ? t('wallet.receive.offerTitleCertNet', { document: t(view.documentNameKey) }) : t('wallet.receive.offerTitle', { issuer: view.issuerName, document: t(view.documentNameKey) })}
+              </Text>
               <Text style={[walletStyles.lead, { color: colors.textSecondary }]}>{t('wallet.receive.lead')}</Text>
             </View>
 
@@ -190,15 +192,26 @@ export function ReceiveCredentialScreen({
               </View>
               <View style={[walletStyles.divider, { backgroundColor: colors.border }]} />
               <View style={walletStyles.row}>
-                {/* Neutral icon: this name is the sender's own claim until the document is checked. */}
+                {/* Neutral icon: the sender's name (when shown) is its own claim until the document is checked. */}
                 <View style={[styles.iconBox, { backgroundColor: colors.surfaceMuted }]}>
                   <Building2 color={colors.textSecondary} size={24} strokeWidth={1.8} />
                 </View>
                 <View style={styles.flex}>
                   <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.receive.issuerLabel')}</Text>
-                  <Text style={[walletStyles.value, { color: colors.text }]}>{t('wallet.receive.issuerClaimed', { name: view.issuerName })}</Text>
-                  <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{view.issuerOrigin ?? issuerDisplayName(offer.issuerUri)}</Text>
-                  <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.receive.issuerChecked')}</Text>
+                  {view.issuerName === null ? (
+                    // CertNet issuer: its own name is not shown (CertNet records none); its web address, then how it will be checked.
+                    <>
+                      <Text style={[walletStyles.value, { color: colors.text }]}>{view.issuerOrigin ?? issuerDisplayName(offer.issuerUri)}</Text>
+                      <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.trustPath.issuerId', { id: view.issuerId ?? '' })}</Text>
+                      <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.receive.issuerCheckedCertNet')}</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={[walletStyles.value, { color: colors.text }]}>{t('wallet.receive.issuerClaimed', { name: view.issuerName })}</Text>
+                      <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{view.issuerOrigin ?? issuerDisplayName(offer.issuerUri)}</Text>
+                      <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.receive.issuerChecked')}</Text>
+                    </>
+                  )}
                 </View>
               </View>
             </Panel>

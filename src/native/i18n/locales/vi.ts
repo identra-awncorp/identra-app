@@ -1977,6 +1977,7 @@ export const vi = {
     didPath: {
       ISSUER_NOT_TRUSTED: 'Nơi cấp hiện không được công nhận qua CertNet cho loại giấy tờ này.',
       TRUST_LIST_UNAVAILABLE: 'CertNet chưa trả lời nên ví chưa biết nơi cấp còn được công nhận hay không. Hãy kiểm tra lại khi có mạng.',
+      unsupported: 'Phiên bản ứng dụng này chưa kiểm tra được giấy tờ này vì nơi cấp đăng ký trên CertNet, mà ứng dụng chưa dùng CertNet. Giấy tờ vẫn được giữ trong ví.',
     },
     receive: {
       pinProgress: 'Đã nhập {{count}}/{{length}} chữ số',
@@ -2005,10 +2006,12 @@ export const vi = {
       headerTitle: 'Nhận giấy tờ',
       checking: 'Đang kiểm tra mã…',
       offerTitle: '{{issuer}} gửi cho bạn {{document}}',
+      offerTitleCertNet: 'Bạn được mời nhận {{document}}',
       lead: 'Kiểm tra lại nơi cấp và loại giấy tờ trước khi nhận.',
       documentLabel: 'Giấy tờ',
       issuerLabel: 'Nơi cấp',
       issuerChecked: 'Ví sẽ kiểm tra nơi cấp này có được công nhận trước khi lưu.',
+      issuerCheckedCertNet: 'Nơi cấp sẽ được kiểm tra qua CertNet khi bạn nhận giấy tờ.',
       pinLabel: 'Mã PIN {{length}} chữ số nơi cấp đưa cho bạn',
       pinHint: 'Mã PIN đi kèm mã QR, thường hiện ngay bên cạnh mã QR trên trang của trường.',
       pinIncomplete: 'Nhập đủ mã PIN để tiếp tục.',
@@ -2084,6 +2087,7 @@ export const vi = {
       contactIssuer: 'Giấy tờ chưa được lưu',
       requestAgain: 'Cần xin cấp lại',
       close: 'Không thực hiện được',
+      notSupportedYet: 'Ví chưa nhận được giấy tờ này',
     },
     errors: {
       DATABASE_TOO_NEW: 'Giấy tờ trên máy được lưu bởi phiên bản ứng dụng mới hơn. Hãy cập nhật ứng dụng để mở chúng.',
@@ -2119,6 +2123,7 @@ export const vi = {
       KEY_NOT_FOUND: 'Không tìm thấy khóa của giấy tờ này trên điện thoại.',
       SKIPPED: 'Một bước kiểm tra chưa được thực hiện.',
       OFFER_INVALID: 'Đây không phải mã nhận giấy tờ mà ví dùng được. Hãy quét đúng mã QR do nơi cấp đưa.',
+      TRUST_PATH_UNSUPPORTED: 'Nơi cấp của giấy tờ này đăng ký trên CertNet, mà phiên bản ứng dụng này chưa dùng CertNet. Mã QR không có lỗi.',
       URL_NOT_ALLOWED: 'Mã này dẫn tới một địa chỉ không an toàn nên ví không mở.',
       TX_CODE_WRONG: 'Mã PIN không khớp. Kiểm tra mã PIN đi kèm mã QR rồi nhập lại.',
       TX_CODE_REQUIRED: 'Nơi cấp cần mã PIN đi kèm mã QR. Nhập mã PIN rồi bấm Nhận giấy tờ.',

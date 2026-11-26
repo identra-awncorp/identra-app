@@ -40,7 +40,7 @@ configures it, stores one column and says on screen which path was used.
   (an `https://` origin, optionally with a path; no query, fragment or userinfo) and
   `EXPO_PUBLIC_CERTNET_NETWORK` (`local`, `testnet` or `mainnet`). Both or neither. Neither: the DID
   path is off and the wallet behaves exactly as before (a DID issuer's offer is refused at resolve
-  with `OFFER_INVALID`, before the PIN). `certNetConfigOf` validates them: one without the other, an
+  with `TRUST_PATH_UNSUPPORTED`, before the PIN). `certNetConfigOf` validates them: one without the other, an
   unknown network, `local` in a release build (anyone can write the local trust registry) or a URL
   the SDK refuses is a `WalletConfigError`; a development build stops on it, a release build runs
   with the DID path off rather than lose the X.509 wallet. The gateway is trusted configuration
@@ -69,9 +69,18 @@ configures it, stores one column and says on screen which path was used.
   since no biometric prompt happened). Messages: check `did_resolution`, code
   `DID_RESOLUTION_UNAVAILABLE`, and DID-path wording of `ISSUER_NOT_TRUSTED` /
   `TRUST_LIST_UNAVAILABLE` (CertNet, not Identra's list), chosen from the SDK's checks.
-- **Not done**: a DID issuer's offer when the DID path is off reads as a bad code ("Đây không phải
-  mã nhận giấy tờ…"), because the SDK answers it with the same `OFFER_INVALID`; a distinct code from
-  the SDK is needed for "ví này chưa nhận được giấy tờ này". The backup catalogue keeps the issuer
+- **DID path off** (no CertNet configuration): a DID issuer's offer is refused at resolve with the
+  SDK's `TRUST_PATH_UNSUPPORTED` (`OFFER_INVALID` again means only "not a valid offer"): "Ví chưa
+  nhận được giấy tờ này", no blame on the QR code, action `scan-again` (another code, never a retry
+  of this one). The receive screen of a DID issuer (`ResolvedOffer.issuerDid`, declared and not yet
+  verified) shows no name, not even the self-declared one: the web address, "Mã nơi cấp <short id>"
+  and "will be checked through CertNet when you receive it" (`offerView`: `issuerName` null,
+  `issuerId`). A stored DID credential re-checked in such a build is `unknown`, and
+  `statusSentenceKeys` reads the SDK's `did_resolution` / `DID_RESOLUTION_FAILED` on an `unknown` DID
+  document as `wallet.didPath.unsupported` ("this version of the app cannot check this document"),
+  never "CertNet did not answer" (CertNet was not asked). With CertNet configured that same failure
+  is `invalid`. Before any re-check (no checks in hand) an `unknown` DID document shows the generic
+  `unknown` sentence. The backup catalogue keeps the issuer
   URL only, so the restore list names a DID issuer by URL (host or `knownIssuers`), as before.
 
 ## Screens (src/native/screens/identity)

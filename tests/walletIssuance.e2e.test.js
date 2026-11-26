@@ -19,7 +19,7 @@ const { createAsyncStorageSeenStore } = require('../.tmp-test/src/native/data/wa
 const { createSqliteCredentialRepository } = require('../.tmp-test/src/native/data/wallet/credentialRepository');
 const { credentialOfferQrText, parseQrScanValue } = require('../.tmp-test/src/native/domain/scan/qrScan');
 const { initialReceiveState, receiveReducer, runAccept, shouldClearPin, detailReducer, initialDetailState } = require('../.tmp-test/src/native/domain/wallet/walletFlows');
-const { credentialDetailView, credentialListItems, offerView, statusSentenceKeys } = require('../.tmp-test/src/native/domain/wallet/walletViews');
+const { credentialDetailView, credentialListItems, offerView, shortIssuerId, statusSentenceKeys } = require('../.tmp-test/src/native/domain/wallet/walletViews');
 const { translate } = require('../.tmp-test/src/native/i18n');
 const { createFakeSecureStore } = require('./helpers/fakeSecureStore');
 const { openExpoSqliteDouble } = require('./helpers/expoSqliteDouble');
@@ -74,7 +74,7 @@ describe('the app wallet receives and keeps a diploma from a real issuer (no dev
     state = receiveReducer(state, { type: 'resolved', result: await wallet.offers.resolve(qrText) });
     assert.equal(state.phase, 'consent', JSON.stringify(state));
     const view = offerView(state.offer, 'vi');
-    assert.deepEqual({ ...view, issuerOrigin: undefined }, { issuerName: 'Trường Mẫu', issuerOrigin: undefined, documentNameKey: 'wallet.documentTypes.diploma', pin: { length: 6, numeric: true } });
+    assert.deepEqual({ ...view, issuerOrigin: undefined }, { issuerName: 'Trường Mẫu', issuerId: null, issuerOrigin: undefined, documentNameKey: 'wallet.documentTypes.diploma', pin: { length: 6, numeric: true } });
     assert.equal(secureStore.state.items.size, 0, 'resolving creates no key');
 
     // A wrong PIN: back to the PIN field, PIN cleared, retry on the same offer.
@@ -233,6 +233,9 @@ describe('the app wallet receives a diploma from a DID issuer through CertNet (A
     const { offerUri: qr, txCode } = await world.offer();
     const { box, session } = await receiveScreen(phone.wallet, qr);
     assert.equal(box.state.phase, 'consent', JSON.stringify(box.state));
+    // Before acceptance: the SDK hands over the declared identifier, and the screen shows no name.
+    assert.equal(box.state.offer.issuerDid, did);
+    assert.deepEqual([offerView(box.state.offer, 'vi').issuerName, offerView(box.state.offer, 'vi').issuerId], [null, shortIssuerId(did)]);
     await runAccept(session, phone.wallet, txCode, 6);
     assert.deepEqual([box.state.phase, box.state.issuerDid, box.state.issuerName, box.state.keyAuthenticated], ['received', did, null, true], JSON.stringify(box.state));
 
@@ -281,19 +284,37 @@ describe('the app wallet receives a diploma from a DID issuer through CertNet (A
     assert.equal(phone.db.raw.prepare('SELECT count(*) AS n FROM credentials').get().n, 1);
   });
 
-  it('a wallet without the DID path refuses a DID issuer\'s offer at resolve, before the PIN and without a key', async () => {
+  it('a wallet without the DID path refuses a DID issuer\'s offer at resolve with its own message, before the PIN and without a key', async () => {
     const world = await createWorld(listener, { did: {} });
     const phone = appWallet(world);
     const { offerUri: qr } = await world.offer();
     listener.requests.length = 0;
     const { box } = await receiveScreen(phone.wallet, qr);
-    // ponytail: the SDK answers OFFER_INVALID, the same code as a malformed offer, so the screen
-    // cannot say "this wallet cannot receive this document yet" (an SDK code is needed; see README).
-    assert.deepEqual([box.state.phase, box.state.failure.code, box.state.failure.action], ['resolve-failed', 'OFFER_INVALID', 'scan-again']);
+    assert.deepEqual([box.state.phase, box.state.failure.code, box.state.failure.action], ['resolve-failed', 'TRUST_PATH_UNSUPPORTED', 'scan-again']);
+    assert.equal(translate('vi', box.state.failure.titleKey), 'Ví chưa nhận được giấy tờ này');
+    assert.equal(translate('vi', box.state.failure.sentenceKey), 'Nơi cấp của giấy tờ này đăng ký trên CertNet, mà phiên bản ứng dụng này chưa dùng CertNet. Mã QR không có lỗi.');
     assert.ok(listener.requests.length > 0, 'the offer and metadata were read');
     assert.equal(listener.requests.some((r) => r.includes('token')), false, 'the code was not spent');
     assert.deepEqual(keysOf(phone), []);
     assert.deepEqual(world.gateway.state.calls, []);
+  });
+
+  it('a DID credential opened in a build without the DID path is "not checked", and the screen says the app cannot check it (CertNet was never asked)', async () => {
+    const world = await createWorld(listener, { did: {} });
+    const phone = appWallet(world, { dpki: true });
+    const { offerUri: qr, txCode } = await world.offer();
+    const { box, session } = await receiveScreen(phone.wallet, qr);
+    await runAccept(session, phone.wallet, txCode, 6);
+    assert.equal(box.state.phase, 'received', JSON.stringify(box.state));
+    const withoutCertNet = createWallet(phoneDeps(phone, world));
+    world.gateway.state.calls.length = 0;
+    let detail = detailReducer(initialDetailState, { type: 'loaded', result: await withoutCertNet.credentials.get(box.state.credentialId) });
+    detail = detailReducer(detail, { type: 'refresh' });
+    detail = detailReducer(detail, { type: 'refreshed', result: await withoutCertNet.credentials.refreshStatus(box.state.credentialId), checkedAt: world.clock.now().toISOString() });
+    const view = credentialDetailView(detail.details, 'vi');
+    assert.deepEqual([view.status, statusSentenceKeys(view.status, view.trustPath, detail.refreshChecks)], ['unknown', ['wallet.didPath.unsupported']]);
+    assert.deepEqual(world.gateway.state.calls, [], 'CertNet was not asked');
+    assert.equal(/chưa trả lời/.test(translate('vi', 'wallet.didPath.unsupported')), false, 'never says CertNet did not answer');
   });
 });
 

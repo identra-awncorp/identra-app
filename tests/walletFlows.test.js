@@ -63,7 +63,7 @@ describe('receive flow', () => {
   });
 
   it('shows why a code cannot be opened, and lets a network failure be retried', () => {
-    for (const [code, action] of [['OFFER_EXPIRED', 'contact-issuer'], ['OFFER_INVALID', 'scan-again'], ['URL_NOT_ALLOWED', 'scan-again'], ['NETWORK_ERROR', 'retry']]) {
+    for (const [code, action] of [['OFFER_EXPIRED', 'contact-issuer'], ['OFFER_INVALID', 'scan-again'], ['TRUST_PATH_UNSUPPORTED', 'scan-again'], ['URL_NOT_ALLOWED', 'scan-again'], ['NETWORK_ERROR', 'retry']]) {
       const s = receiveReducer(ready, { type: 'resolved', result: fail(code) });
       assert.equal(s.phase, 'resolve-failed');
       assert.equal(s.failure.action, action, code);
@@ -181,12 +181,16 @@ describe('receive flow', () => {
   });
 
   it('describes the offer and keeps only what a PIN field may hold', () => {
-    assert.deepEqual(offerView(offer, 'vi'), { issuerName: 'Trường Mẫu', issuerOrigin: null, documentNameKey: 'wallet.documentTypes.diploma', pin: { length: 6, numeric: true } });
+    assert.deepEqual(offerView(offer, 'vi'), { issuerName: 'Trường Mẫu', issuerId: null, issuerOrigin: null, documentNameKey: 'wallet.documentTypes.diploma', pin: { length: 6, numeric: true } });
     assert.equal(offerView({ ...offer, issuerOrigin: 'https://api-identra.awncorp.vn' }, 'vi').issuerOrigin, 'api-identra.awncorp.vn');
     assert.equal(offerView({ ...offer, issuerOrigin: 'http://evil.example' }, 'vi').issuerOrigin, null);
     assert.equal(offerView(offer, 'en').issuerName, 'Sample University');
     assert.equal(offerView({ ...offer, issuerDisplay: [], txCode: null }, 'vi').pin, null);
     assert.equal(offerView({ ...offer, issuerDisplay: [] }, 'vi').issuerName, 'Trường Đại học Mẫu (DEMO)');
+    // A CertNet issuer: its self-declared name is dropped, the shortened identifier stands in (the screen shows the web address beside it).
+    const certNet = offerView({ ...offer, issuerDid: 'did:certnet:testnet:4f9c2a7e1b3d8f60a5c4e2b9d7f1a3c8', issuerOrigin: 'https://api-identra.awncorp.vn' }, 'vi');
+    assert.deepEqual([certNet.issuerName, certNet.issuerId, certNet.issuerOrigin], [null, '4f9c2a7e…f1a3c8', 'api-identra.awncorp.vn']);
+    assert.equal(offerView({ ...offer, issuerDid: null }, 'vi').issuerId, null);
     assert.equal(offerView({ ...offer, txCode: { length: null, inputMode: 'numeric', description: null } }, 'vi').pin.length, 6);
     const pin = { length: 6, numeric: true };
     assert.equal(sanitizePin('12 34-56', pin), '123456');
@@ -381,13 +385,17 @@ describe('DID trust path (ADR-0020): receipt, views and re-check results', () =>
     assert.deepEqual(statusSentenceKeys('unknown', 'did', tirDown), ['wallet.didPath.TRUST_LIST_UNAVAILABLE']);
     assert.deepEqual(statusSentenceKeys('unknown', 'did', resolverDown), ['wallet.errors.DID_RESOLUTION_UNAVAILABLE']);
     assert.deepEqual(statusSentenceKeys('invalid', 'did', rejected), ['identity.detail.statuses.invalid.description', 'wallet.didPath.ISSUER_NOT_TRUSTED']);
+    // A build without CertNet configuration: unknown, and CertNet was never asked, so never "did not answer".
+    const notConfigured = [check('structure'), check('did_resolution', 'DID_RESOLUTION_FAILED'), check('signature', 'SKIPPED', { skipped: true })];
+    assert.deepEqual(statusSentenceKeys('unknown', 'did', notConfigured), ['wallet.didPath.unsupported']);
+    assert.deepEqual(statusSentenceKeys('invalid', 'did', notConfigured), ['identity.detail.statuses.invalid.description', 'wallet.errors.DID_RESOLUTION_FAILED'], 'with CertNet configured the same failure stays invalid');
     // Before any re-check (no checks): the status meaning only, on both paths.
     assert.deepEqual(statusSentenceKeys('unknown', 'did', null), ['identity.detail.statuses.unknown.description']);
     // X.509 unchanged: unknown says only its meaning; invalid adds the failed check.
     const x509Down = [check('certificate_chain'), check('issuer_trust', 'TRUST_LIST_UNAVAILABLE')];
     assert.deepEqual(statusSentenceKeys('unknown', 'x509', x509Down), ['identity.detail.statuses.unknown.description']);
     assert.deepEqual(statusSentenceKeys('invalid', 'x509', [check('certificate_chain'), check('issuer_trust', 'ISSUER_NOT_TRUSTED')]), ['identity.detail.statuses.invalid.description', 'wallet.errors.ISSUER_NOT_TRUSTED']);
-    for (const key of ['identity.detail.statuses.invalid.description', 'wallet.didPath.TRUST_LIST_UNAVAILABLE', 'wallet.didPath.ISSUER_NOT_TRUSTED']) {
+    for (const key of ['identity.detail.statuses.invalid.description', 'wallet.didPath.TRUST_LIST_UNAVAILABLE', 'wallet.didPath.ISSUER_NOT_TRUSTED', 'wallet.didPath.unsupported']) {
       for (const locale of ['vi', 'en']) assert.notEqual(translate(locale, key), key);
     }
     // "Not checked yet" is never shown as valid: the reducer keeps the SDK's status.

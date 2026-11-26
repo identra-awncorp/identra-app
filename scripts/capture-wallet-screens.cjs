@@ -153,8 +153,10 @@ const typePin = (pin, submit = true) => async (page) => {
     { name: 'detail-did-valid', url: '/credentials/d1', scenario: 'did' },
     { name: 'detail-did-unknown', url: '/credentials/d2', scenario: 'did' },
     { name: 'detail-did-unknown-rechecked', url: '/credentials/d2', scenario: 'did', act: checkAgain },
+    { name: 'detail-did-unsupported-rechecked', url: '/credentials/d4', scenario: 'did', act: checkAgain },
     { name: 'detail-did-invalid-rechecked', url: '/credentials/d3', scenario: 'did', act: checkAgain },
     { name: 'receive-did-consent', url: '/receive-credential', offer: didOffer },
+    { name: 'receive-did-unsupported', url: '/receive-credential', offer: 'openid-credential-offer://?credential_offer_uri=https%3A%2F%2Fapi-identra.awncorp.vn%2Fissuers%2Ftruong-did%2Foffers%2Funsupported' },
     { name: 'receive-did-success', url: '/receive-credential', offer: didOffer, act: typePin('123456') },
     { name: 'receive-did-unresolved', url: '/receive-credential', offer: didOffer, act: typePin('666666') },
     { name: 'receive-did-unresolved-retried', url: '/receive-credential', offer: didOffer, act: async (p) => { await typePin('666666')(p); await p.getByRole('button', { name: /^(Thử lại|Try again)$/ }).last().click(); await p.waitForTimeout(1500); } },
@@ -164,7 +166,7 @@ const typePin = (pin, submit = true) => async (page) => {
   for (const width of [390, 360]) {
     for (const s of all) await shot(browser, { ...s, width, height: width === 360 ? 740 : 844 });
   }
-  const themed = ['receive-consent', 'receive-wrong-pin', 'list-held', 'detail-valid', 'restore-confirm', 'present-trusted', 'present-trusted-less', 'present-chooser', 'present-untrusted', 'present-untrusted-confirm', 'present-refused-cert_chain_untrusted', 'present-refused-trust_list_unavailable', 'present-nomatch', 'present-revoked', 'present-invalid', 'present-three-options', 'present-expired', 'present-sent', 'present-submit-key_invalidated', 'list-did', 'detail-did-valid', 'detail-did-invalid-rechecked', 'receive-did-success', 'receive-did-unresolved', 'present-mixed'];
+  const themed = ['receive-consent', 'receive-wrong-pin', 'list-held', 'detail-valid', 'restore-confirm', 'present-trusted', 'present-trusted-less', 'present-chooser', 'present-untrusted', 'present-untrusted-confirm', 'present-refused-cert_chain_untrusted', 'present-refused-trust_list_unavailable', 'present-nomatch', 'present-revoked', 'present-invalid', 'present-three-options', 'present-expired', 'present-sent', 'present-submit-key_invalidated', 'list-did', 'detail-did-valid', 'detail-did-invalid-rechecked', 'receive-did-consent', 'receive-did-unsupported', 'detail-did-unsupported-rechecked', 'receive-did-success', 'receive-did-unresolved', 'present-mixed'];
   for (const s of all.filter((x) => themed.includes(x.name))) {
     await shot(browser, { ...s, theme: 'dark' });
     await shot(browser, { ...s, language: 'en' });

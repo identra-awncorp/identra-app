@@ -4,9 +4,10 @@
 // when that variable is set; `npm run check:bundle` fails if any of it reaches a release bundle.
 //
 // Scenario (localStorage 'identra.harness.scenario'): empty | held | did | restored | catalogue | broken.
-// `did`: one X.509 document (h1) beside three of the DID trust path (ADR-0020): d1 valid, d2 not
-// checked yet (CertNet's registry did not answer at the last check), d3 issuer no longer recognised.
-// QR text containing "expired" / "offline" / "invalid" fails resolve accordingly; containing "did" it
+// `did`: one X.509 document (h1) beside four of the DID trust path (ADR-0020): d1 valid, d2 not
+// checked yet (CertNet's registry did not answer at the last check), d3 issuer no longer recognised,
+// d4 not checked because this build has no CertNet configuration ("Kiểm tra lại" says so).
+// QR text containing "expired" / "offline" / "invalid" / "unsupported" (a CertNet issuer, no CertNet in this build) fails resolve accordingly; containing "did" it
 // is an offer from a DID issuer. PIN 000000 is wrong, 111111 gives a credential that fails its
 // checks, 222222 an expired offer, 333333 no answer to the PIN (code not redeemed), 444444 a
 // cancelled prompt and 555555 no network after the PIN was accepted (both resumable), 666666 (DID
@@ -34,6 +35,8 @@ const skipped = (id: Check['id']): Check => ({ id, ok: false, code: 'SKIPPED', s
 const DID_REFRESH: Record<string, Check[]> = {
   d2: [ok('structure'), ok('algorithm'), ok('did_resolution'), ok('signature'), ok('validity_time'), ok('credential_type'), { id: 'issuer_trust', ok: false, code: 'TRUST_LIST_UNAVAILABLE' }, skipped('status')],
   d3: [ok('structure'), ok('algorithm'), ok('did_resolution'), ok('signature'), ok('validity_time'), ok('credential_type'), { id: 'issuer_trust', ok: false, code: 'ISSUER_NOT_TRUSTED' }, skipped('status')],
+  // A build without CertNet configuration: nothing was asked of CertNet (the SDK says unknown, not invalid).
+  d4: [ok('structure'), ok('algorithm'), { id: 'did_resolution', ok: false, code: 'DID_RESOLUTION_FAILED' }, skipped('signature')],
 };
 const CLAIMS = {
   ho_ten: 'Nguyễn Thị Minh Anh',
@@ -64,17 +67,20 @@ export function getHarnessWallet(): WalletApi {
     held.set('d1', { id: 'd1', vct: VCT.diploma, ...didPath(DID_MAIN), status: 'valid', statusCheckedAt: '2026-11-25T02:10:00Z', createdAt: '2026-11-24T09:30:00Z' });
     held.set('d2', { id: 'd2', vct: VCT.diploma, ...didPath(DID_TEST), status: 'unknown', statusCheckedAt: '2026-11-22T02:10:00Z', createdAt: '2026-11-21T09:30:00Z' });
     held.set('d3', { id: 'd3', vct: VCT.diploma, ...didPath(DID_MAIN), status: 'invalid', statusCheckedAt: '2026-11-25T02:10:00Z', createdAt: '2026-11-20T09:30:00Z' });
+    held.set('d4', { id: 'd4', vct: VCT.diploma, ...didPath(DID_MAIN), status: 'unknown', statusCheckedAt: '2026-11-23T02:10:00Z', createdAt: '2026-11-19T09:30:00Z' });
   }
   const pendingDid = new Set<ResolvedOffer>();
   const offer: ResolvedOffer = {
     issuerUri: ISS,
     issuerOrigin: 'https://api-identra.awncorp.vn',
+    issuerDid: null,
     issuerDisplay: [{ name: 'Trường Đại học Mẫu', locale: 'vi' }, { name: 'Sample University', locale: 'en' }],
     configuration: { id: 'bang-tot-nghiep-v1', vct: VCT.diploma, display: [{ name: 'Bằng tốt nghiệp', locale: 'vi' }] },
     txCode: { length: 6, inputMode: 'numeric', description: null },
     codeRedeemed: false,
   };
-  const didOffer: ResolvedOffer = { ...offer, issuerUri: DID_ISS, codeRedeemed: false };
+  // Its self-declared name stays in issuerDisplay on purpose: the receive screen must not show it.
+  const didOffer: ResolvedOffer = { ...offer, issuerUri: DID_ISS, issuerDid: DID_MAIN, codeRedeemed: false };
   const sets = [
     { index: 0, claims: ['ho_ten', 'nganh', 'hang_tot_nghiep', 'nam_tot_nghiep'] },
     { index: 1, claims: ['ho_ten', 'nganh'] },
@@ -96,6 +102,7 @@ export function getHarnessWallet(): WalletApi {
         if (qr.includes('expired')) return { ok: false, code: 'OFFER_EXPIRED' };
         if (qr.includes('offline')) return { ok: false, code: 'NETWORK_ERROR' };
         if (qr.includes('invalid')) return { ok: false, code: 'OFFER_INVALID' };
+        if (qr.includes('unsupported')) return { ok: false, code: 'TRUST_PATH_UNSUPPORTED' };
         return { ok: true, offer: qr.includes('did') ? didOffer : offer };
       },
       async discard(o) {
