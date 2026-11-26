@@ -16,7 +16,7 @@
 // Presentation QR (localStorage 'identra.harness.presentation') containing: untrusted, two-docs, did-doc, mixed-docs,
 // revoked, invalid-doc, three-sets, nomatch, short (expires in 4 s), or a code (CERT_CHAIN_UNTRUSTED, CLIENT_ID_MISMATCH,
 // SIGNATURE_INVALID, REQUEST_INVALID, REQUEST_EXPIRED, TRUST_LIST_UNAVAILABLE, URL_NOT_ALLOWED) to fail
-// resolve. Submit outcome: localStorage 'identra.harness.submit' (ok or a wallet code).
+// resolve. Submit outcome: localStorage 'identra.harness.submit' (ok or a wallet code, e.g. DID_RESOLUTION_UNAVAILABLE: the verifier could not reach CertNet).
 import type { AcceptResult, CredentialDetails, ResolvedOffer, ResolvedPresentation } from '@identra/sdk-app';
 import { VCT, type Check } from '@identra/sdk-core';
 

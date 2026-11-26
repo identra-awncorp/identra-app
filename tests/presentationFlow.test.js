@@ -216,6 +216,8 @@ describe('sharing: countdown and submit', () => {
       const back = presentReducer(submitting, { type: 'submitted', result: fail(code) });
       assert.deepEqual([back.phase, back.failure.code, back.claimSetIndex], ['consent', code, 1], code);
     }
+    const unchecked = presentReducer(submitting, { type: 'submitted', result: fail('DID_RESOLUTION_UNAVAILABLE') });
+    assert.deepEqual([unchecked.phase, unchecked.failure.code, unchecked.failure.action, unchecked.claimSetIndex], ['consent', 'DID_RESOLUTION_UNAVAILABLE', 'retry', 1]);
     for (const [code, action] of [['KEY_INVALIDATED', 'request-again'], ['KEY_NOT_FOUND', 'request-again'], ['VERIFIER_ERROR', 'scan-again'], ['NETWORK_ERROR', 'scan-again'], ['REQUEST_EXPIRED', 'close'], ['REQUEST_INVALID', 'close'], ['STORAGE_ERROR', 'retry']]) {
       const failed = presentReducer(submitting, { type: 'submitted', result: fail(code) });
       assert.deepEqual([failed.phase, failed.failure.code, failed.failure.action], ['failed', code, action], code);
@@ -258,13 +260,14 @@ describe('sharing: the activity record', () => {
 
 describe('sharing: the screen\'s actions (what is really submitted)', () => {
   function screen(req, statuses) {
-    const calls = { submit: [], decline: 0 };
+    const calls = { submit: [], requests: [], decline: 0 };
     let answer = { ok: true };
     let release = null;
     const wallet = {
       presentations: {
         submit: (r, choice) => {
           calls.submit.push(choice);
+          calls.requests.push(r);
           return release === 'hold' ? new Promise((resolve) => (release = () => resolve(answer))) : Promise.resolve(answer);
         },
         decline: () => {
@@ -324,6 +327,23 @@ describe('sharing: the screen\'s actions (what is really submitted)', () => {
     cancelled.answer(fail('USER_CANCELLED'));
     assert.equal(await cancelled.actions.share(), null);
     assert.equal(cancelled.box.state.phase, 'consent');
+  });
+
+  it('after a verifier that could not reach CertNet, "Chia sẻ" submits the same request and selection again, and records nothing', async () => {
+    const s = screen(request({ matches: [match('a'), match('b')] }));
+    s.dispatch({ type: 'select-document', credentialId: 'b' });
+    s.dispatch({ type: 'select-claim-set', index: 1 });
+    s.answer(fail('DID_RESOLUTION_UNAVAILABLE'));
+    assert.equal(await s.actions.share(), null, 'nothing is recorded: the verifier concluded nothing');
+    assert.equal(s.box.state.phase, 'consent');
+    assert.equal(s.box.state.failure.code, 'DID_RESOLUTION_UNAVAILABLE');
+    s.answer({ ok: true });
+    const attempt = await s.actions.share();
+    assert.equal(attempt.outcome, 'success');
+    assert.equal(s.calls.submit.length, 2);
+    assert.deepEqual(s.calls.submit[1], s.calls.submit[0]);
+    assert.deepEqual(s.calls.submit[1], { credentialId: 'b', claimSetIndex: 1 });
+    assert.equal(s.calls.requests.every((r) => r === s.calls.requests[0]), true, 'the same request object');
   });
 
   it('never submits a blocked document', async () => {

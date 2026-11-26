@@ -111,7 +111,7 @@ const typePin = (pin, submit = true) => async (page) => {
     { name: 'present-expired', url: present, presentation: 'openid4vp://?short', settle: 5600 },
     { name: 'present-sending', url: present, act: share(300) },
     { name: 'present-sent', url: present, act: share() },
-    ...['USER_CANCELLED', 'DEVICE_LOCKED', 'KEY_INVALIDATED', 'VERIFIER_ERROR', 'NETWORK_ERROR'].map((code) => ({ name: `present-submit-${code.toLowerCase()}`, url: present, submit: code, act: share() })),
+    ...['USER_CANCELLED', 'DEVICE_LOCKED', 'KEY_INVALIDATED', 'VERIFIER_ERROR', 'NETWORK_ERROR', 'DID_RESOLUTION_UNAVAILABLE'].map((code) => ({ name: `present-submit-${code.toLowerCase()}`, url: present, submit: code, act: share() })),
   ];
   const states = [
     { name: 'receive-checking', url: '/receive-credential', settle: 250 },
@@ -166,7 +166,7 @@ const typePin = (pin, submit = true) => async (page) => {
   for (const width of [390, 360]) {
     for (const s of all) await shot(browser, { ...s, width, height: width === 360 ? 740 : 844 });
   }
-  const themed = ['receive-consent', 'receive-wrong-pin', 'list-held', 'detail-valid', 'restore-confirm', 'present-trusted', 'present-trusted-less', 'present-chooser', 'present-untrusted', 'present-untrusted-confirm', 'present-refused-cert_chain_untrusted', 'present-refused-trust_list_unavailable', 'present-nomatch', 'present-revoked', 'present-invalid', 'present-three-options', 'present-expired', 'present-sent', 'present-submit-key_invalidated', 'list-did', 'detail-did-valid', 'detail-did-invalid-rechecked', 'receive-did-consent', 'receive-did-unsupported', 'detail-did-unsupported-rechecked', 'receive-did-success', 'receive-did-unresolved', 'present-mixed'];
+  const themed = ['receive-consent', 'receive-wrong-pin', 'list-held', 'detail-valid', 'restore-confirm', 'present-trusted', 'present-trusted-less', 'present-chooser', 'present-untrusted', 'present-untrusted-confirm', 'present-refused-cert_chain_untrusted', 'present-refused-trust_list_unavailable', 'present-nomatch', 'present-revoked', 'present-invalid', 'present-three-options', 'present-expired', 'present-sent', 'present-submit-key_invalidated', 'present-submit-did_resolution_unavailable', 'list-did', 'detail-did-valid', 'detail-did-invalid-rechecked', 'receive-did-consent', 'receive-did-unsupported', 'detail-did-unsupported-rechecked', 'receive-did-success', 'receive-did-unresolved', 'present-mixed'];
   for (const s of all.filter((x) => themed.includes(x.name))) {
     await shot(browser, { ...s, theme: 'dark' });
     await shot(browser, { ...s, language: 'en' });

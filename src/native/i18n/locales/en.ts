@@ -1944,6 +1944,7 @@ export const en = {
       requestClosed: 'The request can no longer be used',
       notSigned: 'The document could not be signed',
       notSent: 'Not sent',
+      notCheckedYet: 'The requester could not check the document yet — try again later',
     },
     presentErrors: {
       requestBad: 'The requester\'s code is not valid. Your documents are not affected and nothing was sent.',
@@ -1963,6 +1964,7 @@ export const en = {
         REQUEST_INVALID: 'This request was already answered or can no longer be used. Scan the requester\'s code again.',
         REQUEST_EXPIRED: 'The request expired before it was sent. Scan the requester\'s code again.',
         STORAGE_ERROR: 'The phone could not sign the document. Try again.',
+        DID_RESOLUTION_UNAVAILABLE: 'The requester received the document but could not check it right now because it could not reach CertNet, the register of who issues documents. Tap Share to try again in a few minutes.',
       },
     },
     actions: {

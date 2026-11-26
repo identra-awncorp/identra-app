@@ -6,7 +6,7 @@ const { describe, it } = require('node:test');
 
 const { ErrorCodes } = require('@identra/sdk-core');
 const { WalletErrorCodes } = require('@identra/sdk-app');
-const { checkSentenceKeys, failedCheckKey, failureCodeOfError, failureSentenceKeys, failureView, presentationFailureView, presentationSentenceKeys } = require('../.tmp-test/src/native/domain/wallet/walletMessages');
+const { checkSentenceKeys, failedCheckKey, failureCodeOfError, failureSentenceKeys, failureView, MAYBE_SENT_CODES, presentationFailureView, presentationSentenceKeys } = require('../.tmp-test/src/native/domain/wallet/walletMessages');
 const { PINNED_ROOT_CERTIFICATES_BASE64 } = require('../.tmp-test/src/native/domain/wallet/pinnedRoots');
 const { translate } = require('../.tmp-test/src/native/i18n');
 const viModule = require('../.tmp-test/src/native/i18n/locales/vi');
@@ -132,6 +132,18 @@ describe('wallet code → sentence tables', () => {
     assert.equal(vi('DEVICE_LOCKED', 'resolve'), 'Điện thoại đang khóa');
     assert.equal(vi('USER_CANCELLED', 'submit'), 'Bạn đã hủy xác thực');
     assert.equal(vi('VERIFIER_ERROR', 'submit'), 'Có thể đã gửi');
+  });
+
+  it('words a verifier that could not reach CertNet after sharing: its own title and sentence, a retry, never "maybe sent"', () => {
+    const view = presentationFailureView('DID_RESOLUTION_UNAVAILABLE', 'submit');
+    assert.deepEqual([view.code, view.action, view.titleKey, view.sentenceKey], ['DID_RESOLUTION_UNAVAILABLE', 'retry', 'wallet.presentTitles.notCheckedYet', 'wallet.presentErrors.submit.DID_RESOLUTION_UNAVAILABLE']);
+    assert.equal(MAYBE_SENT_CODES.has('DID_RESOLUTION_UNAVAILABLE'), false);
+    assert.equal(translate('vi', view.titleKey), 'Bên yêu cầu chưa kiểm tra được giấy tờ — thử lại sau');
+    assert.match(translate('vi', view.sentenceKey), /đã nhận giấy tờ nhưng chưa kiểm tra được ngay lúc này.*CertNet.*thử lại sau ít phút/);
+    assert.match(translate('en', view.sentenceKey), /could not reach CertNet.*try again/);
+    assert.notEqual(translate('en', view.titleKey), view.titleKey);
+    // Before "Chia sẻ" the code keeps its generic sentence; "check later" says the requester could not be checked, which is not this.
+    assert.equal(presentationFailureView('DID_RESOLUTION_UNAVAILABLE', 'resolve').sentenceKey, 'wallet.presentErrors.other');
   });
 
   it('asks for the PIN when the SDK says one is needed and none was given', () => {

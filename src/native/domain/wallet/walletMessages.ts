@@ -248,9 +248,13 @@ const presentationSubmitSentenceKeys: Partial<Record<FailureCode, I18nKey>> = {
   REQUEST_INVALID: 'wallet.presentErrors.submit.REQUEST_INVALID',
   REQUEST_EXPIRED: 'wallet.presentErrors.submit.REQUEST_EXPIRED',
   STORAGE_ERROR: 'wallet.presentErrors.submit.STORAGE_ERROR',
+  DID_RESOLUTION_UNAVAILABLE: 'wallet.presentErrors.submit.DID_RESOLUTION_UNAVAILABLE',
 };
 
-/** Submit failures after which the answer may have reached the requester (the POST was attempted). */
+/**
+ * Submit failures after which the answer may have reached the requester (the POST was attempted).
+ * Not DID_RESOLUTION_UNAVAILABLE: the requester answered, said it could not check now and concluded nothing.
+ */
 export const MAYBE_SENT_CODES: ReadonlySet<FailureCode> = new Set(['NETWORK_ERROR', 'VERIFIER_ERROR']);
 
 const sharedTitles: Partial<Record<FailureCode, I18nKey>> = {
@@ -279,6 +283,7 @@ const presentationTitleKeys: Record<PresentationStage, { byCode: Partial<Record<
       REQUEST_EXPIRED: 'wallet.presentTitles.requestExpired',
       REQUEST_INVALID: 'wallet.presentTitles.requestClosed',
       STORAGE_ERROR: 'wallet.presentTitles.notSigned',
+      DID_RESOLUTION_UNAVAILABLE: 'wallet.presentTitles.notCheckedYet',
     },
     otherwise: 'wallet.presentTitles.notSent',
   },

@@ -1936,6 +1936,7 @@ export const vi = {
       requestClosed: 'Yêu cầu không còn dùng được',
       notSigned: 'Chưa ký được giấy tờ',
       notSent: 'Chưa gửi được',
+      notCheckedYet: 'Bên yêu cầu chưa kiểm tra được giấy tờ — thử lại sau',
     },
     presentErrors: {
       requestBad: 'Mã của bên yêu cầu không hợp lệ. Giấy tờ của bạn không bị ảnh hưởng và chưa có gì được gửi.',
@@ -1955,6 +1956,7 @@ export const vi = {
         REQUEST_INVALID: 'Yêu cầu này đã được trả lời hoặc không còn dùng được. Hãy quét lại mã của bên yêu cầu.',
         REQUEST_EXPIRED: 'Yêu cầu đã hết hạn trước khi gửi. Hãy quét lại mã của bên yêu cầu.',
         STORAGE_ERROR: 'Điện thoại chưa ký được giấy tờ. Hãy thử lại.',
+        DID_RESOLUTION_UNAVAILABLE: 'Bên yêu cầu đã nhận giấy tờ nhưng chưa kiểm tra được ngay lúc này vì chưa liên hệ được CertNet, sổ ghi nhận đơn vị cấp giấy tờ. Hãy bấm Chia sẻ để thử lại sau ít phút.',
       },
     },
     actions: {

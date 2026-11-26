@@ -14,8 +14,12 @@ import { issuerViewOf, type IssuerView, type Locale } from './walletViews';
 /** Resolve failures after which no consent UI may appear: the wallet could not establish who is asking. */
 export const RETRY_LATER_CODES: ReadonlySet<FailureCode> = new Set(['TRUST_LIST_UNAVAILABLE', 'NETWORK_ERROR', 'VERIFIER_ERROR', 'DEVICE_LOCKED', 'USER_CANCELLED', 'STORAGE_ERROR']);
 
-/** Submit failures that leave the person on the consent screen: nothing was sent. */
-const BACK_TO_CONSENT: ReadonlySet<FailureCode> = new Set(['USER_CANCELLED', 'DEVICE_LOCKED']);
+/**
+ * Submit failures that leave the person on the consent screen with the same selection: nothing was sent
+ * (cancelled prompt, locked phone), or the requester could not check the document now and the SDK kept
+ * the request (DID_RESOLUTION_UNAVAILABLE). "Chia sẻ" there is the retry.
+ */
+const BACK_TO_CONSENT: ReadonlySet<FailureCode> = new Set(['USER_CANCELLED', 'DEVICE_LOCKED', 'DID_RESOLUTION_UNAVAILABLE']);
 
 export type UntrustedStep = 'warning' | 'confirming' | 'confirmed';
 
