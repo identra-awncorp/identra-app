@@ -46,6 +46,7 @@ export default function PresentCredentialRoute() {
         onScanAgain={() => router.replace('/scan')}
         onOpenPortal={(url) => void Linking.openURL(url).catch(() => undefined)}
         onRecordActivity={store.addActivityLog}
+        historyKept={store.settings.flowSettings.identity.activityLogging}
         onSigningStarted={() => setSigning(true)}
         onSigned={noteCredentialKeyAuthentication}
       />

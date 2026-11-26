@@ -80,7 +80,7 @@ export function CredentialsScreen({
                   <Pressable
                     key={item.id}
                     accessibilityRole="button"
-                    accessibilityLabel={`${t(item.nameKey)}, ${issuerText(item, t)}, ${t(trustPathKey(item))}, ${t(`common.status.${item.status}`)}`}
+                    accessibilityLabel={`${t(item.nameKey)}, ${issuerText(item, t, 'dense')}, ${t(trustPathKey(item))}, ${t(`common.status.${item.status}`)}`}
                     onPress={() => onOpenCredential(item.id)}
                     style={({ pressed }) => [
                       styles.itemRow,
@@ -91,7 +91,8 @@ export function CredentialsScreen({
                     <CredentialIcon icon="graduation" boxSize={44} size={24} colors={colors} />
                     <View style={styles.flex}>
                       <Text numberOfLines={1} style={[walletStyles.value, { color: colors.text }]}>{t(item.nameKey)}</Text>
-                      <Text numberOfLines={1} style={[walletStyles.meta, { color: colors.textSecondary }]}>{issuerText(item, t)}</Text>
+                      {/* Never clipped: a cut-off identifier could pass for another issuer's (the dense form is the rule's). */}
+                      <Text numberOfLines={item.trustPath === 'did' ? undefined : 1} style={[walletStyles.meta, { color: colors.textSecondary }]}>{issuerText(item, t, 'dense')}</Text>
                       <Text numberOfLines={2} style={[walletStyles.meta, { color: colors.textSecondary }]}>{t(trustPathKey(item))}</Text>
                       <Text numberOfLines={1} style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.list.receivedOn', { date: item.receivedDate })}</Text>
                       <View style={styles.pill}>

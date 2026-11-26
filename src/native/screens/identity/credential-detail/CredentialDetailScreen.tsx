@@ -95,7 +95,7 @@ export function CredentialDetailScreen({
                 <Text style={[walletStyles.title, styles.heroTitle, { color: colors.text }]}>{t(view.nameKey)}</Text>
                 <View style={styles.inline}>
                   <Building2 color={colors.textSecondary} size={15} />
-                  <Text style={[walletStyles.meta, styles.shrink, { color: colors.textSecondary }]}>{issuerText(view, t)}</Text>
+                  <Text style={[walletStyles.meta, styles.issuerLine, { color: colors.textSecondary }]}>{issuerText(view, t)}</Text>
                 </View>
                 <View style={styles.inline}>
                   <ShieldCheck color={colors.textSecondary} size={15} />
@@ -202,7 +202,7 @@ export function CredentialDetailScreen({
                     <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{log.description}</Text>
                     <Text style={[walletStyles.meta, { color: log.status === 'failed' ? colors.danger : colors.textSecondary }]}>
                       {formatWalletDate(log.timestamp, locale)}
-                      {log.status === 'failed' ? ` · ${t('wallet.detail.shareFailed')}` : log.status === 'uncertain' ? ` · ${t('wallet.detail.shareMaybeSent')}` : ''}
+                      {log.status === 'failed' ? ` · ${t('wallet.detail.shareFailed')}` : log.status === 'uncertain' ? ` · ${t('wallet.detail.shareMaybeSent')}` : log.status === 'pending' ? ` · ${t('wallet.detail.shareNoResult')}` : ''}
                     </Text>
                   </View>
                 ))}
@@ -234,6 +234,8 @@ const styles = StyleSheet.create({
   heroTitle: { fontSize: 22, lineHeight: 28 },
   inline: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs + 2 },
   shrink: { flexShrink: 1 },
+  // A complete CertNet identifier has no place to break: it wraps by character and leaves the icon its size.
+  issuerLine: { flex: 1, minWidth: 0 },
   idBlock: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spacing.md, marginTop: spacing.xs, gap: 2 },
   identifier: { fontVariant: ['tabular-nums'] },
   revealButton: { minHeight: 44, minWidth: 44, paddingHorizontal: spacing.sm, justifyContent: 'center' },

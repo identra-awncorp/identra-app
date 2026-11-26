@@ -84,6 +84,28 @@ const typePin = (pin, submit = true) => async (page) => {
     await p.waitForTimeout(wait);
   };
   const present = '/present-credential';
+  // Through the app's own navigation (a reload or a URL change would start a new store, without the history just written).
+  const toWalletHome = async (p) => {
+    await p.getByLabel(/^(Mở menu|Open menu)$/).first().click();
+    await p.waitForTimeout(600);
+    await p.getByText('Identity', { exact: true }).first().click();
+    await p.waitForTimeout(1800);
+  };
+  const toActivity = async (p) => {
+    await toWalletHome(p);
+    await p.getByText(/^(Lịch sử\s+hoạt động|Activity\s+history)$/).first().click();
+    await p.waitForTimeout(1500);
+  };
+  const toDetailD1 = async (p) => {
+    await toWalletHome(p);
+    await p.getByText(/^(Mã nơi cấp|Issuer ID) 5e8a1c9f03b7d246$/).first().click();
+    await p.waitForTimeout(1800);
+  };
+  const sendAgain = async (p) => {
+    await p.getByText(/^(Gửi lại|Send again)$/).last().click();
+    await p.waitForTimeout(1800);
+  };
+  const longDidOffer = 'openid-credential-offer://?credential_offer_uri=https%3A%2F%2Fapi-identra.awncorp.vn%2Fissuers%2Ftruong-did%2Foffers%2Flongdid';
   const didOffer = 'openid-credential-offer://?credential_offer_uri=https%3A%2F%2Fapi-identra.awncorp.vn%2Fissuers%2Ftruong-did%2Foffers%2Fdid';
   const checkAgain = async (p) => {
     await p.getByText(/^(Kiểm tra lại|Check again)$/).first().click();
@@ -111,7 +133,18 @@ const typePin = (pin, submit = true) => async (page) => {
     { name: 'present-expired', url: present, presentation: 'openid4vp://?short', settle: 5600 },
     { name: 'present-sending', url: present, act: share(300) },
     { name: 'present-sent', url: present, act: share() },
-    ...['USER_CANCELLED', 'DEVICE_LOCKED', 'KEY_INVALIDATED', 'VERIFIER_ERROR', 'NETWORK_ERROR', 'DID_RESOLUTION_UNAVAILABLE'].map((code) => ({ name: `present-submit-${code.toLowerCase()}`, url: present, submit: code, act: share() })),
+    ...['USER_CANCELLED', 'DEVICE_LOCKED', 'KEY_INVALIDATED', 'VERIFIER_ERROR', 'NETWORK_ERROR'].map((code) => ({ name: `present-submit-${code.toLowerCase()}`, url: present, submit: code, act: share() })),
+    // The requester received a DID-path document but could not reach CertNet (`delivered`): locked to what was sent.
+    { name: 'present-submit-did_resolution_unavailable', url: present, scenario: 'did', presentation: 'openid4vp://?did-doc', submit: 'DID_RESOLUTION_UNAVAILABLE', act: share() },
+    { name: 'present-delivered-mixed', url: present, scenario: 'did', presentation: 'openid4vp://?mixed-docs', submit: 'DID_RESOLUTION_UNAVAILABLE', act: async (p) => { await tap(/^(Mã nơi cấp|Issuer ID) 5e8a1c9f03b7d246$/)(p); await share()(p); } },
+    { name: 'present-delivered-then-sent', url: present, scenario: 'did', presentation: 'openid4vp://?did-doc', submit: 'DID_RESOLUTION_UNAVAILABLE,ok', act: async (p) => { await share()(p); await sendAgain(p); } },
+    { name: 'present-delivered-then-closed', url: present, scenario: 'did', presentation: 'openid4vp://?did-doc', submit: 'DID_RESOLUTION_UNAVAILABLE,REQUEST_INVALID', act: async (p) => { await share()(p); await sendAgain(p); } },
+    { name: 'present-delivered-last-send', url: present, scenario: 'did', presentation: 'openid4vp://?did-doc', submit: 'DID_RESOLUTION_UNAVAILABLE', act: async (p) => { await share()(p); await sendAgain(p); await sendAgain(p); } },
+    // The history entry it leaves: the activity list and the document's recent shares.
+    { name: 'present-delivered-history', url: present, scenario: 'did', presentation: 'openid4vp://?did-doc', submit: 'DID_RESOLUTION_UNAVAILABLE', act: async (p) => { await share()(p); await p.getByText(/^(Dừng|Stop)$/).last().click(); await p.waitForTimeout(600); await toActivity(p); } },
+    { name: 'present-delivered-history-detail', url: present, scenario: 'did', presentation: 'openid4vp://?did-doc', submit: 'DID_RESOLUTION_UNAVAILABLE', act: async (p) => { await share()(p); await p.getByText(/^(Dừng|Stop)$/).last().click(); await p.waitForTimeout(600); await toDetailD1(p); } },
+    // The complete identifier on the share consent: 16 characters (the gateway's usual) and 64.
+    { name: 'present-long-did', url: present, scenario: 'did', presentation: 'openid4vp://?long-did' },
   ];
   const states = [
     { name: 'receive-checking', url: '/receive-credential', settle: 250 },
@@ -159,14 +192,17 @@ const typePin = (pin, submit = true) => async (page) => {
     { name: 'receive-did-unsupported', url: '/receive-credential', offer: 'openid-credential-offer://?credential_offer_uri=https%3A%2F%2Fapi-identra.awncorp.vn%2Fissuers%2Ftruong-did%2Foffers%2Funsupported' },
     { name: 'receive-did-success', url: '/receive-credential', offer: didOffer, act: typePin('123456') },
     { name: 'receive-did-unresolved', url: '/receive-credential', offer: didOffer, act: typePin('666666') },
+    { name: 'receive-longdid-consent', url: '/receive-credential', offer: longDidOffer },
+    { name: 'receive-longdid-success', url: '/receive-credential', offer: longDidOffer, act: typePin('123456') },
+    { name: 'detail-did-long', url: '/credentials/d5', scenario: 'did' },
     { name: 'receive-did-unresolved-retried', url: '/receive-credential', offer: didOffer, act: async (p) => { await typePin('666666')(p); await p.getByRole('button', { name: /^(Thử lại|Try again)$/ }).last().click(); await p.waitForTimeout(1500); } },
   ];
   const only = process.env.CAPTURE_ONLY;
-  const all = [...states, ...presentStates].filter((x) => !only || x.name.startsWith(only));
+  const all = [...states, ...presentStates].filter((x) => !only || only.split(',').some((o) => x.name.startsWith(o)));
   for (const width of [390, 360]) {
     for (const s of all) await shot(browser, { ...s, width, height: width === 360 ? 740 : 844 });
   }
-  const themed = ['receive-consent', 'receive-wrong-pin', 'list-held', 'detail-valid', 'restore-confirm', 'present-trusted', 'present-trusted-less', 'present-chooser', 'present-untrusted', 'present-untrusted-confirm', 'present-refused-cert_chain_untrusted', 'present-refused-trust_list_unavailable', 'present-nomatch', 'present-revoked', 'present-invalid', 'present-three-options', 'present-expired', 'present-sent', 'present-submit-key_invalidated', 'present-submit-did_resolution_unavailable', 'list-did', 'detail-did-valid', 'detail-did-invalid-rechecked', 'receive-did-consent', 'receive-did-unsupported', 'detail-did-unsupported-rechecked', 'receive-did-success', 'receive-did-unresolved', 'present-mixed'];
+  const themed = ['receive-consent', 'receive-wrong-pin', 'list-held', 'detail-valid', 'restore-confirm', 'present-trusted', 'present-trusted-less', 'present-chooser', 'present-untrusted', 'present-untrusted-confirm', 'present-refused-cert_chain_untrusted', 'present-refused-trust_list_unavailable', 'present-nomatch', 'present-revoked', 'present-invalid', 'present-three-options', 'present-expired', 'present-sent', 'present-submit-key_invalidated', 'present-submit-did_resolution_unavailable', 'list-did', 'detail-did-valid', 'detail-did-invalid-rechecked', 'receive-did-consent', 'receive-did-unsupported', 'detail-did-unsupported-rechecked', 'receive-did-success', 'receive-did-unresolved', 'present-mixed', 'present-delivered-mixed', 'present-delivered-then-closed', 'present-delivered-history', 'present-long-did', 'receive-longdid-consent', 'detail-did-long', 'wallet-home-did', 'detail-did-unknown'];
   for (const s of all.filter((x) => themed.includes(x.name))) {
     await shot(browser, { ...s, theme: 'dark' });
     await shot(browser, { ...s, language: 'en' });

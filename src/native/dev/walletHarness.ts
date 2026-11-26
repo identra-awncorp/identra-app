@@ -4,19 +4,23 @@
 // when that variable is set; `npm run check:bundle` fails if any of it reaches a release bundle.
 //
 // Scenario (localStorage 'identra.harness.scenario'): empty | held | did | restored | catalogue | broken.
-// `did`: one X.509 document (h1) beside four of the DID trust path (ADR-0020): d1 valid, d2 not
-// checked yet (CertNet's registry did not answer at the last check), d3 issuer no longer recognised,
-// d4 not checked because this build has no CertNet configuration ("Kiểm tra lại" says so).
+// `did`: one X.509 document (h1) beside five of the DID trust path (ADR-0020): d1 valid (the gateway's
+// usual 16-character identifier), d2 not checked yet (CertNet's registry did not answer at the last
+// check), d3 issuer no longer recognised, d4 not checked because this build has no CertNet
+// configuration ("Kiểm tra lại" says so), d5 valid with a 64-character identifier.
 // QR text containing "expired" / "offline" / "invalid" / "unsupported" (a CertNet issuer, no CertNet in this build) fails resolve accordingly; containing "did" it
-// is an offer from a DID issuer. PIN 000000 is wrong, 111111 gives a credential that fails its
+// is an offer from a DID issuer ("longdid": with the 64-character identifier). PIN 000000 is wrong, 111111 gives a credential that fails its
 // checks, 222222 an expired offer, 333333 no answer to the PIN (code not redeemed), 444444 a
 // cancelled prompt and 555555 no network after the PIN was accepted (both resumable), 666666 (DID
 // offer) a received credential whose issuer CertNet could not resolve (resumable without the PIN).
 // "Kiểm tra lại" on d2 / d3 answers with the checks of that state.
-// Presentation QR (localStorage 'identra.harness.presentation') containing: untrusted, two-docs, did-doc, mixed-docs,
+// Presentation QR (localStorage 'identra.harness.presentation') containing: untrusted, two-docs, did-doc, long-did, mixed-docs,
 // revoked, invalid-doc, three-sets, nomatch, short (expires in 4 s), or a code (CERT_CHAIN_UNTRUSTED, CLIENT_ID_MISMATCH,
 // SIGNATURE_INVALID, REQUEST_INVALID, REQUEST_EXPIRED, TRUST_LIST_UNAVAILABLE, URL_NOT_ALLOWED) to fail
-// resolve. Submit outcome: localStorage 'identra.harness.submit' (ok or a wallet code, e.g. DID_RESOLUTION_UNAVAILABLE: the verifier could not reach CertNet).
+// resolve. Submit outcome: localStorage 'identra.harness.submit' (ok or a wallet code; a comma list answers
+// the sends of one request in turn, e.g. "DID_RESOLUTION_UNAVAILABLE,ok"). DID_RESOLUTION_UNAVAILABLE is the
+// SDK's "the verifier received it but could not reach CertNet" (`delivered`); like the SDK, the third send
+// of a request is then VERIFIER_ERROR.
 import type { AcceptResult, CredentialDetails, ResolvedOffer, ResolvedPresentation } from '@identra/sdk-app';
 import { VCT, type Check } from '@identra/sdk-core';
 
@@ -25,7 +29,9 @@ import type { WalletHarness } from '../platform/harnessDisabled';
 
 const ISS = 'https://api-identra.awncorp.vn/issuers/truong-mau';
 const DID_ISS = 'https://api-identra.awncorp.vn/issuers/truong-did';
-const DID_MAIN = 'did:certnet:mainnet:4f9c2a7e1b3d8f60a5c4e2b9d7f1a3c8';
+const DID_MAIN = 'did:certnet:mainnet:5e8a1c9f03b7d246';
+// 64 characters with no place to break a line: the worst case for wrapping.
+const DID_LONG = 'did:certnet:mainnet:truongdaihocbachkhoahanoi0f3a9c4be17d52806ad4e9b1c37f5a28e0b6d49';
 const DID_TEST = 'did:certnet:testnet:7Hq2xKpL9mN4vR8sT1wZ3bQ6';
 const X509 = { trustPath: 'x509', issuerDid: null } as const;
 const didPath = (issuerDid: string) => ({ trustPath: 'did', issuerDid, issuerUri: DID_ISS, issuerName: null }) as const;
@@ -68,6 +74,7 @@ export function getHarnessWallet(): WalletApi {
     held.set('d2', { id: 'd2', vct: VCT.diploma, ...didPath(DID_TEST), status: 'unknown', statusCheckedAt: '2026-11-22T02:10:00Z', createdAt: '2026-11-21T09:30:00Z' });
     held.set('d3', { id: 'd3', vct: VCT.diploma, ...didPath(DID_MAIN), status: 'invalid', statusCheckedAt: '2026-11-25T02:10:00Z', createdAt: '2026-11-20T09:30:00Z' });
     held.set('d4', { id: 'd4', vct: VCT.diploma, ...didPath(DID_MAIN), status: 'unknown', statusCheckedAt: '2026-11-23T02:10:00Z', createdAt: '2026-11-19T09:30:00Z' });
+    held.set('d5', { id: 'd5', vct: VCT.diploma, ...didPath(DID_LONG), status: 'valid', statusCheckedAt: '2026-11-25T02:10:00Z', createdAt: '2026-11-25T09:30:00Z' });
   }
   const pendingDid = new Set<ResolvedOffer>();
   const offer: ResolvedOffer = {
@@ -81,6 +88,8 @@ export function getHarnessWallet(): WalletApi {
   };
   // Its self-declared name stays in issuerDisplay on purpose: the receive screen must not show it.
   const didOffer: ResolvedOffer = { ...offer, issuerUri: DID_ISS, issuerDid: DID_MAIN, codeRedeemed: false };
+  const longDidOffer: ResolvedOffer = { ...didOffer, issuerDid: DID_LONG };
+  const sends = new Map<ResolvedPresentation, number>();
   const sets = [
     { index: 0, claims: ['ho_ten', 'nganh', 'hang_tot_nghiep', 'nam_tot_nghiep'] },
     { index: 1, claims: ['ho_ten', 'nganh'] },
@@ -103,7 +112,7 @@ export function getHarnessWallet(): WalletApi {
         if (qr.includes('offline')) return { ok: false, code: 'NETWORK_ERROR' };
         if (qr.includes('invalid')) return { ok: false, code: 'OFFER_INVALID' };
         if (qr.includes('unsupported')) return { ok: false, code: 'TRUST_PATH_UNSUPPORTED' };
-        return { ok: true, offer: qr.includes('did') ? didOffer : offer };
+        return { ok: true, offer: qr.includes('longdid') ? longDidOffer : qr.includes('did') ? didOffer : offer };
       },
       async discard(o) {
         pendingDid.delete(o);
@@ -118,8 +127,9 @@ export function getHarnessWallet(): WalletApi {
           }
           if (txCode !== undefined || pendingDid.delete(o)) {
             const id = `r${held.size + 1}`;
-            held.set(id, { id, vct: VCT.diploma, ...didPath(DID_MAIN), status: 'valid', statusCheckedAt: new Date().toISOString(), createdAt: new Date().toISOString() });
-            return { ok: true, credentialId: id, vct: VCT.diploma, issuerName: null, issuerDid: DID_MAIN, status: 'valid' };
+            const did = o.issuerDid ?? DID_MAIN;
+            held.set(id, { id, vct: VCT.diploma, ...didPath(did), status: 'valid', statusCheckedAt: new Date().toISOString(), createdAt: new Date().toISOString() });
+            return { ok: true, credentialId: id, vct: VCT.diploma, issuerName: null, issuerDid: did, status: 'valid' };
           }
         }
         if (txCode === '000000') return acceptFailure('TX_CODE_WRONG', true, false);
@@ -140,7 +150,7 @@ export function getHarnessWallet(): WalletApi {
         const code = presentationCodes.find((c) => qr.includes(c));
         if (code) return { ok: false, code };
         const untrusted = qr.includes('untrusted');
-        const ids = qr.includes('nomatch') ? [] : qr.includes('mixed-docs') ? ['h1', 'd1'] : qr.includes('did-doc') ? ['d1'] : qr.includes('two-docs') ? ['h1', 'h2'] : qr.includes('revoked') ? ['h3'] : qr.includes('invalid-doc') ? ['h4'] : ['h1'];
+        const ids = qr.includes('nomatch') ? [] : qr.includes('mixed-docs') ? ['h1', 'd1'] : qr.includes('did-doc') ? ['d1'] : qr.includes('long-did') ? ['d5'] : qr.includes('two-docs') ? ['h1', 'h2'] : qr.includes('revoked') ? ['h3'] : qr.includes('invalid-doc') ? ['h4'] : ['h1'];
         const request: ResolvedPresentation = {
           clientId: 'x509_hash:harness',
           verifier: untrusted ? { trusted: false } : { trusted: true, ten: 'Nhà tuyển dụng Mẫu (DEMO)', maToChuc: 'VATVN-0100000005' },
@@ -154,10 +164,15 @@ export function getHarnessWallet(): WalletApi {
         };
         return { ok: true, request };
       },
-      async submit() {
+      async submit(request) {
         await wait(1200);
-        const outcome = localStorage.getItem('identra.harness.submit') ?? 'ok';
-        return outcome === 'ok' ? { ok: true } : { ok: false, code: outcome as 'VERIFIER_ERROR' };
+        const n = (sends.get(request) ?? 0) + 1;
+        sends.set(request, n);
+        const answers = (localStorage.getItem('identra.harness.submit') ?? 'ok').split(',');
+        const outcome = answers[Math.min(n, answers.length) - 1]!;
+        if (outcome === 'ok') return { ok: true };
+        if (outcome === 'DID_RESOLUTION_UNAVAILABLE') return n < 3 ? { ok: false, code: outcome, delivered: true } : { ok: false, code: 'VERIFIER_ERROR' };
+        return { ok: false, code: outcome as 'VERIFIER_ERROR' };
       },
       decline: () => ({ ok: true }),
     },

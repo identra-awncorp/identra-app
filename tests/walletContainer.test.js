@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const { describe, it } = require('node:test');
 const { webcrypto } = require('node:crypto');
 
-const { certNetConfigOf, createWallet, nextCatalogue, WalletConfigError, WalletStateError, CATALOGUE_FILE_NAME } = require('../.tmp-test/src/native/domain/wallet/walletContainer');
+const { certNetConfigOf, createWallet, nextCatalogue, withIssuerNames, WalletConfigError, WalletStateError, CATALOGUE_FILE_NAME } = require('../.tmp-test/src/native/domain/wallet/walletContainer');
 const { createSqliteCredentialRepository } = require('../.tmp-test/src/native/data/wallet/credentialRepository');
 const { createExpoRandomSource } = require('../.tmp-test/src/native/data/wallet/randomSource');
 const { createDataKeySecretStorage, createWalletKeySecretStorage } = require('../.tmp-test/src/native/data/wallet/secretStorage');
@@ -265,6 +265,59 @@ describe('DID trust path configuration and names (ADR-0020)', () => {
     const byId = Object.fromEntries((await phone.wallet.credentials.list()).map((c) => [c.id, c]));
     assert.deepEqual([byId[x].trustPath, byId[x].issuerName], ['x509', 'Đại học A']);
     assert.deepEqual([byId[d].trustPath, byId[d].issuerDid, byId[d].issuerName], ['did', 'did:certnet:testnet:abc', null]);
+  });
+});
+
+describe('the issuer-name cache and the known-issuer table on the DID path (ADR-0020)', () => {
+  const KEY = 'identra.wallet.issuer-names.v1';
+  const DID = 'did:certnet:mainnet:a1b2c3d4e5f67890';
+  const storage = (initial = {}) => {
+    const map = new Map([[KEY, JSON.stringify(initial)]]);
+    return { map, writes: [], getItem: async (k) => map.get(k) ?? null, async setItem(k, v) { this.writes.push(v); map.set(k, v); } };
+  };
+  // An SDK that (wrongly) hands back a name for DID-path results: the cache must neither take nor give one.
+  const sdk = {
+    offers: { accept: async (offer) => ({ ok: true, credentialId: 'c', vct: DIPLOMA, issuerName: 'Tên tự xưng', ...(offer.issuerDid ? { issuerDid: offer.issuerDid } : {}), status: 'valid' }) },
+    credentials: {
+      list: async () => [
+        { id: 'd', vct: DIPLOMA, issuerUri: ISSUER_A, trustPath: 'did', issuerDid: DID, status: 'valid', statusCheckedAt: null, createdAt: '2026-11-19T00:00:00Z' },
+        { id: 'x', vct: DIPLOMA, issuerUri: ISSUER_A, trustPath: 'x509', issuerDid: null, status: 'valid', statusCheckedAt: null, createdAt: '2026-11-19T00:00:00Z' },
+      ],
+      get: async (id) => ({ ok: true, credential: { id, vct: DIPLOMA, issuerUri: ISSUER_A, issuerName: 'Tên tự xưng', ...(id === 'd' ? { trustPath: 'did', issuerDid: DID } : { trustPath: 'x509', issuerDid: null }), status: 'valid', statusCheckedAt: null, createdAt: '', iat: 1, claims: {} } }),
+    },
+  };
+
+  it('never writes a name for a DID-path receipt or opening, even when the SDK hands one back', async () => {
+    const st = storage();
+    const named = withIssuerNames(st, sdk);
+    await named.accept({ issuerUri: ISSUER_A, issuerDid: DID }, {});
+    await named.get('d');
+    assert.deepEqual(st.writes, [], 'nothing written for the DID path');
+    // The X.509 path is unchanged: its trusted name is remembered.
+    await named.get('x');
+    assert.deepEqual(JSON.parse(st.map.get(KEY)), { [ISSUER_A]: 'Tên tự xưng' });
+    const other = storage();
+    await withIssuerNames(other, sdk).accept({ issuerUri: ISSUER_B, issuerDid: null }, {});
+    assert.deepEqual(JSON.parse(other.map.get(KEY)), { [ISSUER_B]: 'Tên tự xưng' });
+  });
+
+  it('never reads the cached name of its issuer URL for a DID-path document', async () => {
+    const byId = Object.fromEntries((await withIssuerNames(storage({ [ISSUER_A]: 'Đại học A' }), sdk).list()).map((c) => [c.id, c.issuerName]));
+    assert.deepEqual(byId, { d: null, x: 'Đại học A' });
+  });
+
+  it('never takes a name from the known-issuer table for a DID-path document, on any screen\'s view', () => {
+    const { knownIssuers, credentialListItem, credentialDetailView, offerView } = require('../.tmp-test/src/native/domain/wallet/walletViews');
+    const KNOWN = Object.keys(knownIssuers)[0];
+    const row = { id: 'd', vct: DIPLOMA, issuerUri: KNOWN, issuerName: 'Tên lạ', trustPath: 'did', issuerDid: DID, status: 'valid', statusCheckedAt: null, createdAt: '2026-11-19T00:00:00Z' };
+    for (const locale of ['vi', 'en']) {
+      const views = [credentialListItem(row, locale), credentialListItem({ ...row, trustPath: undefined }, locale), credentialDetailView({ ...row, iat: 1, claims: {} }, locale)];
+      for (const v of views) assert.deepEqual([v.trustPath, v.issuerName], ['did', 'a1b2c3d4e5f67890'], locale);
+      const offer = offerView({ issuerUri: KNOWN, issuerDid: DID, issuerDisplay: [{ name: 'Tên tự xưng', locale }], configuration: { vct: DIPLOMA }, txCode: null }, locale);
+      assert.deepEqual([offer.issuerName, offer.issuerId], [null, 'a1b2c3d4e5f67890']);
+      const text = JSON.stringify([views, offer]);
+      for (const name of [knownIssuers[KNOWN].name.vi, knownIssuers[KNOWN].name.en, 'Tên lạ', 'Tên tự xưng']) assert.equal(text.includes(name), false, `${locale}: ${name}`);
+    }
   });
 });
 

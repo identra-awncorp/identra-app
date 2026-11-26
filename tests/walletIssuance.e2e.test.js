@@ -19,7 +19,7 @@ const { createAsyncStorageSeenStore } = require('../.tmp-test/src/native/data/wa
 const { createSqliteCredentialRepository } = require('../.tmp-test/src/native/data/wallet/credentialRepository');
 const { credentialOfferQrText, parseQrScanValue } = require('../.tmp-test/src/native/domain/scan/qrScan');
 const { initialReceiveState, receiveReducer, runAccept, shouldClearPin, detailReducer, initialDetailState } = require('../.tmp-test/src/native/domain/wallet/walletFlows');
-const { credentialDetailView, credentialListItems, offerView, shortIssuerId, statusSentenceKeys } = require('../.tmp-test/src/native/domain/wallet/walletViews');
+const { credentialDetailView, credentialListItems, issuerIdOf, offerView, statusSentenceKeys } = require('../.tmp-test/src/native/domain/wallet/walletViews');
 const { translate } = require('../.tmp-test/src/native/i18n');
 const { createFakeSecureStore } = require('./helpers/fakeSecureStore');
 const { openExpoSqliteDouble } = require('./helpers/expoSqliteDouble');
@@ -36,7 +36,7 @@ function memoryStorage() {
 }
 
 /** The app's container exactly as walletRuntime builds it, with Node stand-ins for the Expo modules. */
-function appWallet(world, { fetch: platformFetch = (url, init) => fetch(url, init), dpki = false } = {}) {
+function appWallet(world, { fetch: platformFetch = (url, init) => fetch(url, init), dpki = false, network = 'local' } = {}) {
   const phone = { secureStore: createFakeSecureStore(), db: openExpoSqliteDouble(), catalogue: null, plain: memoryStorage(), seen: memoryStorage() };
   phone.wallet = createWallet({
     random: createExpoRandomSource((a) => webcrypto.getRandomValues(a)),
@@ -53,7 +53,7 @@ function appWallet(world, { fetch: platformFetch = (url, init) => fetch(url, ini
     trustListUrl: TRUST_LIST_URL,
     // The DID path as walletRuntime wires it: validated configuration, the app's gateway fetch over
     // the SDK's fake CertNet gateway (an in-process stand-in for the platform fetch).
-    certNet: dpki ? { ...certNetConfigOf({ gatewayUrl: world.gateway.base, network: 'local' }, { production: false }), fetch: createGatewayHttpFetch({ fetch: (url) => world.gateway.fetch(url), gatewayUrl: world.gateway.base }) } : null,
+    certNet: dpki ? { ...certNetConfigOf({ gatewayUrl: world.gateway.base, network }, { production: false }), fetch: createGatewayHttpFetch({ fetch: (url) => world.gateway.fetch(url), gatewayUrl: world.gateway.base }) } : null,
   });
   return phone;
 }
@@ -235,7 +235,7 @@ describe('the app wallet receives a diploma from a DID issuer through CertNet (A
     assert.equal(box.state.phase, 'consent', JSON.stringify(box.state));
     // Before acceptance: the SDK hands over the declared identifier, and the screen shows no name.
     assert.equal(box.state.offer.issuerDid, did);
-    assert.deepEqual([offerView(box.state.offer, 'vi').issuerName, offerView(box.state.offer, 'vi').issuerId], [null, shortIssuerId(did)]);
+    assert.deepEqual([offerView(box.state.offer, 'vi').issuerName, offerView(box.state.offer, 'vi').issuerId], [null, issuerIdOf(did)]);
     await runAccept(session, phone.wallet, txCode, 6);
     assert.deepEqual([box.state.phase, box.state.issuerDid, box.state.issuerName, box.state.keyAuthenticated], ['received', did, null, true], JSON.stringify(box.state));
 
@@ -292,11 +292,25 @@ describe('the app wallet receives a diploma from a DID issuer through CertNet (A
     const { box } = await receiveScreen(phone.wallet, qr);
     assert.deepEqual([box.state.phase, box.state.failure.code, box.state.failure.action], ['resolve-failed', 'TRUST_PATH_UNSUPPORTED', 'scan-again']);
     assert.equal(translate('vi', box.state.failure.titleKey), 'Ví chưa nhận được giấy tờ này');
-    assert.equal(translate('vi', box.state.failure.sentenceKey), 'Nơi cấp của giấy tờ này đăng ký trên CertNet, mà phiên bản ứng dụng này chưa dùng CertNet. Mã QR không có lỗi.');
+    assert.equal(translate('vi', box.state.failure.sentenceKey), 'Nơi cấp cho biết giấy tờ của họ được kiểm tra qua CertNet, theo cách mà phiên bản ứng dụng này không dùng, nên ví này không nhận được giấy tờ này.');
     assert.ok(listener.requests.length > 0, 'the offer and metadata were read');
     assert.equal(listener.requests.some((r) => r.includes('token')), false, 'the code was not spent');
     assert.deepEqual(keysOf(phone), []);
     assert.deepEqual(world.gateway.state.calls, []);
+  });
+
+  it('a wallet configured for another CertNet network refuses the offer at resolve, before the PIN, with the "cannot receive this document" message', async () => {
+    const world = await createWorld(listener, { did: {} });
+    assert.match(world.didSigner.kid, /^did:certnet:local:/);
+    const phone = appWallet(world, { dpki: true, network: 'testnet' });
+    const { offerUri: qr } = await world.offer();
+    listener.requests.length = 0;
+    const { box } = await receiveScreen(phone.wallet, qr);
+    assert.deepEqual([box.state.phase, box.state.failure.code, box.state.failure.action], ['resolve-failed', 'TRUST_PATH_UNSUPPORTED', 'scan-again'], JSON.stringify(box.state));
+    assert.equal(translate('vi', box.state.failure.titleKey), 'Ví chưa nhận được giấy tờ này');
+    assert.equal(listener.requests.some((r) => r.includes('token')), false, 'the code was not spent');
+    assert.deepEqual(keysOf(phone), []);
+    assert.deepEqual(world.gateway.state.calls, [], 'CertNet was not asked');
   });
 
   it('a DID credential opened in a build without the DID path is "not checked", and the screen says the app cannot check it (CertNet was never asked)', async () => {

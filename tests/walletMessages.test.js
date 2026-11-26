@@ -42,7 +42,7 @@ describe('wallet code → sentence tables', () => {
     assert.ok(ErrorCodes.DID_RESOLUTION_UNAVAILABLE, 'the SDK code this test is about');
     const vi = (key) => translate('vi', key);
     assert.equal(vi(checkSentenceKeys.did_resolution), 'Không xác minh được nơi cấp qua CertNet.');
-    const unavailable = failureView('DID_RESOLUTION_UNAVAILABLE');
+    const unavailable = failureView('DID_RESOLUTION_UNAVAILABLE', [{ id: 'did_resolution', ok: false, code: 'DID_RESOLUTION_UNAVAILABLE' }]);
     assert.deepEqual([unavailable.action, vi(unavailable.sentenceKey)], ['retry', 'CertNet chưa trả lời nên ví chưa xác minh được nơi cấp. Hãy thử lại khi có mạng.']);
     assert.equal(presentationFailureView('DID_RESOLUTION_UNAVAILABLE', 'resolve').sentenceKey, 'wallet.presentErrors.other');
 
@@ -56,9 +56,9 @@ describe('wallet code → sentence tables', () => {
     // DID path: CertNet, never "Identra's list".
     assert.equal(failureView('CREDENTIAL_INVALID', did(untrusted)).detailKey, 'wallet.didPath.ISSUER_NOT_TRUSTED');
     assert.equal(failedCheckKey(did(tirDown)), 'wallet.didPath.TRUST_LIST_UNAVAILABLE');
-    assert.equal(failedCheckKey([{ id: 'did_resolution', ok: false, code: 'DID_RESOLUTION_UNAVAILABLE' }, { id: 'signature', ok: false, code: 'SKIPPED', skipped: true }]), 'wallet.errors.DID_RESOLUTION_UNAVAILABLE');
+    assert.equal(failedCheckKey([{ id: 'did_resolution', ok: false, code: 'DID_RESOLUTION_UNAVAILABLE' }, { id: 'signature', ok: false, code: 'SKIPPED', skipped: true }]), 'wallet.didPath.DID_RESOLUTION_UNAVAILABLE');
     for (const locale of ['vi', 'en']) {
-      for (const key of ['wallet.didPath.ISSUER_NOT_TRUSTED', 'wallet.didPath.TRUST_LIST_UNAVAILABLE', 'wallet.errors.DID_RESOLUTION_UNAVAILABLE', 'wallet.errors.DID_RESOLUTION_FAILED', 'wallet.checks.did_resolution']) {
+      for (const key of ['wallet.didPath.ISSUER_NOT_TRUSTED', 'wallet.didPath.TRUST_LIST_UNAVAILABLE', 'wallet.didPath.DID_RESOLUTION_UNAVAILABLE', 'wallet.didPath.DID_RESOLUTION_FAILED', 'wallet.checks.did_resolution']) {
         const text = translate(locale, key);
         assert.match(text, /CertNet/, `${locale}: ${key}`);
         assert.equal(/Identra/.test(text), false, `${locale}: ${key} names Identra`);
@@ -82,6 +82,28 @@ describe('wallet code → sentence tables', () => {
     assert.equal(translate('en', failureView('TRUST_PATH_UNSUPPORTED').titleKey), 'This wallet cannot receive this document yet');
     assert.equal(translate('vi', 'wallet.errors.OFFER_INVALID'), 'Đây không phải mã nhận giấy tờ mà ví dùng được. Hãy quét đúng mã QR do nơi cấp đưa.', 'OFFER_INVALID means only "not a valid offer"');
     assert.equal(presentationFailureView('TRUST_PATH_UNSUPPORTED', 'resolve').sentenceKey, 'wallet.presentErrors.other');
+  });
+
+  it('says what is known when a CertNet issuer cannot be received: the issuer\'s own statement, never that it is registered or that the QR code is fine', () => {
+    const view = failureView('TRUST_PATH_UNSUPPORTED');
+    const [vi, en] = ['vi', 'en'].map((l) => translate(l, view.sentenceKey));
+    assert.equal(vi, 'Nơi cấp cho biết giấy tờ của họ được kiểm tra qua CertNet, theo cách mà phiên bản ứng dụng này không dùng, nên ví này không nhận được giấy tờ này.');
+    assert.equal(en, 'The issuer says its documents are checked through CertNet in a way this version of the app does not use, so this wallet cannot receive this document.');
+    for (const text of [vi, en]) assert.equal(/đăng ký|registered|QR/i.test(text), false, text);
+  });
+
+  it('never words a certificate-path failure with CertNet, in any build: CertNet sentences need the SDK\'s DID-path checks', () => {
+    const x509Checks = (code) => [{ id: 'structure', ok: true, code: null }, { id: 'certificate_chain', ok: true, code: null }, { id: 'issuer_trust', ok: false, code }];
+    // TRUST_PATH_UNSUPPORTED is only ever an offer that declares a CertNet issuer: it names CertNet by design.
+    for (const code of ALL_CODES.filter((c) => c !== 'TRUST_PATH_UNSUPPORTED')) {
+      const keys = [failureView(code).sentenceKey, failureView(code, x509Checks(code)).sentenceKey, failureView('CREDENTIAL_INVALID', x509Checks(code)).detailKey, failedCheckKey(x509Checks(code))];
+      for (const key of keys.filter(Boolean)) {
+        for (const locale of ['vi', 'en']) assert.equal(/CertNet/.test(translate(locale, key)), false, `${code} ${locale}: ${key}`);
+      }
+    }
+    // With the DID path's checks the same codes do name CertNet.
+    const didChecks = [{ id: 'did_resolution', ok: false, code: 'DID_RESOLUTION_FAILED' }];
+    assert.match(translate('vi', failureView('CREDENTIAL_INVALID', didChecks).detailKey), /CertNet/);
   });
 
   it('never shows a technical term or a raw code anywhere in the wallet and backup copy', () => {
@@ -139,8 +161,8 @@ describe('wallet code → sentence tables', () => {
     assert.deepEqual([view.code, view.action, view.titleKey, view.sentenceKey], ['DID_RESOLUTION_UNAVAILABLE', 'retry', 'wallet.presentTitles.notCheckedYet', 'wallet.presentErrors.submit.DID_RESOLUTION_UNAVAILABLE']);
     assert.equal(MAYBE_SENT_CODES.has('DID_RESOLUTION_UNAVAILABLE'), false);
     assert.equal(translate('vi', view.titleKey), 'Bên yêu cầu chưa kiểm tra được giấy tờ — thử lại sau');
-    assert.match(translate('vi', view.sentenceKey), /đã nhận giấy tờ nhưng chưa kiểm tra được ngay lúc này.*CertNet.*thử lại sau ít phút/);
-    assert.match(translate('en', view.sentenceKey), /could not reach CertNet.*try again/);
+    assert.match(translate('vi', view.sentenceKey), /đã nhận thông tin bạn gửi nhưng chưa kiểm tra được.*CertNet.*Sau ít phút, bấm Gửi lại để gửi lại đúng những thông tin này/);
+    assert.match(translate('en', view.sentenceKey), /received what you sent.*could not reach CertNet.*tap Send again to send exactly the same/);
     assert.notEqual(translate('en', view.titleKey), view.titleKey);
     // Before "Chia sẻ" the code keeps its generic sentence; "check later" says the requester could not be checked, which is not this.
     assert.equal(presentationFailureView('DID_RESOLUTION_UNAVAILABLE', 'resolve').sentenceKey, 'wallet.presentErrors.other');

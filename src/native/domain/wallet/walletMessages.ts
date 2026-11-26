@@ -147,11 +147,14 @@ const isFailureCode = (code: unknown): code is FailureCode => typeof code === 's
 /**
  * On the DID path (ADR-0020) the issuer is recognised through CertNet, not Identra's list: the
  * sentences that name the list say CertNet there. The path is the SDK's own record: its checks
- * carry `did_resolution` in place of `certificate_chain`.
+ * carry `did_resolution` in place of `certificate_chain`. Only these sentences name CertNet: without
+ * DID-path checks (a certificate-path document, any build) the wording never does.
  */
 const didPathSentenceKeys: Partial<Record<FailureCode, I18nKey>> = {
   ISSUER_NOT_TRUSTED: 'wallet.didPath.ISSUER_NOT_TRUSTED',
   TRUST_LIST_UNAVAILABLE: 'wallet.didPath.TRUST_LIST_UNAVAILABLE',
+  DID_RESOLUTION_FAILED: 'wallet.didPath.DID_RESOLUTION_FAILED',
+  DID_RESOLUTION_UNAVAILABLE: 'wallet.didPath.DID_RESOLUTION_UNAVAILABLE',
 };
 export const isDidPathChecks = (checks: readonly Check[] | null | undefined): boolean => !!checks?.some((c) => c.id === 'did_resolution');
 
@@ -168,7 +171,8 @@ export function failureView(code: unknown, checks?: readonly Check[]): FailureVi
   const known: FailureCode = isFailureCode(code) ? code : 'STORAGE_ERROR';
   const action = actions[known] ?? 'close';
   const detailKey = known === 'CREDENTIAL_INVALID' ? failedCheckKey(checks) : null;
-  return { code: known, action, titleKey: titleOverrides[known] ?? failureTitleKeys[action], sentenceKey: failureSentenceKeys[known], detailKey };
+  const sentenceKey = (isDidPathChecks(checks) ? didPathSentenceKeys[known] : undefined) ?? failureSentenceKeys[known];
+  return { code: known, action, titleKey: titleOverrides[known] ?? failureTitleKeys[action], sentenceKey, detailKey };
 }
 
 // ---------------------------------------------------------------- sharing (OpenID4VP)
@@ -289,9 +293,18 @@ const presentationTitleKeys: Record<PresentationStage, { byCode: Partial<Record<
   },
 };
 
-/** A sharing failure → what the consent screen says, worded for the stage it happened in. */
-export function presentationFailureView(code: unknown, stage: PresentationStage): FailureView {
+/**
+ * A sharing failure → what the consent screen says, worded for the stage it happened in.
+ * `delivered`: the requester already received this document once and concluded nothing
+ * (DID_RESOLUTION_UNAVAILABLE): a failure that ends the flow then says the request is closed and
+ * that the requester has what was sent, never "nothing was sent" (except the key failures, whose own
+ * sentence says what to do with the document).
+ */
+export function presentationFailureView(code: unknown, stage: PresentationStage, o: { delivered?: boolean } = {}): FailureView {
   const base = failureView(code);
+  if (stage === 'submit' && o.delivered && base.action !== 'request-again') {
+    return { code: base.code, action: 'scan-again', titleKey: 'wallet.presentTitles.requestClosed', sentenceKey: 'wallet.presentErrors.afterDelivered', detailKey: null };
+  }
   const titles = presentationTitleKeys[stage];
   const maybeSent = stage === 'submit' && MAYBE_SENT_CODES.has(base.code);
   return {

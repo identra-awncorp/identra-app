@@ -32,12 +32,6 @@ import { border, radius, spacing, typography } from '../../../theme';
 import type { ActivityLog } from '../../../types';
 import { FailureNotice, Panel, StickyFooter, TextAction, useAnnouncement, useRevealedWhileActive, walletStyles } from '../wallet/WalletParts';
 
-function randomId(): string {
-  const bytes = new Uint8Array(8);
-  globalThis.crypto.getRandomValues(bytes);
-  return `share-${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`;
-}
-
 /** Why sharing is impossible now, with its sentence (the untrusted step is not a stop). */
 const STOP_SENTENCES: Record<Exclude<ShareBlock, 'untrusted'>, I18nKey> = {
   'request-expired': 'wallet.present.expired',
@@ -62,6 +56,7 @@ export function PresentCredentialScreen({
   onScanAgain,
   onOpenPortal,
   onRecordActivity,
+  historyKept,
   onSigningStarted,
   onSigned,
 }: {
@@ -71,7 +66,10 @@ export function PresentCredentialScreen({
   onClose: () => void;
   onScanAgain: () => void;
   onOpenPortal: (url: string) => void;
+  /** A history entry with the id of an earlier one replaces it (one entry per request). */
   onRecordActivity: (entry: ActivityLog) => void;
+  /** The person keeps a sharing history (setting): only then may the screen say a share is in it. */
+  historyKept: boolean;
   /** The signing key is about to be used: its own biometric prompt follows. */
   onSigningStarted?: () => void;
   /** The signing prompt succeeded (the answer was posted). */
@@ -145,7 +143,7 @@ export function PresentCredentialScreen({
     if (result.outcome !== 'failed') onSigned?.();
     onRecordActivity(
       presentationActivityEntry({
-        id: randomId(),
+        id: result.recordId,
         now: new Date(),
         verifierName: result.request.verifier.trusted ? result.request.verifier.ten : null,
         credentialId: result.credentialId,
@@ -291,7 +289,11 @@ export function PresentCredentialScreen({
         {state.phase === 'failed' ? (
           <>
             <FailureNotice colors={colors} failure={state.failure} />
-            {MAYBE_SENT_CODES.has(state.failure.code) ? null : <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.present.nothingSent')}</Text>}
+            {state.delivered ? (
+              historyKept ? <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.present.deliveredInHistory')}</Text> : null
+            ) : MAYBE_SENT_CODES.has(state.failure.code) ? null : (
+              <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.present.nothingSent')}</Text>
+            )}
             <View style={walletStyles.actions}>
               {state.failure.action === 'request-again' && issuerPortalUrl(summaries[state.credentialId]?.issuerUri ?? '', locale) ? (
                 <PrimaryButton colors={colors} title={t('wallet.restore.openPortal')} onPress={() => onOpenPortal(issuerPortalUrl(summaries[state.credentialId]!.issuerUri, locale)!)} />
@@ -359,7 +361,9 @@ function ConsentBody({
   const shared = [...choice.required, ...choice.optional];
   const left = secondsLeft(request.expiresAt, now);
   const value = (f: ConsentField) => (claims === null ? '…' : revealed ? f.value || '—' : MASKED_VALUE);
-  const canChoose = state.phase === 'consent' && !stop;
+  // After the requester received it (`delivered`) nothing that changes the selection is offered.
+  const canChoose = state.phase === 'consent' && !stop && !state.delivered;
+  const shown = state.delivered ? choices.filter((c) => c.credentialId === state.credentialId) : choices;
   const refreshing = state.phase === 'consent' && state.refreshing;
 
   return (
@@ -412,26 +416,26 @@ function ConsentBody({
       ) : (
         // What leaves the phone, in one line that is never masked.
         <View style={[styles.summary, { backgroundColor: colors.surfaceMuted }]}>
-          <Text style={[walletStyles.label, { color: colors.text }]}>{t('wallet.present.summary', { fields: labels(shared) })}</Text>
+          <Text style={[walletStyles.label, { color: colors.text }]}>{t(state.delivered ? 'wallet.present.summaryDelivered' : 'wallet.present.summary', { fields: labels(shared) })}</Text>
         </View>
       )}
 
       <View style={styles.section}>
-        <Text style={[walletStyles.sectionTitle, { color: colors.text }]}>{choices.length > 1 ? t('wallet.present.chooseDocument') : t('wallet.present.documentLabel')}</Text>
+        <Text style={[walletStyles.sectionTitle, { color: colors.text }]}>{shown.length > 1 ? t('wallet.present.chooseDocument') : t('wallet.present.documentLabel')}</Text>
         <Panel colors={colors} style={styles.listPanel}>
-          {choices.map((c, i) => {
+          {shown.map((c, i) => {
             const selected = c.credentialId === state.credentialId;
             const status = state.statuses[c.credentialId] ?? 'unknown';
             return (
               <Pressable
                 key={c.credentialId}
-                accessibilityRole={choices.length > 1 ? 'radio' : undefined}
-                accessibilityState={choices.length > 1 ? { checked: selected } : undefined}
-                disabled={choices.length < 2 || state.phase !== 'consent'}
+                accessibilityRole={shown.length > 1 ? 'radio' : undefined}
+                accessibilityState={shown.length > 1 ? { checked: selected } : undefined}
+                disabled={!canChoose || shown.length < 2}
                 onPress={() => dispatch({ type: 'select-document', credentialId: c.credentialId })}
                 style={[styles.docRow, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}
               >
-                {choices.length > 1 ? <Radio colors={colors} selected={selected} /> : null}
+                {shown.length > 1 ? <Radio colors={colors} selected={selected} /> : null}
                 <CredentialIcon icon="graduation" boxSize={44} size={24} colors={colors} />
                 <View style={styles.flex}>
                   <Text style={[walletStyles.value, { color: colors.text }]}>{t(c.nameKey)}</Text>
@@ -482,7 +486,7 @@ function ConsentBody({
                 </View>
               ))}
             </Panel>
-            {choice.required.length > 0 && choice.options.length > 1 ? <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.present.requiredHint')}</Text> : null}
+            {choice.required.length > 0 && choice.options.length > 1 && !state.delivered ? <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.present.requiredHint')}</Text> : null}
             {canChoose ? <ClaimSetOptions colors={colors} choice={choice} labels={labels} onSelect={(index) => dispatch({ type: 'select-claim-set', index })} /> : null}
           </View>
 
@@ -504,7 +508,7 @@ function ConsentBody({
       )}
 
       {!stop && (trusted || state.untrusted !== 'warning') ? (
-        <BiometricNote colors={colors} button={trusted ? t('wallet.present.share') : t('wallet.present.confirmUntrusted')} />
+        <BiometricNote colors={colors} button={state.delivered ? t('wallet.present.sendAgain') : trusted ? t('wallet.present.share') : t('wallet.present.confirmUntrusted')} />
       ) : null}
     </>
   );
@@ -589,7 +593,7 @@ function ConsentFooter({
     return (
       <StickyFooter colors={colors}>
         <PrimaryButton colors={colors} title={t('wallet.present.scanTheirCode')} onPress={onScanAgain} />
-        <TextAction colors={colors} label={t('wallet.present.decline')} onPress={onDecline} />
+        <TextAction colors={colors} label={t(state.delivered ? 'wallet.present.stop' : 'wallet.present.decline')} onPress={onDecline} />
       </StickyFooter>
     );
   }
@@ -597,7 +601,7 @@ function ConsentFooter({
     // Nothing to sign: "Kiểm tra lại" (by the notice) or declining.
     return (
       <StickyFooter colors={colors}>
-        <PrimaryButton colors={colors} title={t('wallet.present.decline')} onPress={onDecline} />
+        <PrimaryButton colors={colors} title={t(state.delivered ? 'wallet.present.stop' : 'wallet.present.decline')} onPress={onDecline} />
       </StickyFooter>
     );
   }
@@ -625,10 +629,10 @@ function ConsentFooter({
   }
   return (
     <StickyFooter colors={colors}>
-      {/* The last attempt sent nothing (prompt cancelled, phone locked): said next to the button. */}
+      {/* The last attempt sent nothing (prompt cancelled, phone locked), or reached a requester that concluded nothing: said next to the button. */}
       {state.phase === 'consent' && state.failure ? <FailureNotice colors={colors} failure={state.failure} /> : null}
-      <PrimaryButton colors={colors} title={t('wallet.present.share')} onPress={onShare} loading={state.phase === 'submitting'} />
-      <TextAction colors={colors} label={t('wallet.present.decline')} onPress={onDecline} disabled={state.phase === 'submitting'} />
+      <PrimaryButton colors={colors} title={t(state.delivered ? 'wallet.present.sendAgain' : 'wallet.present.share')} onPress={onShare} loading={state.phase === 'submitting'} />
+      <TextAction colors={colors} label={t(state.delivered ? 'wallet.present.stop' : 'wallet.present.decline')} onPress={onDecline} disabled={state.phase === 'submitting'} />
     </StickyFooter>
   );
 }

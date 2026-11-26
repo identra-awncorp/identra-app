@@ -37,30 +37,48 @@ export interface IssuerView {
   trustPath: TrustPath;
   /**
    * X.509: the name from Identra's trust list (else the known table, else the host). DID: the
-   * shortened issuer identifier, never a name (CertNet has none yet; the issuer's own claim, its web
-   * origin and the known table, keyed by URL, are never used).
+   * complete issuer identifier (`issuerIdOf`), never a name (CertNet has none yet; the issuer's own
+   * claim, its web origin and the known table, keyed by URL, are never used).
    */
   issuerName: string;
   /** DID path: the full identifier, for a person to compare; null on the X.509 path. */
   issuerDid: string | null;
 }
 
-/** The part of a DID after `did:certnet:<network>:`, kept whole up to 16 characters, else its first 8 and last 6. */
-export function shortIssuerId(did: string): string {
-  const id = did.split(':').pop() ?? did;
-  return id.length <= 16 ? id : `${id.slice(0, 8)}…${id.slice(-6)}`;
+/** The part of a CertNet identifier after `did:certnet:<network>:`, complete. */
+export function issuerIdOf(did: string): string {
+  return did.split(':').pop() ?? did;
+}
+
+/**
+ * THE rule for showing an issuer identifier (ADR-0020). The registrant chooses it, so a shortened
+ * form can be imitated: another recognised issuer can register an identifier with the same head and
+ * tail, and on the DID path the identifier is the only issuer identity a screen shows.
+ * - `complete`, wherever a person decides or relies on who the issuer is (the offer before
+ *   receiving, the received screen, the share consent, the detail): always the whole identifier,
+ *   wrapped, never shortened.
+ * - `dense` (the list card, the wallet home): whole up to ISSUER_ID_DENSE_MAX characters (two lines
+ *   of the card at 360 px); beyond, the first and last ISSUER_ID_KEEP characters around "…". The card
+ *   opens the detail, which shows it whole.
+ */
+export type IssuerIdSurface = 'complete' | 'dense';
+export const ISSUER_ID_KEEP = 20;
+export const ISSUER_ID_DENSE_MAX = 2 * ISSUER_ID_KEEP + 1;
+
+export function issuerIdText(id: string, surface: IssuerIdSurface): string {
+  return surface === 'dense' && id.length > ISSUER_ID_DENSE_MAX ? `${id.slice(0, ISSUER_ID_KEEP)}…${id.slice(-ISSUER_ID_KEEP)}` : id;
 }
 
 export function issuerViewOf(s: { issuerUri: string; issuerName: string | null; trustPath?: TrustPath; issuerDid?: string | null }, locale: Locale): IssuerView {
   if (s.trustPath === 'did' || typeof s.issuerDid === 'string') {
-    return { trustPath: 'did', issuerName: shortIssuerId(s.issuerDid ?? ''), issuerDid: s.issuerDid ?? null };
+    return { trustPath: 'did', issuerName: issuerIdOf(s.issuerDid ?? ''), issuerDid: s.issuerDid ?? null };
   }
   return { trustPath: 'x509', issuerName: issuerLabel(s.issuerUri, s.issuerName, locale), issuerDid: null };
 }
 
-/** The issuer line under a document's name: the name, or "Issuer ID <short id>" on the DID path. */
-export function issuerText(v: Pick<IssuerView, 'trustPath' | 'issuerName'>, t: (key: I18nKey, params?: Record<string, string>) => string): string {
-  return v.trustPath === 'did' ? t('wallet.trustPath.issuerId', { id: v.issuerName }) : v.issuerName;
+/** The issuer line under a document's name: the name, or "Issuer ID <id>" on the DID path, shown by `issuerIdText`. */
+export function issuerText(v: Pick<IssuerView, 'trustPath' | 'issuerName'>, t: (key: I18nKey, params?: Record<string, string>) => string, surface: IssuerIdSurface = 'complete'): string {
+  return v.trustPath === 'did' ? t('wallet.trustPath.issuerId', { id: issuerIdText(v.issuerName, surface) }) : v.issuerName;
 }
 
 /** Whether the identifier belongs to a CertNet test network (local or testnet), which the screens say. */
@@ -79,16 +97,17 @@ export function trustPathKey(v: Pick<IssuerView, 'trustPath' | 'issuerDid'>): I1
  * What the detail's status block says after a check: the status meaning, then why when the last
  * check said so. For an `invalid` document the failed check (both paths, as before). For `unknown`
  * on the DID path the reason REPLACES the generic "the wallet could not reach the issuer": it was
- * CertNet, or the status list, that did not answer. Except when the build has no CertNet
- * configuration: the SDK then answers `unknown` with `did_resolution` failing DID_RESOLUTION_FAILED
- * (with CertNet configured that failure is `invalid`), and nothing was asked of CertNet.
+ * CertNet, or the status list, that did not answer (before any re-check, when no checks are in hand,
+ * a sentence that says so). Except when the build has no CertNet configuration: the SDK then answers
+ * `unknown` with `did_resolution` failing DID_RESOLUTION_FAILED (with CertNet configured that
+ * failure is `invalid`), and nothing was asked of CertNet.
  */
 export function statusSentenceKeys(status: CredentialStatus, trustPath: TrustPath, checks: readonly Check[] | null): I18nKey[] {
   const meaning = `identity.detail.statuses.${status}.description` as I18nKey;
   const reason = failedCheckKey(checks);
   if (status === 'unknown' && trustPath === 'did' && checks?.some((c) => c.id === 'did_resolution' && !c.ok && c.code === 'DID_RESOLUTION_FAILED')) return ['wallet.didPath.unsupported'];
   if (status === 'invalid' && reason) return [meaning, reason];
-  if (status === 'unknown' && trustPath === 'did' && reason) return [reason];
+  if (status === 'unknown' && trustPath === 'did') return [reason ?? 'wallet.didPath.notCheckedYet'];
   return [meaning];
 }
 
@@ -113,7 +132,7 @@ export interface OfferView {
    * null for an issuer that declares a CertNet identifier: the DID path never shows a name (ADR-0020).
    */
   issuerName: string | null;
-  /** The shortened identifier the issuer declared (not verified until the document is accepted); null for a certificate issuer. */
+  /** The complete identifier the issuer declared (not verified until the document is accepted); null for a certificate issuer. */
   issuerId: string | null;
   /** The web origin the offer came from (new in the SDK; shown small under the name), or null. */
   issuerOrigin: string | null;
@@ -141,7 +160,7 @@ export function offerView(offer: ResolvedOffer, locale: Locale): OfferView {
   const did = typeof offer.issuerDid === 'string' && offer.issuerDid ? offer.issuerDid : null;
   return {
     issuerName: did ? null : (displayNameFor(offer.issuerDisplay, locale) ?? issuerLabel(offer.issuerUri, null, locale)),
-    issuerId: did ? shortIssuerId(did) : null,
+    issuerId: did ? issuerIdOf(did) : null,
     issuerOrigin: originHost((offer as { issuerOrigin?: unknown }).issuerOrigin),
     documentNameKey: documentNameKeys[documentTypeOf(offer.configuration.vct)],
     pin: tx ? { length: tx.length && tx.length > 0 && tx.length <= 12 ? tx.length : 6, numeric: tx.inputMode === 'numeric' } : null,

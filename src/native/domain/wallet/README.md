@@ -53,11 +53,17 @@ configures it, stores one column and says on screen which path was used.
   COLUMN`, one transaction with the version stamp); a version 1 table is rebuilt straight to 3. Rows
   from before have NULL there and read and open as X.509. The repository writes and reads the
   column; the SDK binds it to the ciphertext.
-- **What the screens say** (`walletViews.ts`: `issuerViewOf`, `issuerText`, `trustPathKey`,
-  `statusSentenceKeys`): X.509 keeps the trust-list name and adds "Xác minh qua chứng nhận số";
+- **What the screens say** (`walletViews.ts`: `issuerViewOf`, `issuerText`, `issuerIdText`, `trustPathKey`,
+  `statusSentenceKeys`): X.509 keeps the trust-list name and adds "Nơi cấp nhận diện qua chứng nhận số";
   the DID path never shows a name (not the issuer's own, not its web origin, not `knownIssuers`,
-  not the name cache, all keyed by issuer URL, which both paths share): "Mã nơi cấp <short id>"
-  and "Xác minh qua CertNet" ("(mạng thử nghiệm)" for `local` / `testnet`). The detail screen has
+  not the name cache, all keyed by issuer URL, which both paths share; `withIssuerNames` in the
+  container): "Mã nơi cấp <id>" and "Nơi cấp tra cứu qua CertNet" ("(mạng thử nghiệm)" for `local` /
+  `testnet`). The path line names how the issuer is looked up, never the outcome: only the status pill
+  says that. **Identifier rule** (`issuerIdText`, one place): the registrant chooses its identifier, so
+  a shortened one can be imitated. Complete (wrapped, never shortened) wherever a person decides or
+  relies on who the issuer is: the offer, the received screen, the share consent, the detail. Dense
+  surfaces (list card, wallet home): whole up to 41 characters, beyond that the first 20 and last 20
+  around "…", never clipped; the card opens the detail, which shows it whole. The detail screen has
   "Cách xác minh nơi cấp": what CertNet is, why there is no name, the full identifier (selectable,
   to compare with the issuer's own) and a test-network note.
 - **States**: valid; not checked yet because CertNet did not answer (status `unknown`, the detail
@@ -71,17 +77,31 @@ configures it, stores one column and says on screen which path was used.
   `TRUST_LIST_UNAVAILABLE` (CertNet, not Identra's list), chosen from the SDK's checks.
 - **DID path off** (no CertNet configuration): a DID issuer's offer is refused at resolve with the
   SDK's `TRUST_PATH_UNSUPPORTED` (`OFFER_INVALID` again means only "not a valid offer"): "Ví chưa
-  nhận được giấy tờ này", no blame on the QR code, action `scan-again` (another code, never a retry
+  nhận được giấy tờ này", only what the issuer itself says (its documents are checked through CertNet), no word on the QR code, action `scan-again` (another code, never a retry
   of this one). The receive screen of a DID issuer (`ResolvedOffer.issuerDid`, declared and not yet
-  verified) shows no name, not even the self-declared one: the web address, "Mã nơi cấp <short id>"
+  verified) shows no name, not even the self-declared one: the web address, "Mã nơi cấp <complete id>"
   and "will be checked through CertNet when you receive it" (`offerView`: `issuerName` null,
   `issuerId`). A stored DID credential re-checked in such a build is `unknown`, and
   `statusSentenceKeys` reads the SDK's `did_resolution` / `DID_RESOLUTION_FAILED` on an `unknown` DID
   document as `wallet.didPath.unsupported` ("this version of the app cannot check this document"),
   never "CertNet did not answer" (CertNet was not asked). With CertNet configured that same failure
-  is `invalid`. Before any re-check (no checks in hand) an `unknown` DID document shows the generic
-  `unknown` sentence. The backup catalogue keeps the issuer
+  is `invalid`. Before any re-check (no checks in hand) an `unknown` DID document says CertNet or the
+  issuer did not answer the last check (`wallet.didPath.notCheckedYet`), never "could not reach the issuer". The backup catalogue keeps the issuer
   URL only, so the restore list names a DID issuer by URL (host or `knownIssuers`), as before.
+
+- **Sharing when the requester could not reach CertNet** (`presentationFlow.ts`): the SDK's
+  `DID_RESOLUTION_UNAVAILABLE` with `delivered: true` means the requester RECEIVED the document and
+  concluded nothing. The history gets one entry ("Đã gửi …, chưa có kết quả", status `pending`); the
+  consent screen is locked to that document and claim set (`ConsentState.delivered`): "Gửi lại" (same
+  selection) or "Dừng", nothing that changes the selection. A later success replaces that entry (same
+  id: what was shared counts once); anything else (the request closed, the SDK's last allowed send
+  answered `VERIFIER_ERROR`, a lost connection, stopping) leaves it as "sent, no result" and ends the
+  flow with "Yêu cầu không còn dùng được" (never "nothing was sent"); a cancelled prompt returns to the
+  locked screen.
+- **Network**: `dpki.network` is the configured network: an offer declaring an identifier of another
+  CertNet network is `TRUST_PATH_UNSUPPORTED` at resolve, before the PIN ("Ví chưa nhận được giấy tờ này").
+- **CertNet wording only on the DID path**: `wallet.errors.DID_RESOLUTION_*` are neutral; the CertNet
+  sentences (`wallet.didPath.*`) are picked only when the SDK's checks are of the DID path.
 
 ## Screens (src/native/screens/identity)
 

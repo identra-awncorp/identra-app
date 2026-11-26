@@ -53,6 +53,10 @@ describe('receive flow', () => {
     // The lists were unreachable at receipt: kept, shown as "not checked yet" rather than failed.
     const unchecked = receiveReducer(accepting, { type: 'accepted', result: { ok: true, credentialId: 'c2', vct: VCT.diploma, issuerName: 'X', status: 'unknown' } });
     assert.equal(unchecked.status, 'unknown');
+    // What the received screen says then: the lists (who is recognised, what is still valid) could not be read, not "its status".
+    assert.match(translate('vi', 'wallet.receive.successLeadUnchecked'), /nơi cấp có được công nhận/);
+    assert.match(translate('en', 'wallet.receive.successLeadUnchecked'), /whether the issuer is recognised/);
+    assert.equal(/check its status|kiểm được trạng thái/.test(translate('en', 'wallet.receive.successLeadUnchecked') + translate('vi', 'wallet.receive.successLeadUnchecked')), false);
   });
 
   it('stops before any code is spent when the phone cannot protect a key', () => {
@@ -187,9 +191,9 @@ describe('receive flow', () => {
     assert.equal(offerView(offer, 'en').issuerName, 'Sample University');
     assert.equal(offerView({ ...offer, issuerDisplay: [], txCode: null }, 'vi').pin, null);
     assert.equal(offerView({ ...offer, issuerDisplay: [] }, 'vi').issuerName, 'Trường Đại học Mẫu (DEMO)');
-    // A CertNet issuer: its self-declared name is dropped, the shortened identifier stands in (the screen shows the web address beside it).
+    // A CertNet issuer: its self-declared name is dropped, the complete identifier stands in (the screen shows the web address beside it).
     const certNet = offerView({ ...offer, issuerDid: 'did:certnet:testnet:4f9c2a7e1b3d8f60a5c4e2b9d7f1a3c8', issuerOrigin: 'https://api-identra.awncorp.vn' }, 'vi');
-    assert.deepEqual([certNet.issuerName, certNet.issuerId, certNet.issuerOrigin], [null, '4f9c2a7e…f1a3c8', 'api-identra.awncorp.vn']);
+    assert.deepEqual([certNet.issuerName, certNet.issuerId, certNet.issuerOrigin], [null, '4f9c2a7e1b3d8f60a5c4e2b9d7f1a3c8', 'api-identra.awncorp.vn']);
     assert.equal(offerView({ ...offer, issuerDid: null }, 'vi').issuerId, null);
     assert.equal(offerView({ ...offer, txCode: { length: null, inputMode: 'numeric', description: null } }, 'vi').pin.length, 6);
     const pin = { length: 6, numeric: true };
@@ -300,7 +304,7 @@ describe('restore flow', () => {
 
 describe('DID trust path (ADR-0020): receipt, views and re-check results', () => {
   const { documentChoices } = require('../.tmp-test/src/native/domain/wallet/presentationFlow');
-  const { isTestNetworkIssuer, issuerText, issuerViewOf, shortIssuerId, statusSentenceKeys, trustPathKey } = require('../.tmp-test/src/native/domain/wallet/walletViews');
+  const { isTestNetworkIssuer, issuerIdText, issuerText, issuerViewOf, statusSentenceKeys, trustPathKey, ISSUER_ID_DENSE_MAX, ISSUER_ID_KEEP } = require('../.tmp-test/src/native/domain/wallet/walletViews');
   const translate = require('../.tmp-test/src/native/i18n').translate;
   const DID = 'did:certnet:mainnet:4f9c2a7e1b3d8f60a5c4e2b9d7f1a3c8';
   const DID_TEST = 'did:certnet:testnet:truongdid0001';
@@ -334,7 +338,7 @@ describe('DID trust path (ADR-0020): receipt, views and re-check results', () =>
       'never a name on the DID path, and no access-gate pass without a prompt',
     );
     const shown = issuerViewOf(box.state, 'vi');
-    assert.deepEqual([shown.trustPath, shown.issuerName, trustPathKey(shown)], ['did', '4f9c2a7e…f1a3c8', 'wallet.trustPath.did']);
+    assert.deepEqual([shown.trustPath, shown.issuerName, trustPathKey(shown)], ['did', '4f9c2a7e1b3d8f60a5c4e2b9d7f1a3c8', 'wallet.trustPath.did']);
 
     // Other resumes still prompt (a new key), and a plain network loss keeps its own sentence.
     const cancelled = receiveReducer(accepting, { type: 'accepted', result: { ok: false, code: 'USER_CANCELLED', retryable: true, codeRedeemed: true } });
@@ -348,9 +352,9 @@ describe('DID trust path (ADR-0020): receipt, views and re-check results', () =>
     const summary = { id: 'd', vct: VCT.diploma, issuerUri: ISS, issuerName: 'Trường Đại học Mẫu (DEMO)', trustPath: 'did', issuerDid: DID, status: 'valid', statusCheckedAt: null, createdAt: '2026-11-20T00:00:00Z' };
     for (const locale of ['vi', 'en']) {
       const [item] = credentialListItems([summary], locale);
-      assert.deepEqual([item.trustPath, item.issuerName, item.issuerDid], ['did', '4f9c2a7e…f1a3c8', DID]);
+      assert.deepEqual([item.trustPath, item.issuerName, item.issuerDid], ['did', '4f9c2a7e1b3d8f60a5c4e2b9d7f1a3c8', DID]);
       const view = credentialDetailView({ ...summary, iat: 1, claims: {} }, locale);
-      assert.equal(view.issuerName, '4f9c2a7e…f1a3c8');
+      assert.equal(view.issuerName, '4f9c2a7e1b3d8f60a5c4e2b9d7f1a3c8');
       const text = JSON.stringify([item, view]);
       for (const name of ['Trường Đại học Mẫu', 'Sample University', 'api-identra.awncorp.vn']) assert.equal(text.includes(name), false, `${locale}: ${name}`);
     }
@@ -363,16 +367,44 @@ describe('DID trust path (ADR-0020): receipt, views and re-check results', () =>
     assert.deepEqual(credentialListItems([{ ...summary, trustPath: 'x509', issuerDid: null, issuerName: null }], 'vi')[0].issuerName, 'Trường Đại học Mẫu (DEMO)');
   });
 
-  it('shortens the identifier readably, says how the issuer was checked, and flags a test network', () => {
-    assert.equal(shortIssuerId('did:certnet:testnet:truongdid0001'), 'truongdid0001');
-    assert.equal(shortIssuerId('did:certnet:mainnet:abcdefghijklmnop'), 'abcdefghijklmnop', '16 characters stay whole');
-    assert.equal(shortIssuerId('did:certnet:mainnet:abcdefghijklmnopq'), 'abcdefgh…lmnopq');
+  it('shows the issuer identifier by ONE rule: complete wherever a person relies on it, a long head and tail only on dense surfaces', () => {
     const t = (key, p) => translate('vi', key, p);
-    assert.equal(issuerText({ trustPath: 'did', issuerName: 'truongdid0001' }, t), 'Mã nơi cấp truongdid0001');
-    assert.equal(issuerText({ trustPath: 'x509', issuerName: 'Trường Mẫu' }, t), 'Trường Mẫu');
-    assert.equal(t(trustPathKey({ trustPath: 'x509', issuerDid: null })), 'Xác minh qua chứng nhận số');
-    assert.equal(t(trustPathKey({ trustPath: 'did', issuerDid: DID })), 'Xác minh qua CertNet');
-    assert.equal(t(trustPathKey({ trustPath: 'did', issuerDid: DID_TEST })), 'Xác minh qua CertNet (mạng thử nghiệm)');
+    const LONG = `did:certnet:mainnet:${'truongdaihocbachkhoahanoi-khoacongnghethongtin-2024-ba8c41f7e2d9'}`;
+    assert.equal(LONG.split(':').pop().length, 64);
+    assert.deepEqual([ISSUER_ID_KEEP, ISSUER_ID_DENSE_MAX], [20, 41]);
+    // Complete: the whole identifier, however long.
+    for (const did of [DID, DID_TEST, LONG, 'did:certnet:mainnet:a1b2c3d4e5f67890']) {
+      const id = did.split(':').pop();
+      assert.equal(issuerIdText(id, 'complete'), id);
+      assert.equal(issuerViewOf({ issuerUri: ISS, issuerName: null, trustPath: 'did', issuerDid: did }, 'vi').issuerName, id);
+      assert.equal(issuerText(issuerViewOf({ issuerUri: ISS, issuerName: null, trustPath: 'did', issuerDid: did }, 'vi'), t), `Mã nơi cấp ${id}`);
+    }
+    // Dense: whole up to 41 characters, else the first 20 and last 20 around "…".
+    assert.equal(issuerIdText('x'.repeat(41), 'dense'), 'x'.repeat(41));
+    const long = LONG.split(':').pop();
+    assert.equal(issuerIdText(long, 'dense'), `${long.slice(0, 20)}…${long.slice(-20)}`);
+    assert.equal(issuerText({ trustPath: 'did', issuerName: long }, t, 'dense'), 'Mã nơi cấp truongdaihocbachkhoa…in-2024-ba8c41f7e2d9');
+    // The reviewer's look-alike pairs (same first 8 and last 6 characters) read differently on every surface.
+    for (const [a, b] of [['truongdaihocbachkhoahanoi', 'truongdakemchatluongahanoi'], ['a1b2c3d4e5f67890', 'a1b2c3ffffff7890']]) {
+      for (const surface of ['complete', 'dense']) {
+        const [ta, tb] = [a, b].map((id) => issuerText(issuerViewOf({ issuerUri: ISS, issuerName: null, trustPath: 'did', issuerDid: `did:certnet:mainnet:${id}` }, 'vi'), t, surface));
+        assert.notEqual(ta, tb, `${surface}: ${a} / ${b}`);
+        assert.deepEqual([ta, tb], [`Mã nơi cấp ${a}`, `Mã nơi cấp ${b}`]);
+      }
+    }
+    assert.equal(issuerText({ trustPath: 'x509', issuerName: 'Trường Mẫu' }, t, 'dense'), 'Trường Mẫu');
+  });
+
+  it('names how the issuer is looked up, never whether the check passed (the status pill says that), and flags a test network', () => {
+    const t = (key, p) => translate('vi', key, p);
+    const en = (key) => translate('en', key);
+    assert.equal(t(trustPathKey({ trustPath: 'x509', issuerDid: null })), 'Nơi cấp nhận diện qua chứng nhận số');
+    assert.equal(t(trustPathKey({ trustPath: 'did', issuerDid: DID })), 'Nơi cấp tra cứu qua CertNet');
+    assert.equal(t(trustPathKey({ trustPath: 'did', issuerDid: DID_TEST })), 'Nơi cấp tra cứu qua CertNet (mạng thử nghiệm)');
+    assert.equal(en(trustPathKey({ trustPath: 'did', issuerDid: DID })), 'Issuer looked up through CertNet');
+    for (const key of ['wallet.trustPath.x509', 'wallet.trustPath.did', 'wallet.trustPath.didTest']) {
+      assert.equal(/xác minh|đã kiểm|checked|verified/i.test(`${t(key)} ${en(key)}`), false, `${key} claims an outcome`);
+    }
     assert.deepEqual([isTestNetworkIssuer({ issuerDid: DID }), isTestNetworkIssuer({ issuerDid: 'did:certnet:local:x' }), isTestNetworkIssuer({ issuerDid: null })], [false, true, false]);
   });
 
@@ -383,14 +415,20 @@ describe('DID trust path (ADR-0020): receipt, views and re-check results', () =>
     const rejected = [...base, check('issuer_trust', 'ISSUER_NOT_TRUSTED'), check('status', 'SKIPPED', { skipped: true })];
     assert.deepEqual(statusSentenceKeys('verified', 'did', base), ['identity.detail.statuses.verified.description']);
     assert.deepEqual(statusSentenceKeys('unknown', 'did', tirDown), ['wallet.didPath.TRUST_LIST_UNAVAILABLE']);
-    assert.deepEqual(statusSentenceKeys('unknown', 'did', resolverDown), ['wallet.errors.DID_RESOLUTION_UNAVAILABLE']);
+    assert.deepEqual(statusSentenceKeys('unknown', 'did', resolverDown), ['wallet.didPath.DID_RESOLUTION_UNAVAILABLE']);
     assert.deepEqual(statusSentenceKeys('invalid', 'did', rejected), ['identity.detail.statuses.invalid.description', 'wallet.didPath.ISSUER_NOT_TRUSTED']);
     // A build without CertNet configuration: unknown, and CertNet was never asked, so never "did not answer".
     const notConfigured = [check('structure'), check('did_resolution', 'DID_RESOLUTION_FAILED'), check('signature', 'SKIPPED', { skipped: true })];
     assert.deepEqual(statusSentenceKeys('unknown', 'did', notConfigured), ['wallet.didPath.unsupported']);
-    assert.deepEqual(statusSentenceKeys('invalid', 'did', notConfigured), ['identity.detail.statuses.invalid.description', 'wallet.errors.DID_RESOLUTION_FAILED'], 'with CertNet configured the same failure stays invalid');
-    // Before any re-check (no checks): the status meaning only, on both paths.
-    assert.deepEqual(statusSentenceKeys('unknown', 'did', null), ['identity.detail.statuses.unknown.description']);
+    assert.deepEqual(statusSentenceKeys('invalid', 'did', notConfigured), ['identity.detail.statuses.invalid.description', 'wallet.didPath.DID_RESOLUTION_FAILED'], 'with CertNet configured the same failure stays invalid');
+    // Before any re-check (no checks): the DID path says CertNet or the issuer did not answer, never "the wallet could not reach the issuer".
+    assert.deepEqual(statusSentenceKeys('unknown', 'did', null), ['wallet.didPath.notCheckedYet']);
+    for (const locale of ['vi', 'en']) {
+      const text = translate(locale, 'wallet.didPath.notCheckedYet');
+      assert.match(text, /CertNet/, locale);
+      assert.equal(/Ví chưa hỏi được nơi cấp|could not reach the issuer/.test(text), false, locale);
+    }
+    assert.deepEqual(statusSentenceKeys('unknown', 'x509', null), ['identity.detail.statuses.unknown.description']);
     // X.509 unchanged: unknown says only its meaning; invalid adds the failed check.
     const x509Down = [check('certificate_chain'), check('issuer_trust', 'TRUST_LIST_UNAVAILABLE')];
     assert.deepEqual(statusSentenceKeys('unknown', 'x509', x509Down), ['identity.detail.statuses.unknown.description']);

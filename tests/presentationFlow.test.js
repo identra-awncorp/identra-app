@@ -17,6 +17,7 @@ const {
   shareBlock,
 } = require('../.tmp-test/src/native/domain/wallet/presentationFlow');
 const { parsePersistedIdentityEnvelope, createPersistedIdentityEnvelope } = require('../.tmp-test/src/native/domain/app-store/appStatePersistence');
+const { addActivityLogToAppState, expirePendingActivityLogsInAppState } = require('../.tmp-test/src/native/domain/app-store/appStoreStateService');
 const { translate } = require('../.tmp-test/src/native/i18n');
 
 const CLAIMS = { ho_ten: 'Nguyễn Văn A', ngay_sinh: '2001-02-03', ma_sinh_vien: 'SV123456', nganh: 'Khoa học máy tính', hang_tot_nghiep: 'Giỏi', nam_tot_nghiep: '2024', so_hieu_bang: 'B-0001' };
@@ -329,21 +330,101 @@ describe('sharing: the screen\'s actions (what is really submitted)', () => {
     assert.equal(cancelled.box.state.phase, 'consent');
   });
 
-  it('after a verifier that could not reach CertNet, "Chia sẻ" submits the same request and selection again, and records nothing', async () => {
-    const s = screen(request({ matches: [match('a'), match('b')] }));
-    s.dispatch({ type: 'select-document', credentialId: 'b' });
-    s.dispatch({ type: 'select-claim-set', index: 1 });
-    s.answer(fail('DID_RESOLUTION_UNAVAILABLE'));
-    assert.equal(await s.actions.share(), null, 'nothing is recorded: the verifier concluded nothing');
-    assert.equal(s.box.state.phase, 'consent');
-    assert.equal(s.box.state.failure.code, 'DID_RESOLUTION_UNAVAILABLE');
-    s.answer({ ok: true });
-    const attempt = await s.actions.share();
-    assert.equal(attempt.outcome, 'success');
-    assert.equal(s.calls.submit.length, 2);
-    assert.deepEqual(s.calls.submit[1], s.calls.submit[0]);
-    assert.deepEqual(s.calls.submit[1], { credentialId: 'b', claimSetIndex: 1 });
-    assert.equal(s.calls.requests.every((r) => r === s.calls.requests[0]), true, 'the same request object');
+  /**
+   * The SDK's submit for a DID-path document whose verifier cannot reach CertNet (sdk-app 835fa3c):
+   * `answers` per send; a 503 is DID_RESOLUTION_UNAVAILABLE with `delivered`, the request pinned to
+   * the first choice; another choice is REQUEST_INVALID (forgotten); the MAX_PRESENTATION_SENDS-th
+   * 503 is VERIFIER_ERROR (forgotten); decline forgets it.
+   */
+  function sdkLike(answers) {
+    const { MAX_PRESENTATION_SENDS } = require('@identra/sdk-app');
+    const sent = [];
+    let pinned = null;
+    let open = true;
+    return {
+      sent,
+      declined: () => !open,
+      presentations: {
+        async submit(_r, choice) {
+          if (!open) return fail('REQUEST_INVALID');
+          if (pinned && (pinned.credentialId !== choice.credentialId || pinned.claimSetIndex !== choice.claimSetIndex)) return (open = false), fail('REQUEST_INVALID');
+          const answer = answers[Math.min(sent.length, answers.length - 1)];
+          if (answer === 'cancel') return fail('USER_CANCELLED');
+          sent.push(choice);
+          open = false;
+          if (answer === 'ok') return { ok: true };
+          if (answer === '503' && sent.length < MAX_PRESENTATION_SENDS) return (open = true), (pinned = choice), { ok: false, code: 'DID_RESOLUTION_UNAVAILABLE', delivered: true };
+          return fail(answer === '503' ? 'VERIFIER_ERROR' : answer);
+        },
+        decline: () => (open ? ((open = false), { ok: true }) : fail('REQUEST_INVALID')),
+      },
+    };
+  }
+  const historyAfter = async (answers, steps) => {
+    const wallet = sdkLike(answers);
+    const box = { state: resolved(request({ matches: [match('a'), match('b')] })) };
+    const session = { get: () => box.state, dispatch: (e) => (box.state = presentReducer(box.state, e)) };
+    let n = 0;
+    const actions = createPresentationActions(wallet, session, () => `share-${++n}`);
+    let app = { logs: [], settings: { flowSettings: { identity: { activityLogging: true } } } };
+    const record = (a) => a && (app = addActivityLogToAppState(app, presentationActivityEntry({ id: a.recordId, now: new Date(NOW), verifierName: 'Nhà Tuyển Dụng Mẫu (TEST)', credentialId: a.credentialId, documentNameKey: a.documentNameKey, claims: a.claims, outcome: a.outcome, t })));
+    session.dispatch({ type: 'select-document', credentialId: 'b' });
+    session.dispatch({ type: 'select-claim-set', index: 1 });
+    for (const step of steps) {
+      if (step === 'share') record(await actions.share());
+      else if (step === 'leave') actions.leave();
+      else session.dispatch(step);
+    }
+    // A pending entry has no deadline: it never turns into "failed" by itself.
+    app = expirePendingActivityLogsInAppState(app, NOW + 365 * 86_400_000, 'x');
+    return { state: box.state, sent: wallet.sent, declined: wallet.declined(), logs: app.logs.map((l) => ({ id: l.id, status: l.status, title: l.title, description: l.description, sharedClaims: l.sharedClaims })) };
+  };
+  const SENT_ENTRY = { id: 'share-1', status: 'pending', title: 'Đã gửi Bằng tốt nghiệp, chưa có kết quả', description: 'Họ và tên, Ngành', sharedClaims: ['ho_ten', 'nganh'] };
+
+  it('a requester that received the document but could not reach CertNet: the history says it was sent, the consent is locked to what was sent', async () => {
+    const r = await historyAfter(['503'], ['share']);
+    assert.deepEqual(r.logs, [SENT_ENTRY]);
+    assert.deepEqual([r.state.phase, r.state.delivered, r.state.failure.code, r.state.credentialId, r.state.claimSetIndex], ['consent', true, 'DID_RESOLUTION_UNAVAILABLE', 'b', 1]);
+    // Nothing that changes the selection works any more: another document, another claim set, a status that would pick another.
+    let s = r.state;
+    for (const e of [{ type: 'select-document', credentialId: 'a' }, { type: 'select-claim-set', index: 0 }, { type: 'statuses', statuses: { b: 'revoked', a: 'verified' } }]) s = presentReducer(s, e);
+    assert.deepEqual([s.credentialId, s.claimSetIndex], ['b', 1]);
+    assert.equal(shareBlock(s), 'revoked', 'a document that became blocked stops the resend instead of switching');
+    assert.deepEqual(submissionOf(r.state), { credentialId: 'b', claimSetIndex: 1 });
+    // A cancelled prompt on the resend: back to the same locked screen, the history unchanged.
+    const cancelled = await historyAfter(['503', 'cancel'], ['share', 'share']);
+    assert.deepEqual([cancelled.state.phase, cancelled.state.delivered, cancelled.state.failure.code, cancelled.sent.length], ['consent', true, 'USER_CANCELLED', 1]);
+    assert.deepEqual(cancelled.logs, [SENT_ENTRY]);
+  });
+
+  it('history after a delivered share: a later success replaces the entry (counted once); a refusal, the last send or stopping leaves "sent, no result"', async () => {
+    const success = await historyAfter(['503', 'ok'], ['share', { type: 'select-claim-set', index: 0 }, 'share']);
+    assert.deepEqual(success.sent, [{ credentialId: 'b', claimSetIndex: 1 }, { credentialId: 'b', claimSetIndex: 1 }], 'sent again exactly as the first time');
+    assert.equal(success.state.phase, 'sent');
+    assert.deepEqual(success.logs, [{ ...SENT_ENTRY, status: 'success', title: 'Đã chia sẻ Bằng tốt nghiệp' }]);
+
+    const stopped = await historyAfter(['503'], ['share', 'leave', { type: 'decline' }]);
+    assert.deepEqual([stopped.state.phase, stopped.declined, stopped.logs], ['declined', true, [SENT_ENTRY]]);
+
+    for (const [answers, code] of [[['503', 'REQUEST_INVALID'], 'REQUEST_INVALID'], [['503', 'NETWORK_ERROR'], 'NETWORK_ERROR'], [['503', 'REQUEST_EXPIRED'], 'REQUEST_EXPIRED']]) {
+      const ended = await historyAfter(answers, ['share', 'share', 'share']);
+      assert.deepEqual([ended.state.phase, ended.state.delivered, ended.state.failure.code], ['failed', true, code], code);
+      assert.deepEqual(ended.logs, [SENT_ENTRY], `${code}: never "failed" or "may have been sent" for what the requester received`);
+      assert.equal(ended.sent.length, answers.length, `${code}: the flow ended, no further send`);
+    }
+  });
+
+  it('never loops: the SDK\'s last allowed send is VERIFIER_ERROR, which ends the flow with a truthful message', async () => {
+    const { MAX_PRESENTATION_SENDS } = require('@identra/sdk-app');
+    const r = await historyAfter(['503'], Array(MAX_PRESENTATION_SENDS + 2).fill('share'));
+    assert.equal(r.sent.length, MAX_PRESENTATION_SENDS);
+    assert.deepEqual([r.state.phase, r.state.failure.code, r.state.failure.action], ['failed', 'VERIFIER_ERROR', 'scan-again']);
+    assert.deepEqual(r.logs, [SENT_ENTRY]);
+    for (const locale of ['vi', 'en']) {
+      const text = `${translate(locale, r.state.failure.titleKey)} ${translate(locale, r.state.failure.sentenceKey)}`;
+      assert.match(text, locale === 'vi' ? /không còn dùng được.*đã nhận thông tin bạn gửi/ : /can no longer be used.*received what you sent/, locale);
+      assert.equal(/chưa có gì được gửi|nothing (has been|was) sent|may have/i.test(text), false, `${locale}: "${text}"`);
+    }
   });
 
   it('never submits a blocked document', async () => {

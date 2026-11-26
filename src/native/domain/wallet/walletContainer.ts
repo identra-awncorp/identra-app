@@ -188,6 +188,47 @@ export function nextCatalogue(previous: Catalogue | null, rows: readonly Catalog
   return mergeCatalogue(previous ?? { version: 1, items: [] }, rows, dropped);
 }
 
+type SdkWallet = ReturnType<typeof createSdkWallet>;
+
+/**
+ * The issuer-name cache (the trusted name last seen for an issuer URL) over the SDK's accept, list
+ * and get. Both trust paths share the issuer URL, so only the X.509 path writes or reads it: a
+ * DID-path document never takes a name and never leaves one, whatever the SDK hands back (ADR-0020).
+ */
+export function withIssuerNames(storage: PlainStorage, sdk: { offers: Pick<SdkWallet['offers'], 'accept'>; credentials: Pick<SdkWallet['credentials'], 'list' | 'get'> }) {
+  async function issuerNames(): Promise<Record<string, string>> {
+    try {
+      const parsed: unknown = JSON.parse((await storage.getItem(ISSUER_NAMES_KEY)) ?? '{}');
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, string>) : {};
+    } catch {
+      return {};
+    }
+  }
+  /** Best effort: a name that cannot be saved is shown again after the next opening. */
+  async function rememberIssuerName(issuerUri: string, name: string | null): Promise<void> {
+    if (!name) return;
+    const names = await issuerNames();
+    if (names[issuerUri] === name) return;
+    await storage.setItem(ISSUER_NAMES_KEY, JSON.stringify({ ...names, [issuerUri]: name })).catch(() => undefined);
+  }
+  return {
+    async accept(offer: ResolvedOffer, input: { txCode?: string }): Promise<AcceptResult> {
+      const result = await sdk.offers.accept(offer, input);
+      if (result.ok && !result.issuerDid && !offer.issuerDid) await rememberIssuerName(offer.issuerUri, result.issuerName);
+      return result;
+    },
+    async list(): Promise<WalletCredentialSummary[]> {
+      const [summaries, names] = await Promise.all([sdk.credentials.list(), issuerNames()]);
+      return summaries.map((c) => ({ ...c, issuerName: c.trustPath === 'did' || c.issuerDid ? null : (names[c.issuerUri] ?? null) }));
+    },
+    async get(id: string): Promise<{ ok: true; credential: CredentialDetails } | WalletFailure> {
+      const result = await sdk.credentials.get(id);
+      if (result.ok && result.credential.trustPath !== 'did' && !result.credential.issuerDid) await rememberIssuerName(result.credential.issuerUri, result.credential.issuerName);
+      return result;
+    },
+  };
+}
+
 export function createWallet(deps: WalletDependencies): Wallet {
   const { random, clock, repository, catalogueFile, dataKeySecrets } = deps;
   const keyStore = createSoftwareKeyStore({ secrets: deps.keySecrets, random });
@@ -272,26 +313,14 @@ export function createWallet(deps: WalletDependencies): Wallet {
           dpki: {
             resolver: createCertNetDidResolver({ gatewayUrl: deps.certNet.gatewayUrl, network: deps.certNet.network, fetch: deps.certNet.fetch, clock }),
             trustRegistry: createCertNetTrustRegistry({ gatewayUrl: deps.certNet.gatewayUrl, network: deps.certNet.network, fetch: deps.certNet.fetch }),
+            // An offer declaring an identifier of another CertNet network is refused at resolve, before the PIN (TRUST_PATH_UNSUPPORTED).
+            network: deps.certNet.network,
           },
         }
       : {}),
   });
 
-  async function issuerNames(): Promise<Record<string, string>> {
-    try {
-      const parsed: unknown = JSON.parse((await deps.plainStorage.getItem(ISSUER_NAMES_KEY)) ?? '{}');
-      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, string>) : {};
-    } catch {
-      return {};
-    }
-  }
-  /** Best effort: a name that cannot be saved is shown again after the next opening. */
-  async function rememberIssuerName(issuerUri: string, name: string | null): Promise<void> {
-    if (!name) return;
-    const names = await issuerNames();
-    if (names[issuerUri] === name) return;
-    await deps.plainStorage.setItem(ISSUER_NAMES_KEY, JSON.stringify({ ...names, [issuerUri]: name })).catch(() => undefined);
-  }
+  const named = withIssuerNames(deps.plainStorage, sdk);
 
   return {
     keyStore,
@@ -299,24 +328,12 @@ export function createWallet(deps: WalletDependencies): Wallet {
     offers: {
       resolve: (qrText) => sdk.offers.resolve(qrText),
       discard: (offer) => sdk.offers.discard(offer),
-      async accept(offer, input) {
-        const result = await sdk.offers.accept(offer, input);
-        if (result.ok && !result.issuerDid) await rememberIssuerName(offer.issuerUri, result.issuerName);
-        return result;
-      },
+      accept: named.accept,
     },
     presentations: sdk.presentations,
     credentials: {
-      async list() {
-        const [summaries, names] = await Promise.all([sdk.credentials.list(), issuerNames()]);
-        // The names are keyed by issuer URL, which a DID-path credential shares: it never takes one (ADR-0020).
-        return summaries.map((c) => ({ ...c, issuerName: c.trustPath === 'did' ? null : (names[c.issuerUri] ?? null) }));
-      },
-      async get(id) {
-        const result = await sdk.credentials.get(id);
-        if (result.ok && result.credential.trustPath === 'x509') await rememberIssuerName(result.credential.issuerUri, result.credential.issuerName);
-        return result;
-      },
+      list: named.list,
+      get: named.get,
       refreshStatus: (id) => sdk.credentials.refreshStatus(id),
       remove: (id) => sdk.credentials.remove(id),
     },

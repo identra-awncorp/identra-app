@@ -117,19 +117,20 @@ export function WalletScreen({
           >
             <View style={styles.walletGlowOne} />
             <View style={styles.walletGlowTwo} />
+            {/* Behind the text: a long issuer line (a CertNet identifier) may run over it. */}
+            <ShieldCheck color="rgba(255,255,255,0.76)" size={76} strokeWidth={1.25} style={styles.walletShield} />
             <View style={styles.walletAvatarFrame}>
               <CredentialIcon icon="graduation" boxSize={64} size={36} />
             </View>
             <View style={styles.walletMain}>
               <Text style={styles.walletTitle}>{t(featured.nameKey)}</Text>
-              <Text style={styles.walletIssuer}>{issuerText(featured, t)}</Text>
+              <Text style={styles.walletIssuer}>{issuerText(featured, t, 'dense')}</Text>
               <View style={[styles.walletVerified, featured.status !== 'verified' && styles.walletStatusOther]}>
                 {featured.status === 'verified' ? <Check color={palette.white} size={14} strokeWidth={3} /> : null}
                 <Text style={styles.walletVerifiedText}>{t(`common.status.${featured.status}`)}</Text>
               </View>
               <Text style={styles.walletDate}>{t('wallet.list.receivedOn', { date: featured.receivedDate })}</Text>
             </View>
-            <ShieldCheck color="rgba(255,255,255,0.76)" size={76} strokeWidth={1.25} style={styles.walletShield} />
           </LinearGradient>
         )}
       </Pressable>
@@ -206,8 +207,9 @@ export function WalletScreen({
                 <Text numberOfLines={1} style={[styles.credentialTitle, { color: colors.text }]}>
                   {t(credential.nameKey)}
                 </Text>
-                <Text numberOfLines={1} style={[styles.credentialIssuer, { color: colors.textSecondary }]}>
-                  {issuerText(credential, t)}
+                {/* A CertNet identifier is never clipped (its dense form is the display rule's, walletViews). */}
+                <Text numberOfLines={credential.trustPath === 'did' ? undefined : 1} style={[styles.credentialIssuer, { color: colors.textSecondary }]}>
+                  {issuerText(credential, t, 'dense')}
                 </Text>
                 <StatusPill status={credential.status} compact colors={colors} />
               </View>
@@ -251,7 +253,8 @@ const styles = StyleSheet.create({
   screenTitle: { fontSize: typography.size.lg + 1, fontWeight: typography.weight.extraBold, letterSpacing: -0.45 },
   did: { marginTop: spacing.xs - 1, fontSize: typography.size.sm, fontWeight: typography.weight.medium },
   walletCard: {
-    height: 170,
+    // At least, not exactly: a CertNet identifier can take three lines and must never be clipped.
+    minHeight: 170,
     borderRadius: radius.lg + 2,
     padding: 18,
     flexDirection: 'row',

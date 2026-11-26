@@ -16,10 +16,14 @@ export const RETRY_LATER_CODES: ReadonlySet<FailureCode> = new Set(['TRUST_LIST_
 
 /**
  * Submit failures that leave the person on the consent screen with the same selection: nothing was sent
- * (cancelled prompt, locked phone), or the requester could not check the document now and the SDK kept
- * the request (DID_RESOLUTION_UNAVAILABLE). "Chia sẻ" there is the retry.
+ * (cancelled prompt, locked phone). "Chia sẻ" there is the retry. The requester that RECEIVED the
+ * document but could not check it now (DID_RESOLUTION_UNAVAILABLE, `delivered`) also leaves the
+ * person there, locked to what was sent (`ConsentState.delivered`).
  */
-const BACK_TO_CONSENT: ReadonlySet<FailureCode> = new Set(['USER_CANCELLED', 'DEVICE_LOCKED', 'DID_RESOLUTION_UNAVAILABLE']);
+const BACK_TO_CONSENT: ReadonlySet<FailureCode> = new Set(['USER_CANCELLED', 'DEVICE_LOCKED']);
+
+/** The SDK's "the verifier received it and concluded nothing" (it comes only with `delivered: true`). */
+const wasDelivered = (result: { ok: false; code: FailureCode; delivered?: unknown }): boolean => result.delivered === true || result.code === 'DID_RESOLUTION_UNAVAILABLE';
 
 export type UntrustedStep = 'warning' | 'confirming' | 'confirmed';
 
@@ -34,8 +38,14 @@ export interface ConsentState {
   statuses: Record<string, CredentialStatus>;
   refreshing: boolean;
   expired: boolean;
-  /** The last attempt failed but nothing was sent (prompt cancelled, phone locked). */
+  /** The last attempt failed: nothing was sent (prompt cancelled, phone locked), or `delivered`. */
   failure: FailureView | null;
+  /**
+   * The requester received this document and claim set but concluded nothing (it could not reach
+   * CertNet). The SDK pins the request to them: the selection is locked, the only actions are sending
+   * the same again and stopping.
+   */
+  delivered: boolean;
 }
 
 export type PresentState =
@@ -47,7 +57,8 @@ export type PresentState =
   | ConsentState
   | (Omit<ConsentState, 'phase'> & { phase: 'submitting' })
   | { phase: 'sent'; verifierName: string | null; credentialId: string; claims: string[] }
-  | { phase: 'failed'; failure: FailureView; credentialId: string }
+  /** `delivered`: an earlier attempt of this request reached the requester (what it says, and the history, keep that). */
+  | { phase: 'failed'; failure: FailureView; credentialId: string; delivered: boolean }
   | { phase: 'declined' };
 
 export type PresentEvent =
@@ -63,7 +74,7 @@ export type PresentEvent =
   | { type: 'status-refreshed'; credentialId: string; status: CredentialStatus | null }
   | { type: 'tick'; nowMs: number }
   | { type: 'submit' }
-  | { type: 'submitted'; result: { ok: true } | WalletFailure | { ok: false; code: FailureCode } }
+  | { type: 'submitted'; result: { ok: true } | WalletFailure | { ok: false; code: FailureCode; delivered?: true } }
   | { type: 'decline' }
   /** Try the same QR again after a "check later" refusal. */
   | { type: 'retry' };
@@ -107,26 +118,26 @@ export function presentReducer(state: PresentState, event: PresentEvent): Presen
       const first = firstChoice(request);
       return {
         phase: 'consent', request, credentialId: first.credentialId, claimSetIndex: first.claimSets[0]!.index,
-        untrusted: request.verifier.trusted ? null : 'warning', statuses: {}, refreshing: false, expired: event.nowMs >= Date.parse(request.expiresAt), failure: null,
+        untrusted: request.verifier.trusted ? null : 'warning', statuses: {}, refreshing: false, expired: event.nowMs >= Date.parse(request.expiresAt), failure: null, delivered: false,
       };
     }
     case 'statuses': {
       if (state.phase !== 'consent') return state;
       const statuses = { ...state.statuses, ...event.statuses };
       const current = statuses[state.credentialId];
-      if (isBlocking(current)) {
+      if (isBlocking(current) && !state.delivered) {
         const better = firstChoice(state.request, statuses);
         if (better.credentialId !== state.credentialId) return { ...state, statuses, credentialId: better.credentialId, claimSetIndex: better.claimSets[0]!.index };
       }
       return { ...state, statuses };
     }
     case 'select-document': {
-      if (state.phase !== 'consent' || event.credentialId === state.credentialId) return state;
+      if (state.phase !== 'consent' || state.delivered || event.credentialId === state.credentialId) return state;
       const match = state.request.matches.find((m) => m.credentialId === event.credentialId);
       return match ? { ...state, credentialId: match.credentialId, claimSetIndex: match.claimSets[0]!.index, failure: null } : state;
     }
     case 'select-claim-set': {
-      if (state.phase !== 'consent') return state;
+      if (state.phase !== 'consent' || state.delivered) return state;
       const match = state.request.matches.find((m) => m.credentialId === state.credentialId);
       return match?.claimSets.some((c) => c.index === event.index) ? { ...state, claimSetIndex: event.index } : state;
     }
@@ -156,7 +167,10 @@ export function presentReducer(state: PresentState, event: PresentEvent): Presen
         return { phase: 'sent', verifierName: state.request.verifier.trusted ? state.request.verifier.ten : null, credentialId: state.credentialId, claims: [...claims] };
       }
       const failure = presentationFailureView(event.result.code, 'submit');
-      return BACK_TO_CONSENT.has(failure.code) ? { ...state, phase: 'consent', failure } : { phase: 'failed', failure, credentialId: state.credentialId };
+      if (wasDelivered(event.result)) return { ...state, phase: 'consent', failure, delivered: true };
+      if (BACK_TO_CONSENT.has(failure.code)) return { ...state, phase: 'consent', failure };
+      // Never back to a consent screen after that: the request is used up (REQUEST_INVALID, the last send's VERIFIER_ERROR...).
+      return { phase: 'failed', failure: presentationFailureView(event.result.code, 'submit', { delivered: state.delivered }), credentialId: state.credentialId, delivered: state.delivered };
     }
     case 'decline':
       return state.phase === 'consent' || state.phase === 'no-match' ? { phase: 'declined' } : state;
@@ -267,13 +281,18 @@ export function documentChoices(request: ResolvedPresentation, issuerUris: Recor
 
 // ---------------------------------------------------------------- activity log
 
-/** `uncertain`: the answer was posted but no confirmation came back, so it may have arrived. */
-export type ShareOutcome = 'success' | 'failed' | 'uncertain';
+/**
+ * `uncertain`: the answer was posted but no confirmation came back, so it may have arrived.
+ * `delivered`: the requester received it and has no result yet (it could not reach CertNet); stored
+ * with the history's `pending` status.
+ */
+export type ShareOutcome = 'success' | 'failed' | 'uncertain' | 'delivered';
 
 const ACTIVITY_TITLES: Record<ShareOutcome, I18nKey> = {
   success: 'wallet.present.activity.sharedTitle',
   failed: 'wallet.present.activity.failedTitle',
   uncertain: 'wallet.present.activity.maybeSentTitle',
+  delivered: 'wallet.present.activity.deliveredTitle',
 };
 
 /**
@@ -296,7 +315,7 @@ export function presentationActivityEntry(input: {
     id: input.id,
     timestamp: input.now.toISOString(),
     type: 'share',
-    status: input.outcome,
+    status: input.outcome === 'delivered' ? 'pending' : input.outcome,
     title: t(ACTIVITY_TITLES[input.outcome], { document: t(input.documentNameKey) }),
     description: labels.join(', '),
     partner: input.verifierName ?? t('wallet.present.activity.unverifiedPartner'),
@@ -316,11 +335,17 @@ export function submissionOf(state: ConsentState): { credentialId: string; claim
 /** How a finished attempt is recorded: null while nothing was attempted (back on the consent screen). */
 export function shareOutcomeOf(state: PresentState): ShareOutcome | null {
   if (state.phase === 'sent') return 'success';
+  if (state.phase === 'consent' && state.delivered && state.failure?.code === 'DID_RESOLUTION_UNAVAILABLE') return 'delivered';
   if (state.phase === 'failed') return MAYBE_SENT_CODES.has(state.failure.code) ? 'uncertain' : 'failed';
   return null;
 }
 
 export interface ShareAttempt {
+  /**
+   * The history entry to write: one per request. A later attempt of the same request (sent again
+   * after `delivered`) replaces that entry instead of adding one, so what was shared counts once.
+   */
+  recordId: string;
   outcome: ShareOutcome;
   documentNameKey: I18nKey;
   request: ResolvedPresentation;
@@ -329,13 +354,24 @@ export interface ShareAttempt {
   claims: string[];
 }
 
+function randomRecordId(): string {
+  const bytes = new Uint8Array(8);
+  globalThis.crypto.getRandomValues(bytes);
+  return `share-${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`;
+}
+
 /**
  * The consent screen's actions on its reducer state. `share` submits at most once at a time (a
  * double tap does nothing) and returns what to record; `leave` declines locally when the request
  * is still unanswered (back button, unmount).
+ *
+ * History after the requester received the document once (`delivered`): the entry says so; sending
+ * again replaces it only when that send succeeds (or is again `delivered`). Any other ending (request
+ * closed, last send refused, the person stops) leaves it as it is: sent, no result from the requester.
  */
-export function createPresentationActions(wallet: Pick<WalletApi, 'presentations'>, session: FlowSession<PresentState, PresentEvent>) {
+export function createPresentationActions(wallet: Pick<WalletApi, 'presentations'>, session: FlowSession<PresentState, PresentEvent>, newRecordId: () => string = randomRecordId) {
   let inFlight = false;
+  let record: { request: ResolvedPresentation; id: string } | null = null;
   return {
     /** `onSubmit`: right before the signing key is used (its biometric prompt follows). */
     async share(onSubmit?: () => void): Promise<ShareAttempt | null> {
@@ -344,9 +380,10 @@ export function createPresentationActions(wallet: Pick<WalletApi, 'presentations
       inFlight = true;
       try {
         const choice = submissionOf(s);
+        const reachedBefore = s.delivered;
         session.dispatch({ type: 'submit' });
         onSubmit?.();
-        let result: { ok: true } | WalletFailure | { ok: false; code: FailureCode };
+        let result: { ok: true } | WalletFailure | { ok: false; code: FailureCode; delivered?: true };
         try {
           result = await wallet.presentations.submit(s.request, choice);
         } catch (error) {
@@ -354,9 +391,10 @@ export function createPresentationActions(wallet: Pick<WalletApi, 'presentations
         }
         session.dispatch({ type: 'submitted', result });
         const outcome = shareOutcomeOf(session.get());
-        if (!outcome) return null;
+        if (!outcome || (reachedBefore && outcome !== 'success' && outcome !== 'delivered')) return null;
+        if (record?.request !== s.request) record = { request: s.request, id: newRecordId() };
         const match = s.request.matches.find((m) => m.credentialId === choice.credentialId)!;
-        return { outcome, documentNameKey: documentNameKeys[documentTypeOf(match.vct)], request: s.request, credentialId: choice.credentialId, claims: [...match.claimSets.find((c) => c.index === choice.claimSetIndex)!.claims] };
+        return { recordId: record.id, outcome, documentNameKey: documentNameKeys[documentTypeOf(match.vct)], request: s.request, credentialId: choice.credentialId, claims: [...match.claimSets.find((c) => c.index === choice.claimSetIndex)!.claims] };
       } finally {
         inFlight = false;
       }
