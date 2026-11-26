@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const { describe, it } = require('node:test');
 const { webcrypto } = require('node:crypto');
 
-const { createWallet, nextCatalogue, WalletStateError, CATALOGUE_FILE_NAME } = require('../.tmp-test/src/native/domain/wallet/walletContainer');
+const { certNetConfigOf, createWallet, nextCatalogue, WalletConfigError, WalletStateError, CATALOGUE_FILE_NAME } = require('../.tmp-test/src/native/domain/wallet/walletContainer');
 const { createSqliteCredentialRepository } = require('../.tmp-test/src/native/data/wallet/credentialRepository');
 const { createExpoRandomSource } = require('../.tmp-test/src/native/data/wallet/randomSource');
 const { createDataKeySecretStorage, createWalletKeySecretStorage } = require('../.tmp-test/src/native/data/wallet/secretStorage');
@@ -221,3 +221,66 @@ describe('credential display metadata', () => {
     assert.equal(translate('vi', `common.status.${credentialStatusFromVault(null)}`), 'Chưa kiểm được trạng thái');
   });
 });
+
+describe('DID trust path configuration and names (ADR-0020)', () => {
+  const prod = { production: true };
+  const dev = { production: false };
+
+  it('takes both CertNet values or neither, and refuses anything it cannot use', () => {
+    assert.equal(certNetConfigOf({}, prod), null, 'neither: off, the wallet as before');
+    assert.equal(certNetConfigOf({ gatewayUrl: '  ', network: '' }, prod), null);
+    assert.deepEqual(certNetConfigOf({ gatewayUrl: ' https://gateway.certnet.vn ', network: 'testnet' }, prod), { gatewayUrl: 'https://gateway.certnet.vn', network: 'testnet' });
+    assert.deepEqual(certNetConfigOf({ gatewayUrl: 'https://gw.example.vn/certnet', network: 'mainnet' }, prod), { gatewayUrl: 'https://gw.example.vn/certnet', network: 'mainnet' });
+    assert.deepEqual(certNetConfigOf({ gatewayUrl: 'https://gw.example.vn', network: 'local' }, dev), { gatewayUrl: 'https://gw.example.vn', network: 'local' });
+    const bad = [
+      [{ gatewayUrl: 'https://gw.example.vn' }, prod],
+      [{ network: 'testnet' }, prod],
+      [{ gatewayUrl: 'https://gw.example.vn', network: 'devnet' }, prod],
+      [{ gatewayUrl: 'https://gw.example.vn', network: 'TESTNET' }, prod],
+      [{ gatewayUrl: 'https://gw.example.vn', network: 'local' }, prod],
+      [{ gatewayUrl: 'http://gw.example.vn', network: 'testnet' }, dev],
+      [{ gatewayUrl: 'gw.example.vn', network: 'testnet' }, dev],
+      [{ gatewayUrl: 'https://gw.example.vn/?x=1', network: 'testnet' }, dev],
+      [{ gatewayUrl: 'https://user@gw.example.vn', network: 'testnet' }, dev],
+      [{ gatewayUrl: 'https://gw.example.vn/a/../b', network: 'testnet' }, dev],
+    ];
+    for (const [raw, options] of bad) assert.throws(() => certNetConfigOf(raw, options), (e) => e instanceof WalletConfigError && e.code === 'CERTNET_CONFIG_INVALID', JSON.stringify(raw));
+  });
+
+  it('builds the wallet with the DID path from a valid configuration (no request at start)', () => {
+    let calls = 0;
+    const phone = createPhone();
+    const wallet = createWallet({ ...phoneDepsOf(phone), certNet: { gatewayUrl: 'https://gateway.certnet.vn', network: 'testnet', fetch: async () => (calls++, { status: 503, headers: { get: () => null }, text: async () => '' }) } });
+    assert.equal(typeof wallet.offers.resolve, 'function');
+    assert.equal(calls, 0);
+  });
+
+  it('never gives a DID-path document the name remembered for its issuer URL', async () => {
+    const phone = createPhone();
+    phone.plain.set('identra.wallet.issuer-names.v1', JSON.stringify({ [ISSUER_A]: 'Đại học A' }));
+    const { keyId: k1 } = await phone.wallet.keyStore.create();
+    const { keyId: k2 } = await phone.wallet.keyStore.create();
+    const x = await phone.wallet.vault.save({ compact: 'h.p.s~d~', vct: DIPLOMA, issuer: ISSUER_A, keyId: k1 });
+    const d = await phone.wallet.vault.save({ compact: 'h.p.s~d~', vct: DIPLOMA, issuer: ISSUER_A, issuerDid: 'did:certnet:testnet:abc', keyId: k2 });
+    const byId = Object.fromEntries((await phone.wallet.credentials.list()).map((c) => [c.id, c]));
+    assert.deepEqual([byId[x].trustPath, byId[x].issuerName], ['x509', 'Đại học A']);
+    assert.deepEqual([byId[d].trustPath, byId[d].issuerDid, byId[d].issuerName], ['did', 'did:certnet:testnet:abc', null]);
+  });
+});
+
+/** The dependencies createPhone used, to build a second wallet on the same phone. */
+function phoneDepsOf(phone) {
+  return {
+    random: createExpoRandomSource((a) => webcrypto.getRandomValues(a)),
+    clock: { now: () => new Date('2026-11-19T00:00:00Z') },
+    fetch: async () => {
+      throw new Error('no network in this test');
+    },
+    seen: createAsyncStorageSeenStore({ getItem: async () => null, setItem: async () => undefined }),
+    keySecrets: createWalletKeySecretStorage(phone.secureStore, { authenticationPrompt: () => 'prompt' }),
+    dataKeySecrets: createDataKeySecretStorage(phone.secureStore),
+    repository: createSqliteCredentialRepository(async () => phone.db),
+    plainStorage: { getItem: async (k) => phone.plain.get(k) ?? null, setItem: async (k, v) => void phone.plain.set(k, v) },
+    catalogueFile: { read: async () => phone.catalogueText, write: async (text) => void (phone.catalogueText = text) },
+  };
+}

@@ -46,6 +46,7 @@ export const failureSentenceKeys: Record<FailureCode, I18nKey> = {
   CLIENT_ID_MISMATCH: 'wallet.errors.CLIENT_ID_MISMATCH',
   VERIFIER_NOT_TRUSTED: 'wallet.errors.VERIFIER_NOT_TRUSTED',
   DID_RESOLUTION_FAILED: 'wallet.errors.DID_RESOLUTION_FAILED',
+  DID_RESOLUTION_UNAVAILABLE: 'wallet.errors.DID_RESOLUTION_UNAVAILABLE',
   KEY_NOT_FOUND: 'wallet.errors.KEY_NOT_FOUND',
   SKIPPED: 'wallet.errors.SKIPPED',
   OFFER_INVALID: 'wallet.errors.OFFER_INVALID',
@@ -77,6 +78,7 @@ export const checkSentenceKeys: Record<CheckId, I18nKey> = {
   structure: 'wallet.checks.structure',
   algorithm: 'wallet.checks.algorithm',
   certificate_chain: 'wallet.checks.certificate_chain',
+  did_resolution: 'wallet.checks.did_resolution',
   signature: 'wallet.checks.signature',
   validity_time: 'wallet.checks.validity_time',
   credential_type: 'wallet.checks.credential_type',
@@ -100,6 +102,7 @@ const actions: Partial<Record<FailureCode, FailureAction>> = {
   TX_CODE_REQUIRED: 'retry-pin',
   OFFER_EXPIRED: 'contact-issuer',
   NETWORK_ERROR: 'retry',
+  DID_RESOLUTION_UNAVAILABLE: 'retry',
   ISSUER_ERROR: 'contact-issuer',
   CREDENTIAL_INVALID: 'contact-issuer',
   ISSUER_MISMATCH: 'contact-issuer',
@@ -138,15 +141,30 @@ export interface FailureView {
 
 const isFailureCode = (code: unknown): code is FailureCode => typeof code === 'string' && Object.hasOwn(failureSentenceKeys, code);
 
+/**
+ * On the DID path (ADR-0020) the issuer is recognised through CertNet, not Identra's list: the
+ * sentences that name the list say CertNet there. The path is the SDK's own record: its checks
+ * carry `did_resolution` in place of `certificate_chain`.
+ */
+const didPathSentenceKeys: Partial<Record<FailureCode, I18nKey>> = {
+  ISSUER_NOT_TRUSTED: 'wallet.didPath.ISSUER_NOT_TRUSTED',
+  TRUST_LIST_UNAVAILABLE: 'wallet.didPath.TRUST_LIST_UNAVAILABLE',
+};
+export const isDidPathChecks = (checks: readonly Check[] | null | undefined): boolean => !!checks?.some((c) => c.id === 'did_resolution');
+
+/** The first check that failed (not skipped), in plain words worded for its trust path; null when none failed. */
+export function failedCheckKey(checks: readonly Check[] | null | undefined): I18nKey | null {
+  const failed = checks?.find((c) => !c.ok && !c.skipped);
+  if (!failed) return null;
+  if (!failed.code || !isFailureCode(failed.code)) return checkSentenceKeys[failed.id] ?? null;
+  return (isDidPathChecks(checks) ? didPathSentenceKeys[failed.code] : undefined) ?? failureSentenceKeys[failed.code];
+}
+
 /** Any code (an unknown one included) → what the screen says. Unknown codes read as a storage problem. */
 export function failureView(code: unknown, checks?: readonly Check[]): FailureView {
   const known: FailureCode = isFailureCode(code) ? code : 'STORAGE_ERROR';
   const action = actions[known] ?? 'close';
-  let detailKey: I18nKey | null = null;
-  if (known === 'CREDENTIAL_INVALID') {
-    const failed = checks?.find((c) => !c.ok && !c.skipped);
-    if (failed) detailKey = failed.code && isFailureCode(failed.code) ? failureSentenceKeys[failed.code] : checkSentenceKeys[failed.id];
-  }
+  const detailKey = known === 'CREDENTIAL_INVALID' ? failedCheckKey(checks) : null;
   return { code: known, action, titleKey: titleOverrides[known] ?? failureTitleKeys[action], sentenceKey: failureSentenceKeys[known], detailKey };
 }
 
@@ -208,6 +226,7 @@ export const presentationSentenceKeys: Record<FailureCode, I18nKey> = {
   KB_INVALID: OTHER,
   CHAIN_BROKEN: OTHER,
   DID_RESOLUTION_FAILED: OTHER,
+  DID_RESOLUTION_UNAVAILABLE: OTHER,
   SKIPPED: OTHER,
   TX_CODE_WRONG: OTHER,
   TX_CODE_REQUIRED: OTHER,

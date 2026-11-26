@@ -1,10 +1,12 @@
 // What the wallet screens show, computed from SDK results. Pure: no React, no i18n hook.
 import type { CredentialDetails, ResolvedOffer } from '@identra/sdk-app';
+import type { Check } from '@identra/sdk-core';
 
 import type { I18nKey } from '../../i18n';
 import type { CredentialStatus } from '../../types';
 import { credentialStatusFromVault, displayClaims, documentNameKeys, documentTypeOf, issuerDisplayName, type DisplayClaim } from './credentialPresentation';
 import type { WalletCredentialSummary } from './walletContainer';
+import { failedCheckKey } from './walletMessages';
 
 export type Locale = 'vi' | 'en';
 
@@ -26,6 +28,65 @@ export const knownIssuers: Record<string, { name: Record<Locale, string>; portal
 /** The issuer as a person reads it: the trusted name when known, else the known table, else the host. */
 export function issuerLabel(issuerUri: string, trustedName: string | null | undefined, locale: Locale): string {
   return trustedName || knownIssuers[issuerUri]?.name[locale] || issuerDisplayName(issuerUri);
+}
+
+export type TrustPath = 'x509' | 'did';
+
+/** Who issued a document and how the wallet recognised them (ADR-0020: two trust paths). */
+export interface IssuerView {
+  trustPath: TrustPath;
+  /**
+   * X.509: the name from Identra's trust list (else the known table, else the host). DID: the
+   * shortened issuer identifier, never a name (CertNet has none yet; the issuer's own claim, its web
+   * origin and the known table, keyed by URL, are never used).
+   */
+  issuerName: string;
+  /** DID path: the full identifier, for a person to compare; null on the X.509 path. */
+  issuerDid: string | null;
+}
+
+/** The part of a DID after `did:certnet:<network>:`, kept whole up to 16 characters, else its first 8 and last 6. */
+export function shortIssuerId(did: string): string {
+  const id = did.split(':').pop() ?? did;
+  return id.length <= 16 ? id : `${id.slice(0, 8)}…${id.slice(-6)}`;
+}
+
+export function issuerViewOf(s: { issuerUri: string; issuerName: string | null; trustPath?: TrustPath; issuerDid?: string | null }, locale: Locale): IssuerView {
+  if (s.trustPath === 'did' || typeof s.issuerDid === 'string') {
+    return { trustPath: 'did', issuerName: shortIssuerId(s.issuerDid ?? ''), issuerDid: s.issuerDid ?? null };
+  }
+  return { trustPath: 'x509', issuerName: issuerLabel(s.issuerUri, s.issuerName, locale), issuerDid: null };
+}
+
+/** The issuer line under a document's name: the name, or "Issuer ID <short id>" on the DID path. */
+export function issuerText(v: Pick<IssuerView, 'trustPath' | 'issuerName'>, t: (key: I18nKey, params?: Record<string, string>) => string): string {
+  return v.trustPath === 'did' ? t('wallet.trustPath.issuerId', { id: v.issuerName }) : v.issuerName;
+}
+
+/** Whether the identifier belongs to a CertNet test network (local or testnet), which the screens say. */
+export function isTestNetworkIssuer(v: Pick<IssuerView, 'issuerDid'>): boolean {
+  const network = v.issuerDid?.split(':')[2];
+  return network !== undefined && network !== 'mainnet';
+}
+
+/** How the issuer was checked, in a few words (the line under the issuer). */
+export function trustPathKey(v: Pick<IssuerView, 'trustPath' | 'issuerDid'>): I18nKey {
+  if (v.trustPath === 'x509') return 'wallet.trustPath.x509';
+  return isTestNetworkIssuer(v) ? 'wallet.trustPath.didTest' : 'wallet.trustPath.did';
+}
+
+/**
+ * What the detail's status block says after a check: the status meaning, then why when the last
+ * check said so. For an `invalid` document the failed check (both paths, as before). For `unknown`
+ * on the DID path the reason REPLACES the generic "the wallet could not reach the issuer": it was
+ * CertNet, or the status list, that did not answer.
+ */
+export function statusSentenceKeys(status: CredentialStatus, trustPath: TrustPath, checks: readonly Check[] | null): I18nKey[] {
+  const meaning = `identity.detail.statuses.${status}.description` as I18nKey;
+  const reason = failedCheckKey(checks);
+  if (status === 'invalid' && reason) return [meaning, reason];
+  if (status === 'unknown' && trustPath === 'did' && reason) return [reason];
+  return [meaning];
 }
 
 export function issuerPortalUrl(issuerUri: string, locale: Locale): string | null {
@@ -83,10 +144,9 @@ export function sanitizePin(text: string, pin: OfferView['pin']): string {
   return (pin.numeric ? text.replace(/\D/g, '') : text.replace(/\s/g, '')).slice(0, pin.length);
 }
 
-export interface CredentialListItem {
+export interface CredentialListItem extends IssuerView {
   id: string;
   nameKey: I18nKey;
-  issuerName: string;
   receivedDate: string;
   status: CredentialStatus;
 }
@@ -95,7 +155,7 @@ export function credentialListItem(summary: WalletCredentialSummary, locale: Loc
   return {
     id: summary.id,
     nameKey: documentNameKeys[documentTypeOf(summary.vct)],
-    issuerName: issuerLabel(summary.issuerUri, summary.issuerName, locale),
+    ...issuerViewOf(summary, locale),
     receivedDate: formatWalletDate(summary.createdAt, locale),
     status: credentialStatusFromVault(summary.status),
   };

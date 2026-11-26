@@ -9,7 +9,7 @@ import { diplomaClaimLabelKeys, displayClaims, documentNameKeys, documentTypeOf,
 import type { WalletApi } from './walletContainer';
 import type { FlowSession } from './walletFlows';
 import { failureCodeOfError, MAYBE_SENT_CODES, presentationFailureView, type FailureCode, type FailureView } from './walletMessages';
-import { issuerLabel, type Locale } from './walletViews';
+import { issuerViewOf, type IssuerView, type Locale } from './walletViews';
 
 /** Resolve failures after which no consent UI may appear: the wallet could not establish who is asking. */
 export const RETRY_LATER_CODES: ReadonlySet<FailureCode> = new Set(['TRUST_LIST_UNAVAILABLE', 'NETWORK_ERROR', 'VERIFIER_ERROR', 'DEVICE_LOCKED', 'USER_CANCELLED', 'STORAGE_ERROR']);
@@ -248,17 +248,16 @@ export function formatCountdown(seconds: number): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
-export interface DocumentChoice {
+export interface DocumentChoice extends IssuerView {
   credentialId: string;
   nameKey: I18nKey;
-  issuerName: string;
 }
 
 export function documentChoices(request: ResolvedPresentation, issuerUris: Record<string, string>, locale: Locale): DocumentChoice[] {
   return request.matches.map((m) => ({
     credentialId: m.credentialId,
     nameKey: documentNameKeys[documentTypeOf(m.vct)],
-    issuerName: issuerLabel(issuerUris[m.credentialId] ?? '', m.issuerName, locale),
+    ...issuerViewOf({ issuerUri: issuerUris[m.credentialId] ?? '', issuerName: m.issuerName, trustPath: m.trustPath, issuerDid: m.issuerDid }, locale),
   }));
 }
 

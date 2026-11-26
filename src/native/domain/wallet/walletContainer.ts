@@ -24,7 +24,19 @@ import {
   type WalletFailure,
   type WalletKeyStore,
 } from '@identra/sdk-app';
-import { base64Decode, VCT, type Clock, type Hasher, type HttpFetch, type RandomSource, type SeenStore, type Verifier } from '@identra/sdk-core';
+import {
+  base64Decode,
+  createCertNetDidResolver,
+  createCertNetTrustRegistry,
+  VCT,
+  type CertNetNetwork,
+  type Clock,
+  type Hasher,
+  type HttpFetch,
+  type RandomSource,
+  type SeenStore,
+  type Verifier,
+} from '@identra/sdk-core';
 
 import { PINNED_ROOT_CERTIFICATES_BASE64 } from './pinnedRoots';
 
@@ -49,6 +61,46 @@ export function pinnedRoots(): Uint8Array[] {
   return PINNED_ROOT_CERTIFICATES_BASE64.map((b64) => base64Decode(b64));
 }
 
+/** The CertNet gateway of the DID trust path (ADR-0020): deployment configuration, trusted like an Identra server. */
+export interface CertNetConfig {
+  gatewayUrl: string;
+  network: CertNetNetwork;
+}
+
+export class WalletConfigError extends Error {
+  readonly code = 'CERTNET_CONFIG_INVALID' as const;
+  constructor(reason: string) {
+    super(`CertNet configuration: ${reason}`);
+    this.name = 'WalletConfigError';
+  }
+}
+
+const NETWORKS: readonly string[] = ['local', 'testnet', 'mainnet'];
+
+/**
+ * EXPO_PUBLIC_CERTNET_GATEWAY_URL / EXPO_PUBLIC_CERTNET_NETWORK → the DID path's configuration.
+ * Both or neither: neither is null (DID path off, the wallet as before). Anything else throws
+ * WalletConfigError: one of the two, a network other than local / testnet / mainnet, `local` in a
+ * production build (anyone can write the local trust registry), or a gateway URL the SDK refuses
+ * (https origin with an optional path, no query, fragment or userinfo).
+ */
+export function certNetConfigOf(raw: { gatewayUrl?: string; network?: string }, options: { production: boolean }): CertNetConfig | null {
+  const gatewayUrl = raw.gatewayUrl?.trim() ?? '';
+  const network = raw.network?.trim() ?? '';
+  if (!gatewayUrl && !network) return null;
+  if (!gatewayUrl || !network) throw new WalletConfigError('set both the gateway URL and the network, or neither');
+  if (!NETWORKS.includes(network)) throw new WalletConfigError('the network must be local, testnet or mainnet');
+  if (options.production && network === 'local') throw new WalletConfigError('a production build cannot use the local network');
+  const config = { gatewayUrl, network: network as CertNetNetwork };
+  try {
+    // The SDK's own check of the gateway URL (the same one createWallet runs); no request is made.
+    createCertNetTrustRegistry({ ...config, fetch: () => Promise.reject(new Error('unused')) });
+  } catch {
+    throw new WalletConfigError('the gateway URL must be an https origin, optionally with a path');
+  }
+  return config;
+}
+
 /** AsyncStorage-shaped storage for small non-secret data (issuer display names). */
 export interface PlainStorage {
   getItem(key: string): Promise<string | null>;
@@ -68,11 +120,13 @@ export interface WalletDependencies {
   /** Defaults to the pinned Identra roots; tests pass the SDK's test root. */
   trustedRoots?: Uint8Array[];
   trustListUrl?: string;
+  /** The DID trust path; absent or null: off (a DID issuer's offer is refused at resolve). */
+  certNet?: (CertNetConfig & { fetch: HttpFetch }) | null;
 }
 
 /** A held credential as the list shows it: the SDK summary plus the issuer name last seen for it. */
 export interface WalletCredentialSummary extends CredentialSummary {
-  /** The trusted organisation name from the last receipt or opening; null when never seen. */
+  /** The trusted organisation name from the last receipt or opening; null when never seen, always null on the DID path. */
   issuerName: string | null;
 }
 
@@ -213,6 +267,14 @@ export function createWallet(deps: WalletDependencies): Wallet {
     supportedVcts: [...SUPPORTED_VCTS],
     seen: deps.seen,
     allowedOrigins: [IDENTRA_API_ORIGIN],
+    ...(deps.certNet
+      ? {
+          dpki: {
+            resolver: createCertNetDidResolver({ gatewayUrl: deps.certNet.gatewayUrl, network: deps.certNet.network, fetch: deps.certNet.fetch, clock }),
+            trustRegistry: createCertNetTrustRegistry({ gatewayUrl: deps.certNet.gatewayUrl, network: deps.certNet.network, fetch: deps.certNet.fetch }),
+          },
+        }
+      : {}),
   });
 
   async function issuerNames(): Promise<Record<string, string>> {
@@ -239,7 +301,7 @@ export function createWallet(deps: WalletDependencies): Wallet {
       discard: (offer) => sdk.offers.discard(offer),
       async accept(offer, input) {
         const result = await sdk.offers.accept(offer, input);
-        if (result.ok) await rememberIssuerName(offer.issuerUri, result.issuerName);
+        if (result.ok && !result.issuerDid) await rememberIssuerName(offer.issuerUri, result.issuerName);
         return result;
       },
     },
@@ -247,11 +309,12 @@ export function createWallet(deps: WalletDependencies): Wallet {
     credentials: {
       async list() {
         const [summaries, names] = await Promise.all([sdk.credentials.list(), issuerNames()]);
-        return summaries.map((c) => ({ ...c, issuerName: names[c.issuerUri] ?? null }));
+        // The names are keyed by issuer URL, which a DID-path credential shares: it never takes one (ADR-0020).
+        return summaries.map((c) => ({ ...c, issuerName: c.trustPath === 'did' ? null : (names[c.issuerUri] ?? null) }));
       },
       async get(id) {
         const result = await sdk.credentials.get(id);
-        if (result.ok) await rememberIssuerName(result.credential.issuerUri, result.credential.issuerName);
+        if (result.ok && result.credential.trustPath === 'x509') await rememberIssuerName(result.credential.issuerUri, result.credential.issuerName);
         return result;
       },
       refreshStatus: (id) => sdk.credentials.refreshStatus(id),

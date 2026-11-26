@@ -27,9 +27,17 @@ export type ReceiveState =
   | { phase: 'consent'; offer: ResolvedOffer; failure: FailureView | null; attempt: number }
   /** The code was redeemed and the SDK can resume (`retryable && codeRedeemed`): "Thử lại" without the PIN. */
   | { phase: 'resume'; offer: ResolvedOffer; failure: FailureView; attempt: number }
-  | { phase: 'accepting'; offer: ResolvedOffer; attempt: number; resuming: boolean }
-  /** `status`: `unknown` when the lists were unreachable at receipt (the SDK keeps the document). */
-  | { phase: 'received'; credentialId: string; vct: string; issuerName: string | null; issuerUri: string; status: 'valid' | 'unknown' }
+  /**
+   * `keyPrompt`: this attempt asks for the fingerprint or face (a new key). False only when the SDK
+   * holds a received credential and its key and just verifies it again (issuer DID not resolved).
+   */
+  | { phase: 'accepting'; offer: ResolvedOffer; attempt: number; resuming: boolean; keyPrompt: boolean }
+  /**
+   * `status`: `unknown` when the lists were unreachable at receipt (the SDK keeps the document).
+   * `issuerDid`: the DID path (ADR-0020), whose issuer has no name. `keyAuthenticated`: the person
+   * just passed the biometric prompt for the new key (the access gate may trust it for a moment).
+   */
+  | { phase: 'received'; credentialId: string; vct: string; issuerName: string | null; issuerDid: string | null; issuerUri: string; status: 'valid' | 'unknown'; keyAuthenticated: boolean }
   /**
    * Final: nothing was saved and this offer cannot complete; a new code is needed. `codeSpent`:
    * the code is known to be used (redeemed by this wallet, or the issuer says it is gone).
@@ -59,6 +67,7 @@ const RESUME_SENTENCES: Partial<Record<FailureCode, I18nKey>> = {
   USER_CANCELLED: 'wallet.receive.resume.USER_CANCELLED',
   DEVICE_LOCKED: 'wallet.receive.resume.DEVICE_LOCKED',
   NETWORK_ERROR: 'wallet.receive.resume.NETWORK_ERROR',
+  DID_RESOLUTION_UNAVAILABLE: 'wallet.receive.resume.DID_RESOLUTION_UNAVAILABLE',
 };
 /** Back on the PIN step with the code not redeemed: say that it was not sent, not that it is spent. */
 const NOT_REDEEMED_SENTENCES: Partial<Record<FailureCode, I18nKey>> = {
@@ -78,8 +87,11 @@ export interface AcceptOutcome {
 export function acceptOutcomeOf(failure: { code: FailureCode; checks?: Check[] }, offer: ResolvedOffer): AcceptOutcome {
   const f = failure as { retryable?: unknown; codeRedeemed?: unknown };
   const offerRedeemed = (offer as { codeRedeemed?: unknown }).codeRedeemed === true;
+  // The credential arrived but CertNet did not answer for its issuer (ADR-0020): not the issuer's
+  // network, and nothing was stored; the SDK keeps it to verify again.
+  const didUnresolved = failure.code === 'NETWORK_ERROR' && !!failure.checks?.some((c) => c.id === 'did_resolution' && c.code === 'DID_RESOLUTION_UNAVAILABLE');
   return {
-    code: failure.code,
+    code: didUnresolved ? 'DID_RESOLUTION_UNAVAILABLE' : failure.code,
     ...(failure.checks ? { checks: failure.checks } : {}),
     retryable: f.retryable === true,
     codeRedeemed: typeof f.codeRedeemed === 'boolean' ? f.codeRedeemed : offerRedeemed,
@@ -120,8 +132,8 @@ export function receiveReducer(state: ReceiveState, event: ReceiveEvent): Receiv
     case 'retry-resolve':
       return state.phase === 'resolve-failed' ? { phase: 'resolving' } : state;
     case 'submit':
-      if (state.phase === 'consent') return { phase: 'accepting', offer: state.offer, attempt: state.attempt + 1, resuming: false };
-      if (state.phase === 'resume') return { phase: 'accepting', offer: state.offer, attempt: state.attempt + 1, resuming: true };
+      if (state.phase === 'consent') return { phase: 'accepting', offer: state.offer, attempt: state.attempt + 1, resuming: false, keyPrompt: true };
+      if (state.phase === 'resume') return { phase: 'accepting', offer: state.offer, attempt: state.attempt + 1, resuming: true, keyPrompt: state.failure.code !== 'DID_RESOLUTION_UNAVAILABLE' };
       return state;
     case 'accepted':
     case 'accept-threw': {
@@ -129,8 +141,18 @@ export function receiveReducer(state: ReceiveState, event: ReceiveEvent): Receiv
       if (event.type === 'accepted' && event.result.ok) {
         // Read defensively: `status` is new in the SDK's accept result.
         const status = (event.result as { status?: unknown }).status === 'unknown' ? 'unknown' : 'valid';
-        // issuerName is null when the trust list could not be read at receipt (status unknown).
-        return { phase: 'received', credentialId: event.result.credentialId, vct: event.result.vct, issuerName: event.result.issuerName, issuerUri: state.offer.issuerUri, status };
+        // issuerName is null when the trust list could not be read at receipt (status unknown), and always on the DID path.
+        const issuerDid = typeof event.result.issuerDid === 'string' ? event.result.issuerDid : null;
+        return {
+          phase: 'received',
+          credentialId: event.result.credentialId,
+          vct: event.result.vct,
+          issuerName: issuerDid ? null : event.result.issuerName,
+          issuerDid,
+          issuerUri: state.offer.issuerUri,
+          status,
+          keyAuthenticated: state.keyPrompt,
+        };
       }
       if (event.type === 'accept-threw') return acceptFailure(state, { code: event.code, retryable: false, codeRedeemed: false });
       return acceptFailure(state, acceptOutcomeOf(event.result as WalletFailure, state.offer));

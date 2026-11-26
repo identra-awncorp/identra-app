@@ -11,15 +11,15 @@ const { webcrypto } = require('node:crypto');
 const { missing, world: sdkWorld, freePort } = require('./helpers/sdkWorld');
 const { createWorld, startListener, rootDer, DIPLOMA } = sdkWorld ?? {};
 
-const { createWallet, TRUST_LIST_URL } = require('../.tmp-test/src/native/domain/wallet/walletContainer');
-const { createWalletHttpFetch } = require('../.tmp-test/src/native/data/wallet/httpFetch');
+const { certNetConfigOf, createWallet, TRUST_LIST_URL } = require('../.tmp-test/src/native/domain/wallet/walletContainer');
+const { createGatewayHttpFetch, createWalletHttpFetch } = require('../.tmp-test/src/native/data/wallet/httpFetch');
 const { createExpoRandomSource } = require('../.tmp-test/src/native/data/wallet/randomSource');
 const { createDataKeySecretStorage, createWalletKeySecretStorage } = require('../.tmp-test/src/native/data/wallet/secretStorage');
 const { createAsyncStorageSeenStore } = require('../.tmp-test/src/native/data/wallet/seenStore');
 const { createSqliteCredentialRepository } = require('../.tmp-test/src/native/data/wallet/credentialRepository');
 const { credentialOfferQrText, parseQrScanValue } = require('../.tmp-test/src/native/domain/scan/qrScan');
 const { initialReceiveState, receiveReducer, runAccept, shouldClearPin, detailReducer, initialDetailState } = require('../.tmp-test/src/native/domain/wallet/walletFlows');
-const { credentialDetailView, credentialListItems, offerView } = require('../.tmp-test/src/native/domain/wallet/walletViews');
+const { credentialDetailView, credentialListItems, offerView, statusSentenceKeys } = require('../.tmp-test/src/native/domain/wallet/walletViews');
 const { translate } = require('../.tmp-test/src/native/i18n');
 const { createFakeSecureStore } = require('./helpers/fakeSecureStore');
 const { openExpoSqliteDouble } = require('./helpers/expoSqliteDouble');
@@ -36,7 +36,7 @@ function memoryStorage() {
 }
 
 /** The app's container exactly as walletRuntime builds it, with Node stand-ins for the Expo modules. */
-function appWallet(world, { fetch: platformFetch = (url, init) => fetch(url, init) } = {}) {
+function appWallet(world, { fetch: platformFetch = (url, init) => fetch(url, init), dpki = false } = {}) {
   const phone = { secureStore: createFakeSecureStore(), db: openExpoSqliteDouble(), catalogue: null, plain: memoryStorage(), seen: memoryStorage() };
   phone.wallet = createWallet({
     random: createExpoRandomSource((a) => webcrypto.getRandomValues(a)),
@@ -51,6 +51,9 @@ function appWallet(world, { fetch: platformFetch = (url, init) => fetch(url, ini
     plainStorage: phone.plain,
     trustedRoots: [rootDer()], // the SDK's TEST root; the app ships the DEMO root (pinnedRoots.ts)
     trustListUrl: TRUST_LIST_URL,
+    // The DID path as walletRuntime wires it: validated configuration, the app's gateway fetch over
+    // the SDK's fake CertNet gateway (an in-process stand-in for the platform fetch).
+    certNet: dpki ? { ...certNetConfigOf({ gatewayUrl: world.gateway.base, network: 'local' }, { production: false }), fetch: createGatewayHttpFetch({ fetch: (url) => world.gateway.fetch(url), gatewayUrl: world.gateway.base }) } : null,
   });
   return phone;
 }
@@ -211,6 +214,86 @@ describe('the app wallet receives and keeps a diploma from a real issuer (no dev
     assert.equal(translate('vi', state.failure.sentenceKey), 'Giấy tờ nhận được không qua được kiểm tra nên chưa được lưu.');
     assert.deepEqual(await demoRooted.credentials.list(), []);
     assert.equal([...phone.secureStore.state.items.keys()].some((k) => k.startsWith('identra.wallet.keys::')), false, 'the key made for it was deleted');
+  });
+});
+
+describe('the app wallet receives a diploma from a DID issuer through CertNet (ADR-0020, fake gateway)', { skip: missing }, () => {
+  /** The receive screen: reducer state + the screen's submit handler. */
+  async function receiveScreen(wallet, qr) {
+    const box = { state: receiveReducer(initialReceiveState, { type: 'device-checked', ready: true }) };
+    box.state = receiveReducer(box.state, { type: 'resolved', result: await wallet.offers.resolve(credentialOfferQrText(parseQrScanValue(qr).offerUri)) });
+    return { box, session: { get: () => box.state, dispatch: (e) => (box.state = receiveReducer(box.state, e)) } };
+  }
+  const keysOf = (phone) => [...phone.secureStore.state.items.keys()].filter((k) => k.startsWith('identra.wallet.keys::'));
+
+  it('receives, stores the issuer DID, lists it without a name, and re-checks: valid, not checked (CertNet silent), no longer recognised', async () => {
+    const world = await createWorld(listener, { did: {} });
+    const did = world.didSigner.kid.split('#')[0];
+    const phone = appWallet(world, { dpki: true });
+    const { offerUri: qr, txCode } = await world.offer();
+    const { box, session } = await receiveScreen(phone.wallet, qr);
+    assert.equal(box.state.phase, 'consent', JSON.stringify(box.state));
+    await runAccept(session, phone.wallet, txCode, 6);
+    assert.deepEqual([box.state.phase, box.state.issuerDid, box.state.issuerName, box.state.keyAuthenticated], ['received', did, null, true], JSON.stringify(box.state));
+
+    const row = phone.db.raw.prepare('SELECT issuer, issuer_did, status_cache FROM credentials').get();
+    assert.deepEqual({ ...row }, { issuer: sdkWorld.DID_ISS, issuer_did: did, status_cache: 'valid' }, 'issuer stays the credential issuer URL');
+    const [item] = credentialListItems(await phone.wallet.credentials.list(), 'vi');
+    assert.deepEqual([item.trustPath, item.issuerName, item.issuerDid, item.status], ['did', 'truongdid0001', did, 'verified']);
+    assert.equal(world.gateway.state.calls.every((u) => u.startsWith(world.gateway.base)), true);
+
+    let detail = detailReducer(initialDetailState, { type: 'loaded', result: await phone.wallet.credentials.get(box.state.credentialId) });
+    assert.deepEqual([detail.details.trustPath, detail.details.issuerName], ['did', null]);
+    const refresh = async () => {
+      detail = detailReducer(detail, { type: 'refresh' });
+      detail = detailReducer(detail, { type: 'refreshed', result: await phone.wallet.credentials.refreshStatus(box.state.credentialId), checkedAt: world.clock.now().toISOString() });
+      const view = credentialDetailView(detail.details, 'vi');
+      return [view.status, statusSentenceKeys(view.status, view.trustPath, detail.refreshChecks)];
+    };
+    assert.deepEqual(await refresh(), ['verified', ['identity.detail.statuses.verified.description']]);
+    world.gateway.state.tirDown = true;
+    assert.deepEqual(await refresh(), ['unknown', ['wallet.didPath.TRUST_LIST_UNAVAILABLE']], 'not checked yet, never valid');
+    world.gateway.state.tirDown = false;
+    world.gateway.state.recognition = 'rejected';
+    assert.deepEqual(await refresh(), ['invalid', ['identity.detail.statuses.invalid.description', 'wallet.didPath.ISSUER_NOT_TRUSTED']]);
+    assert.equal(translate('vi', 'wallet.didPath.ISSUER_NOT_TRUSTED'), 'Nơi cấp hiện không được công nhận qua CertNet cho loại giấy tờ này.');
+  });
+
+  it('an issuer DID CertNet cannot resolve at receipt: nothing stored, "Thử lại" without the PIN verifies it again, one credential issued', async () => {
+    const world = await createWorld(listener, { did: {} });
+    const phone = appWallet(world, { dpki: true });
+    const { offerUri: qr, txCode } = await world.offer();
+    const { box, session } = await receiveScreen(phone.wallet, qr);
+    const answers = [];
+    const wallet = { offers: { ...phone.wallet.offers, accept: async (o, i) => (answers.push(i), phone.wallet.offers.accept(o, i)) } };
+    world.gateway.state.down = true;
+    await runAccept(session, wallet, txCode, 6);
+    assert.deepEqual([box.state.phase, box.state.failure.code], ['resume', 'DID_RESOLUTION_UNAVAILABLE'], JSON.stringify(box.state));
+    assert.deepEqual(await phone.wallet.credentials.list(), []);
+    assert.equal(phone.db.raw.prepare('SELECT count(*) AS n FROM credentials').get().n, 0, 'nothing stored');
+    assert.equal(keysOf(phone).length, 1, 'its key waits for the retry');
+
+    world.gateway.state.down = false;
+    await runAccept(session, wallet, '', 6); // the PIN field is not shown on resume
+    assert.deepEqual(answers, [{ txCode }, {}], 'the PIN was sent once');
+    assert.deepEqual([box.state.phase, box.state.keyAuthenticated], ['received', false]);
+    assert.equal(world.issued.length, 1, 'no second credential request');
+    assert.equal(phone.db.raw.prepare('SELECT count(*) AS n FROM credentials').get().n, 1);
+  });
+
+  it('a wallet without the DID path refuses a DID issuer\'s offer at resolve, before the PIN and without a key', async () => {
+    const world = await createWorld(listener, { did: {} });
+    const phone = appWallet(world);
+    const { offerUri: qr } = await world.offer();
+    listener.requests.length = 0;
+    const { box } = await receiveScreen(phone.wallet, qr);
+    // ponytail: the SDK answers OFFER_INVALID, the same code as a malformed offer, so the screen
+    // cannot say "this wallet cannot receive this document yet" (an SDK code is needed; see README).
+    assert.deepEqual([box.state.phase, box.state.failure.code, box.state.failure.action], ['resolve-failed', 'OFFER_INVALID', 'scan-again']);
+    assert.ok(listener.requests.length > 0, 'the offer and metadata were read');
+    assert.equal(listener.requests.some((r) => r.includes('token')), false, 'the code was not spent');
+    assert.deepEqual(keysOf(phone), []);
+    assert.deepEqual(world.gateway.state.calls, []);
   });
 });
 

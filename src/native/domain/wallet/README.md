@@ -24,11 +24,55 @@ Protocol and cryptography live in `@identra/sdk-app` / `@identra/sdk-core`; this
 - One wallet per app process; created on first use, never at import.
 - Wallet keys: SecureStore, biometrics on every read, `WHEN_UNLOCKED_THIS_DEVICE_ONLY`, service `identra.wallet.keys`. The vault data key: no biometrics, `WHEN_UNLOCKED_THIS_DEVICE_ONLY`, service `identra.wallet.vault`.
 - `SecretStorage.get` resolves `null` only for "not found". Cancelled prompt, locked device, invalidated key and any other failure reject with `SecretStorageError` (codes `CANCELLED`, `LOCKED`, `KEY_INVALIDATED`, `UNAVAILABLE`). `KEY_INVALIDATED` = biometrics changed: that credential must be requested again.
-- SQLite file `identra-wallet.db`, table from the SDK's `CREDENTIALS_TABLE_DDL`, version in `PRAGMA user_version`, bound parameters only, one statement at a time.
+- SQLite file `identra-wallet.db`, table from the SDK's `CREDENTIALS_TABLE_DDL`, version in `PRAGMA user_version`, bound parameters only, one statement at a time. The repository lists its columns explicitly: a new SDK column needs a migration here, or its value is dropped (for `issuer_did` that would make DID-path rows `UNDECRYPTABLE`).
 - The backup catalogue file `identra-backup-catalogue.json` lists document type and issuer only. It keeps documents that a restored phone still has to request again: a save adds, a removal drops only what no row holds, `forgetDocument` drops on request.
 - Rows without the data key (`restored-device`) are never deleted until the user confirms (`acknowledgeNewDevice`).
 - Errors carry codes only: no key, data key, compact credential, claim value, URL or native message.
 - HTTP: https only (plus the mapped development origin), no redirects, no cookies, 10 s default timeout, 256 KB body cap.
+
+## DID trust path (ADR-0020)
+
+Beside the X.509 path, an issuer can be a `did:certnet` DID checked through CertNet (key from the
+gateway's DID document, recognition from its trust registry). The SDK does every check; the app
+configures it, stores one column and says on screen which path was used.
+
+- **Configuration** (public, inlined at build time, see `.env.example`): `EXPO_PUBLIC_CERTNET_GATEWAY_URL`
+  (an `https://` origin, optionally with a path; no query, fragment or userinfo) and
+  `EXPO_PUBLIC_CERTNET_NETWORK` (`local`, `testnet` or `mainnet`). Both or neither. Neither: the DID
+  path is off and the wallet behaves exactly as before (a DID issuer's offer is refused at resolve
+  with `OFFER_INVALID`, before the PIN). `certNetConfigOf` validates them: one without the other, an
+  unknown network, `local` in a release build (anyone can write the local trust registry) or a URL
+  the SDK refuses is a `WalletConfigError`; a development build stops on it, a release build runs
+  with the DID path off rather than lose the X.509 wallet. The gateway is trusted configuration
+  (its answers are unsigned, ADR-0020 §9).
+- **Network**: `createGatewayHttpFetch` (data/wallet/httpFetch.ts) is the wallet's own adapter
+  (https, no redirect, no cookies, timeout and size cap) restricted to the gateway's origin; the
+  resolver and the trust registry are its only users. There is no development mapping to an http
+  gateway: test against an https gateway or the SDK's fake gateway (tests).
+- **Migration**: schema version 3 adds the nullable `issuer_did` in place (`ALTER TABLE ... ADD
+  COLUMN`, one transaction with the version stamp); a version 1 table is rebuilt straight to 3. Rows
+  from before have NULL there and read and open as X.509. The repository writes and reads the
+  column; the SDK binds it to the ciphertext.
+- **What the screens say** (`walletViews.ts`: `issuerViewOf`, `issuerText`, `trustPathKey`,
+  `statusSentenceKeys`): X.509 keeps the trust-list name and adds "Xác minh qua chứng nhận số";
+  the DID path never shows a name (not the issuer's own, not its web origin, not `knownIssuers`,
+  not the name cache, all keyed by issuer URL, which both paths share): "Mã nơi cấp <short id>"
+  and "Xác minh qua CertNet" ("(mạng thử nghiệm)" for `local` / `testnet`). The detail screen has
+  "Cách xác minh nơi cấp": what CertNet is, why there is no name, the full identifier (selectable,
+  to compare with the issuer's own) and a test-network note.
+- **States**: valid; not checked yet because CertNet did not answer (status `unknown`, the detail
+  says it was CertNet, "Kiểm tra lại" retries); issuer no longer recognised (`invalid`, "Nơi cấp
+  hiện không được công nhận qua CertNet…"); issuer DID not resolvable at receipt (SDK
+  `NETWORK_ERROR` with a `did_resolution` `DID_RESOLUTION_UNAVAILABLE` check, read as
+  `DID_RESOLUTION_UNAVAILABLE`: "Thử lại" without the PIN and without a fingerprint prompt, nothing
+  saved until it passes; such a retry does not open the credential access gate for two minutes,
+  since no biometric prompt happened). Messages: check `did_resolution`, code
+  `DID_RESOLUTION_UNAVAILABLE`, and DID-path wording of `ISSUER_NOT_TRUSTED` /
+  `TRUST_LIST_UNAVAILABLE` (CertNet, not Identra's list), chosen from the SDK's checks.
+- **Not done**: a DID issuer's offer when the DID path is off reads as a bad code ("Đây không phải
+  mã nhận giấy tờ…"), because the SDK answers it with the same `OFFER_INVALID`; a distinct code from
+  the SDK is needed for "ví này chưa nhận được giấy tờ này". The backup catalogue keeps the issuer
+  URL only, so the restore list names a DID issuer by URL (host or `knownIssuers`), as before.
 
 ## Screens (src/native/screens/identity)
 
@@ -42,8 +86,9 @@ Protocol and cryptography live in `@identra/sdk-app` / `@identra/sdk-core`; this
 
 `tests/walletAdapters.test.js`, `tests/walletRepository.test.js` (SQL run by `node:sqlite`), `tests/walletCatalogueFile.test.js` (catalogue writes against a fake with expo-file-system's native move semantics, a failure injected at every step),
 `tests/walletContainer.test.js`, `tests/walletRuntimeGlobals.test.js`, `tests/qrScan.test.js`,
-`tests/walletMessages.test.js`, `tests/walletFlows.test.js`, `tests/presentationFlow.test.js`,
+`tests/walletMessages.test.js`, `tests/walletFlows.test.js` (incl. the DID path's receipt, views and re-check sentences), `tests/presentationFlow.test.js`,
 `tests/walletPresentation.e2e.test.js` (issue, then present to the SDK's test verifier over HTTP), and `tests/walletIssuance.e2e.test.js`
 (a real issuance over HTTP against the SDK's own test issuer world, through the app's adapters,
-container and view-models). Screens for review: `docs/runbooks/wallet-screen-review.md`.
+container and view-models; also a DID issuer through the SDK's fake CertNet gateway: receipt,
+re-checks, an unresolved DID retried without the PIN, and the refusal with the DID path off). Screens for review: `docs/runbooks/wallet-screen-review.md`.
 What only a device can prove: `docs/runbooks/wallet-device-verification.md`.

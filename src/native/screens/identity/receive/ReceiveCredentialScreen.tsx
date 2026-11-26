@@ -8,7 +8,7 @@ import { LoadingOverlay } from '../../../components/LoadingOverlay';
 import { documentNameKeys, documentTypeOf, issuerDisplayName } from '../../../domain/wallet/credentialPresentation';
 import type { WalletApi } from '../../../domain/wallet/walletContainer';
 import { abandonOffer, initialReceiveState, receiveReducer, runAccept, shouldClearPin, type ReceiveEvent, type ReceiveState } from '../../../domain/wallet/walletFlows';
-import { issuerLabel, issuerPortalUrl, offerView, sanitizePin } from '../../../domain/wallet/walletViews';
+import { issuerPortalUrl, issuerText, issuerViewOf, offerView, sanitizePin, trustPathKey } from '../../../domain/wallet/walletViews';
 import { useI18n } from '../../../i18n';
 import type { AppColors } from '../../../theme';
 import { spacing } from '../../../theme';
@@ -40,7 +40,7 @@ export function ReceiveCredentialScreen({
   onOpenCredential: (credentialId: string) => void;
   onOpenPortal: (url: string) => void;
   onOpenSettings: () => void;
-  /** The platform just verified biometrics for the new key. */
+  /** The platform just verified biometrics for the new key (not called when the last attempt asked for none). */
   onReceived: () => void;
 }) {
   const { locale, t } = useI18n();
@@ -55,7 +55,7 @@ export function ReceiveCredentialScreen({
   const dispatch = useCallback((event: ReceiveEvent) => {
     const next = receiveReducer(stateRef.current, event);
     if (shouldClearPin(stateRef.current, next)) setPin('');
-    if (next.phase === 'received' && stateRef.current.phase !== 'received') onReceivedRef.current();
+    if (next.phase === 'received' && stateRef.current.phase !== 'received' && next.keyAuthenticated) onReceivedRef.current();
     if (next.phase === 'consent') resolvedOffer.current = next.offer;
     stateRef.current = next;
     rawDispatch(event);
@@ -108,6 +108,9 @@ export function ReceiveCredentialScreen({
   const view = offer ? offerView(offer, locale) : null;
   const resuming = state.phase === 'resume' || (state.phase === 'accepting' && state.resuming);
   const pinReady = resuming || !view?.pin || pin.length === view.pin.length;
+  // Verifying again a document that already arrived (its issuer could not be checked) creates no key: no prompt.
+  const asksForKey = state.phase === 'resume' ? state.failure.code !== 'DID_RESOLUTION_UNAVAILABLE' : state.phase !== 'accepting' || state.keyPrompt;
+  const received = state.phase === 'received' ? issuerViewOf(state, locale) : null;
 
   // On resume the SDK keeps the access token: no PIN is sent again (acceptInput).
   const submit = () => runAccept({ get: () => stateRef.current, dispatch }, wallet, pin, view?.pin?.length ?? null);
@@ -217,16 +220,18 @@ export function ReceiveCredentialScreen({
               </View>
             ) : null}
 
-            <View style={[styles.biometricNote, { backgroundColor: colors.surfaceMuted }]}>
-              <Fingerprint color={colors.primaryDark} size={20} strokeWidth={1.9} />
-              <Text style={[styles.biometricText, { color: colors.text }]}>
-                {t(Platform.OS === 'android' ? 'wallet.receive.biometricNoteAndroid' : 'wallet.receive.biometricNote', { button: resuming ? t('wallet.actions.tryAgain') : t('wallet.receive.accept') })}
-              </Text>
-            </View>
+            {asksForKey ? (
+              <View style={[styles.biometricNote, { backgroundColor: colors.surfaceMuted }]}>
+                <Fingerprint color={colors.primaryDark} size={20} strokeWidth={1.9} />
+                <Text style={[styles.biometricText, { color: colors.text }]}>
+                  {t(Platform.OS === 'android' ? 'wallet.receive.biometricNoteAndroid' : 'wallet.receive.biometricNote', { button: resuming ? t('wallet.actions.tryAgain') : t('wallet.receive.accept') })}
+                </Text>
+              </View>
+            ) : null}
           </>
         ) : null}
 
-        {state.phase === 'received' ? (
+        {state.phase === 'received' && received ? (
           <>
             <View style={walletStyles.center}>
               <CheckCircle2 color={colors.success} size={56} strokeWidth={1.8} />
@@ -240,15 +245,25 @@ export function ReceiveCredentialScreen({
                 <CredentialIcon icon="graduation" boxSize={48} size={26} colors={colors} />
                 <View style={styles.flex}>
                   <Text style={[walletStyles.value, { color: colors.text }]}>{t(documentNameKeys[documentTypeOf(state.vct)])}</Text>
-                  <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{issuerLabel(state.issuerUri, state.issuerName, locale)}</Text>
+                  <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{issuerText(received, t)}</Text>
+                  <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t(trustPathKey(received))}</Text>
                   <View style={styles.pillRow}>
                     <StatusPill status={state.status === 'unknown' ? 'unknown' : 'verified'} compact colors={colors} />
                   </View>
                 </View>
               </View>
+              {received.trustPath === 'did' ? (
+                // First place a person meets CertNet: what it is, and why there is no name.
+                <>
+                  <View style={[walletStyles.divider, { backgroundColor: colors.border }]} />
+                  <Text style={[walletStyles.meta, styles.panelNote, { color: colors.textSecondary }]}>
+                    {t('wallet.trustPath.certNetMeaning')} {t('wallet.trustPath.didNoName')}
+                  </Text>
+                </>
+              ) : null}
             </Panel>
             <View style={walletStyles.actions}>
-              <PrimaryButton colors={colors} title={t('wallet.receive.viewDocument')} onPress={() => onOpenCredential(state.credentialId)} />
+              <PrimaryButton colors={colors} title={t('wallet.receive.viewDocument')}onPress={() => onOpenCredential(state.credentialId)} />
               <TextAction colors={colors} label={t('common.close')} onPress={onClose} />
             </View>
           </>
@@ -319,4 +334,5 @@ const styles = StyleSheet.create({
   biometricNote: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderRadius: 16, padding: spacing.md },
   biometricText: { flex: 1, fontSize: 14, lineHeight: 20 },
   centerText: { textAlign: 'center' },
+  panelNote: { paddingVertical: spacing.md },
 });

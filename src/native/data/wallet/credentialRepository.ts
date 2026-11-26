@@ -4,9 +4,10 @@ export const WALLET_DATABASE_NAME = 'identra-wallet.db';
 /**
  * 1: the first table. 2: `status_cache` also allows 'invalid' (SDK 373a673): SQLite cannot alter a
  * CHECK constraint, so the table is recreated from the SDK's DDL and the rows copied, in one
- * transaction.
+ * transaction. 3: the nullable `issuer_did` (ADR-0020, the DID trust path), added in place; rows
+ * written before have NULL there and read as X.509.
  */
-export const WALLET_SCHEMA_VERSION = 2;
+export const WALLET_SCHEMA_VERSION = 3;
 
 type Bind = string | number | null;
 
@@ -30,7 +31,9 @@ export class WalletDatabaseError extends Error {
   }
 }
 
-const COLUMNS = 'id, vct, issuer, key_id, ciphertext, status_cache, status_checked_at, created_at';
+/** The columns of a version 1 or 2 table (what the 1 -> 2 rebuild copies). */
+const V2_COLUMNS = 'id, vct, issuer, key_id, ciphertext, status_cache, status_checked_at, created_at';
+const COLUMNS = 'id, vct, issuer, issuer_did, key_id, ciphertext, status_cache, status_checked_at, created_at';
 
 /** Runs `source` as one transaction; on failure rolls back so the old schema and rows stay. */
 async function inTransaction(db: SqliteDatabaseLike, source: string): Promise<void> {
@@ -50,6 +53,11 @@ export async function migrateWalletDatabase(db: SqliteDatabaseLike): Promise<voi
   const version = row?.user_version ?? 0;
   if (version > WALLET_SCHEMA_VERSION) throw new WalletDatabaseError('SCHEMA_TOO_NEW');
   if (version === WALLET_SCHEMA_VERSION) return;
+  if (version === 2) {
+    // 2 -> 3: one nullable column; every existing row keeps its values and reads as X.509.
+    await inTransaction(db, `ALTER TABLE credentials ADD COLUMN issuer_did TEXT;\nPRAGMA user_version = ${WALLET_SCHEMA_VERSION};`);
+    return;
+  }
   if (version === 0) {
     // A v0 file can already hold the v1 table (an older first run stopped before stamping it):
     // that one is rebuilt below like a v1 table, or 'invalid' could never be stored.
@@ -59,12 +67,12 @@ export async function migrateWalletDatabase(db: SqliteDatabaseLike): Promise<voi
       return;
     }
   }
-  // 1 -> 2: recreate with the new CHECK and copy every row unchanged.
+  // 1 -> 3: recreate from the SDK's DDL (new CHECK, issuer_did) and copy every row unchanged.
   await inTransaction(
     db,
     `ALTER TABLE credentials RENAME TO credentials_v1;
 ${CREDENTIALS_TABLE_DDL};
-INSERT INTO credentials (${COLUMNS}) SELECT ${COLUMNS} FROM credentials_v1;
+INSERT INTO credentials (${V2_COLUMNS}) SELECT ${V2_COLUMNS} FROM credentials_v1;
 DROP TABLE credentials_v1;
 PRAGMA user_version = ${WALLET_SCHEMA_VERSION};`,
   );
@@ -105,10 +113,12 @@ export function createSqliteCredentialRepository(open: () => Promise<SqliteDatab
   return {
     insert: (row) =>
       serial(async (db) => {
-        await db.runAsync(`INSERT INTO credentials (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
+        await db.runAsync(`INSERT INTO credentials (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
           row.id,
           row.vct,
           row.issuer,
+          // Bound to the ciphertext when set (the SDK vault): dropping it would make the row unreadable.
+          row.issuer_did ?? null,
           row.key_id,
           row.ciphertext,
           row.status_cache,

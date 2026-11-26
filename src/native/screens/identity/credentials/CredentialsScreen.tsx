@@ -2,7 +2,7 @@ import { History, ScanLine } from 'lucide-react-native';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader, CredentialIcon, ListChevron, PrimaryButton, ScreenScroll, StatusPill } from '../../../components/AppUiPrimitives';
-import type { CredentialListItem } from '../../../domain/wallet/walletViews';
+import { issuerText, trustPathKey, type CredentialListItem } from '../../../domain/wallet/walletViews';
 import type { FailureView } from '../../../domain/wallet/walletMessages';
 import { useI18n } from '../../../i18n';
 import type { AppColors } from '../../../theme';
@@ -80,7 +80,7 @@ export function CredentialsScreen({
                   <Pressable
                     key={item.id}
                     accessibilityRole="button"
-                    accessibilityLabel={`${t(item.nameKey)}, ${item.issuerName}, ${t(`common.status.${item.status}`)}`}
+                    accessibilityLabel={`${t(item.nameKey)}, ${issuerText(item, t)}, ${t(trustPathKey(item))}, ${t(`common.status.${item.status}`)}`}
                     onPress={() => onOpenCredential(item.id)}
                     style={({ pressed }) => [
                       styles.itemRow,
@@ -91,7 +91,8 @@ export function CredentialsScreen({
                     <CredentialIcon icon="graduation" boxSize={44} size={24} colors={colors} />
                     <View style={styles.flex}>
                       <Text numberOfLines={1} style={[walletStyles.value, { color: colors.text }]}>{t(item.nameKey)}</Text>
-                      <Text numberOfLines={1} style={[walletStyles.meta, { color: colors.textSecondary }]}>{item.issuerName}</Text>
+                      <Text numberOfLines={1} style={[walletStyles.meta, { color: colors.textSecondary }]}>{issuerText(item, t)}</Text>
+                      <Text numberOfLines={2} style={[walletStyles.meta, { color: colors.textSecondary }]}>{t(trustPathKey(item))}</Text>
                       <Text numberOfLines={1} style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.list.receivedOn', { date: item.receivedDate })}</Text>
                       <View style={styles.pill}>
                         <StatusPill status={item.status} compact colors={colors} />

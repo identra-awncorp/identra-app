@@ -14,6 +14,7 @@ import type { AppColors } from '../../theme';
 import { border, palette, radius, shadows, spacing, typography } from '../../theme';
 import type { CredentialsListState } from './credentials/CredentialsScreen';
 import { FailureNotice, TextAction } from './wallet/WalletParts';
+import { issuerText } from '../../domain/wallet/walletViews';
 import { MainTopHeader } from '../../components/MainTopHeader';
 import { useI18n } from '../../i18n';
 import {
@@ -121,7 +122,7 @@ export function WalletScreen({
             </View>
             <View style={styles.walletMain}>
               <Text style={styles.walletTitle}>{t(featured.nameKey)}</Text>
-              <Text style={styles.walletIssuer}>{featured.issuerName}</Text>
+              <Text style={styles.walletIssuer}>{issuerText(featured, t)}</Text>
               <View style={[styles.walletVerified, featured.status !== 'verified' && styles.walletStatusOther]}>
                 {featured.status === 'verified' ? <Check color={palette.white} size={14} strokeWidth={3} /> : null}
                 <Text style={styles.walletVerifiedText}>{t(`common.status.${featured.status}`)}</Text>
@@ -206,7 +207,7 @@ export function WalletScreen({
                   {t(credential.nameKey)}
                 </Text>
                 <Text numberOfLines={1} style={[styles.credentialIssuer, { color: colors.textSecondary }]}>
-                  {credential.issuerName}
+                  {issuerText(credential, t)}
                 </Text>
                 <StatusPill status={credential.status} compact colors={colors} />
               </View>

@@ -6,13 +6,13 @@ const { describe, it } = require('node:test');
 
 const { ErrorCodes } = require('@identra/sdk-core');
 const { WalletErrorCodes } = require('@identra/sdk-app');
-const { checkSentenceKeys, failureCodeOfError, failureSentenceKeys, failureView, presentationFailureView, presentationSentenceKeys } = require('../.tmp-test/src/native/domain/wallet/walletMessages');
+const { checkSentenceKeys, failedCheckKey, failureCodeOfError, failureSentenceKeys, failureView, presentationFailureView, presentationSentenceKeys } = require('../.tmp-test/src/native/domain/wallet/walletMessages');
 const { PINNED_ROOT_CERTIFICATES_BASE64 } = require('../.tmp-test/src/native/domain/wallet/pinnedRoots');
 const { translate } = require('../.tmp-test/src/native/i18n');
 const viModule = require('../.tmp-test/src/native/i18n/locales/vi');
 const enModule = require('../.tmp-test/src/native/i18n/locales/en');
 
-const CHECK_IDS = ['query', 'structure', 'algorithm', 'certificate_chain', 'signature', 'validity_time', 'credential_type', 'issuer_trust', 'status', 'holder_binding', 'product_chain', 'chain_format', 'chain_signatures', 'chain_validity', 'chain_constraints', 'leaf_key', 'issuer_uri'];
+const CHECK_IDS = ['query', 'structure', 'algorithm', 'certificate_chain', 'did_resolution', 'signature', 'validity_time', 'credential_type', 'issuer_trust', 'status', 'holder_binding', 'product_chain', 'chain_format', 'chain_signatures', 'chain_validity', 'chain_constraints', 'leaf_key', 'issuer_uri'];
 const APP_CODES = ['DEVICE_UNSUPPORTED', 'DATABASE_TOO_NEW'];
 /** Being added to the SDK (until then the app keeps its own entry; a Set, so it is not counted twice once it lands). */
 const PENDING_SDK_CODES = ['TX_CODE_REQUIRED'];
@@ -36,6 +36,35 @@ describe('wallet code → sentence tables', () => {
         assert.ok(text.length > 10, `${locale}: ${key} is not a sentence`);
       }
     }
+  });
+
+  it('words the DID trust path (ADR-0020): its new check and code, and CertNet where the X.509 sentence names Identra\'s list', () => {
+    assert.ok(ErrorCodes.DID_RESOLUTION_UNAVAILABLE, 'the SDK code this test is about');
+    const vi = (key) => translate('vi', key);
+    assert.equal(vi(checkSentenceKeys.did_resolution), 'Không xác minh được nơi cấp qua CertNet.');
+    const unavailable = failureView('DID_RESOLUTION_UNAVAILABLE');
+    assert.deepEqual([unavailable.action, vi(unavailable.sentenceKey)], ['retry', 'CertNet chưa trả lời nên ví chưa xác minh được nơi cấp. Hãy thử lại khi có mạng.']);
+    assert.equal(presentationFailureView('DID_RESOLUTION_UNAVAILABLE', 'resolve').sentenceKey, 'wallet.presentErrors.other');
+
+    const x509 = (failed) => [{ id: 'certificate_chain', ok: true, code: null }, failed];
+    const did = (failed) => [{ id: 'did_resolution', ok: true, code: null }, failed];
+    const untrusted = { id: 'issuer_trust', ok: false, code: 'ISSUER_NOT_TRUSTED' };
+    const tirDown = { id: 'issuer_trust', ok: false, code: 'TRUST_LIST_UNAVAILABLE' };
+    // X.509 unchanged.
+    assert.equal(failureView('CREDENTIAL_INVALID', x509(untrusted)).detailKey, 'wallet.errors.ISSUER_NOT_TRUSTED');
+    assert.equal(failedCheckKey(x509(tirDown)), 'wallet.errors.TRUST_LIST_UNAVAILABLE');
+    // DID path: CertNet, never "Identra's list".
+    assert.equal(failureView('CREDENTIAL_INVALID', did(untrusted)).detailKey, 'wallet.didPath.ISSUER_NOT_TRUSTED');
+    assert.equal(failedCheckKey(did(tirDown)), 'wallet.didPath.TRUST_LIST_UNAVAILABLE');
+    assert.equal(failedCheckKey([{ id: 'did_resolution', ok: false, code: 'DID_RESOLUTION_UNAVAILABLE' }, { id: 'signature', ok: false, code: 'SKIPPED', skipped: true }]), 'wallet.errors.DID_RESOLUTION_UNAVAILABLE');
+    for (const locale of ['vi', 'en']) {
+      for (const key of ['wallet.didPath.ISSUER_NOT_TRUSTED', 'wallet.didPath.TRUST_LIST_UNAVAILABLE', 'wallet.errors.DID_RESOLUTION_UNAVAILABLE', 'wallet.errors.DID_RESOLUTION_FAILED', 'wallet.checks.did_resolution']) {
+        const text = translate(locale, key);
+        assert.match(text, /CertNet/, `${locale}: ${key}`);
+        assert.equal(/Identra/.test(text), false, `${locale}: ${key} names Identra`);
+      }
+    }
+    assert.equal(failedCheckKey(null), null);
   });
 
   it('never shows a technical term or a raw code anywhere in the wallet and backup copy', () => {

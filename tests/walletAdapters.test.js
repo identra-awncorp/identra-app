@@ -4,6 +4,7 @@ const { webcrypto } = require('node:crypto');
 
 const { createExpoRandomSource, MAX_RANDOM_BYTES } = require('../.tmp-test/src/native/data/wallet/randomSource');
 const {
+  createGatewayHttpFetch,
   createHttpFetch,
   createWalletHttpFetch,
   HttpFetchError,
@@ -206,6 +207,30 @@ describe('HttpFetch adapter', () => {
     const unset = createWalletHttpFetch({ fetch: platformFetch, apiUrl: '  ', production: false });
     await unset(`${CANONICAL_API_ORIGIN}/trust-list`);
     assert.deepEqual(urls, [`${CANONICAL_API_ORIGIN}/trust-list`, `${CANONICAL_API_ORIGIN}/trust-list`]);
+  });
+});
+
+describe('CertNet gateway HttpFetch (ADR-0020 §9)', () => {
+  const ok = (body, init) => new Response(body, { status: 200, ...init });
+  const GATEWAY = 'https://gateway.certnet.example/api';
+
+  it('reaches only the gateway origin, https only, with the wallet adapter\'s limits and no redirect', async () => {
+    const seen = [];
+    const fetch = createGatewayHttpFetch({ fetch: async (url, init) => (seen.push([url, init.redirect, init.credentials]), ok('{"did":"x"}')), gatewayUrl: GATEWAY });
+    const r = await fetch('https://gateway.certnet.example/api/v1/dids/did%3Acertnet%3Atestnet%3Aa', { maxBytes: 65536, timeoutMs: 5000 });
+    assert.equal(await r.text(), '{"did":"x"}');
+    assert.deepEqual(seen, [['https://gateway.certnet.example/api/v1/dids/did%3Acertnet%3Atestnet%3Aa', 'manual', 'omit']]);
+    for (const url of ['https://api-identra.awncorp.vn/trust-list', 'https://gateway.certnet.example.evil.vn/v1/dids/x', 'https://gateway.certnet.example:8443/v1/dids/x']) {
+      await rejectsWith(fetch(url), HttpFetchError, 'ORIGIN_NOT_ALLOWED');
+    }
+    await rejectsWith(fetch('http://gateway.certnet.example/api/v1/dids/x'), HttpFetchError, 'ORIGIN_NOT_ALLOWED');
+    await rejectsWith(fetch('not a url'), HttpFetchError, 'INSECURE_URL');
+    assert.equal(seen.length, 1, 'nothing else left the phone');
+    // The adapter's own rules still hold: the size cap and a redirect the platform followed.
+    const big = createGatewayHttpFetch({ fetch: async () => ok('x'.repeat(70000)), gatewayUrl: GATEWAY });
+    await rejectsWith(big('https://gateway.certnet.example/api/v1/dids/x', { maxBytes: 65536 }), HttpFetchError, 'TOO_LARGE');
+    const followed = createGatewayHttpFetch({ fetch: async () => ({ status: 200, redirected: true, headers: new Headers(), body: null, text: async () => '{}' }), gatewayUrl: GATEWAY });
+    await rejectsWith(followed('https://gateway.certnet.example/api/v1/dids/x'), HttpFetchError, 'REDIRECT');
   });
 });
 

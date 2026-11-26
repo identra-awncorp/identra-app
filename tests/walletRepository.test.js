@@ -9,7 +9,7 @@ const {
   WALLET_SCHEMA_VERSION,
 } = require('../.tmp-test/src/native/data/wallet/credentialRepository');
 const { createExpoRandomSource } = require('../.tmp-test/src/native/data/wallet/randomSource');
-const { createCredentialVault, createInMemorySecretStorage } = require('@identra/sdk-app');
+const { createCredentialVault, createInMemoryCredentialRepository, createInMemorySecretStorage } = require('@identra/sdk-app');
 const { openExpoSqliteDouble } = require('./helpers/expoSqliteDouble');
 
 const random = createExpoRandomSource((a) => webcrypto.getRandomValues(a));
@@ -17,6 +17,7 @@ const row = (id, extra = {}) => ({
   id,
   vct: 'https://identra.awncorp.vn/vct/bang-tot-nghiep/v1',
   issuer: 'https://dai-hoc.example.vn',
+  issuer_did: null,
   key_id: `key-${id}`,
   ciphertext: `sealed-${id}`,
   status_cache: null,
@@ -32,7 +33,7 @@ describe('CredentialRepository on expo-sqlite (SQL executed by node:sqlite)', ()
     assert.deepEqual(await repo.list(), []);
     assert.equal(db.raw.prepare('PRAGMA user_version').get().user_version, WALLET_SCHEMA_VERSION);
     const columns = db.raw.prepare('PRAGMA table_info(credentials)').all().map((c) => c.name);
-    assert.deepEqual(columns, ['id', 'vct', 'issuer', 'key_id', 'ciphertext', 'status_cache', 'status_checked_at', 'created_at']);
+    assert.deepEqual(columns, ['id', 'vct', 'issuer', 'issuer_did', 'key_id', 'ciphertext', 'status_cache', 'status_checked_at', 'created_at']);
     // Migrating again is a no-op.
     const before = db.sql.length;
     await migrateWalletDatabase(db);
@@ -116,7 +117,7 @@ describe('CredentialRepository on expo-sqlite (SQL executed by node:sqlite)', ()
     assert.equal(opens, 2);
   });
 
-  it('migrates a version-1 database with rows to version 2 (CHECK now allows invalid) without losing a row', async () => {
+  it('migrates a version-1 database with rows to the current version (CHECK now allows invalid) without losing a row', async () => {
     const db = openExpoSqliteDouble();
     // The exact table the previous app version created (identra-sdk before 373a673), with rows.
     db.raw.exec(`CREATE TABLE IF NOT EXISTS credentials (
@@ -137,7 +138,8 @@ describe('CredentialRepository on expo-sqlite (SQL executed by node:sqlite)', ()
     const repo = createSqliteCredentialRepository(async () => db);
     assert.deepEqual((await repo.list()).map((r) => [r.id, r.ciphertext, r.status_cache]), [['r1', 'sealed-1', 'valid'], ['r2', 'sealed-2', null]]);
     assert.equal(db.raw.prepare('PRAGMA user_version').get().user_version, WALLET_SCHEMA_VERSION);
-    assert.equal(WALLET_SCHEMA_VERSION, 2);
+    assert.equal(WALLET_SCHEMA_VERSION, 3);
+    assert.deepEqual((await repo.list()).map((r) => r.issuer_did), [null, null], 'rows from before read as X.509');
     await repo.update('r1', { status_cache: 'invalid', status_checked_at: '2026-11-19T00:00:00.000Z' });
     assert.equal((await repo.get('r1')).status_cache, 'invalid');
     assert.equal(db.raw.prepare("SELECT count(*) AS n FROM sqlite_master WHERE name = 'credentials_v1'").get().n, 0, 'the old table is gone');
@@ -170,6 +172,83 @@ describe('CredentialRepository on expo-sqlite (SQL executed by node:sqlite)', ()
     db.raw.exec(`PRAGMA user_version = ${WALLET_SCHEMA_VERSION + 1}`);
     const repo = createSqliteCredentialRepository(async () => db);
     await assert.rejects(repo.list(), (e) => e instanceof WalletDatabaseError && e.code === 'SCHEMA_TOO_NEW');
+  });
+
+  /** The exact table of schema version 2 (SDK DDL before issuer_did, ADR-0020). */
+  const V2_TABLE = `CREATE TABLE credentials (
+  id TEXT PRIMARY KEY NOT NULL,
+  vct TEXT NOT NULL,
+  issuer TEXT NOT NULL,
+  key_id TEXT NOT NULL,
+  ciphertext TEXT NOT NULL,
+  status_cache TEXT CHECK (status_cache IN ('valid', 'revoked', 'suspended', 'unavailable', 'invalid')),
+  status_checked_at TEXT,
+  created_at TEXT NOT NULL
+); PRAGMA user_version = 2;`;
+  const DID = 'did:certnet:testnet:truongdid0001';
+  const COMPACT = 'eyJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJ4In0.c2ln~WyJzYWx0IiwiaG9fdGVuIiwiQSJd~';
+
+  it('upgrades a version-2 database in place to version 3 (issuer_did): every row and value kept, NULL there', async () => {
+    const db = openExpoSqliteDouble();
+    db.raw.exec(V2_TABLE);
+    const insert = db.raw.prepare('INSERT INTO credentials VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+    insert.run('r1', 'v', 'i', 'k1', 'sealed-1', 'invalid', '2026-11-18T00:00:00.000Z', '2026-11-17T00:00:00.000Z');
+    insert.run('r2', 'v', 'i', 'k2', 'sealed-2', null, null, '2026-11-18T00:00:00.000Z');
+    const before = db.raw.prepare('SELECT * FROM credentials ORDER BY id').all().map((r) => ({ ...r }));
+
+    const repo = createSqliteCredentialRepository(async () => db);
+    const rows = await repo.list();
+    assert.equal(db.raw.prepare('PRAGMA user_version').get().user_version, 3);
+    assert.deepEqual(rows, before.map((r) => ({ ...r, issuer_did: null })));
+    assert.equal(db.sql.some((s) => s.includes('RENAME')), false, 'added in place, not rebuilt');
+    await repo.insert(row('d1', { issuer_did: DID }));
+    assert.equal((await repo.get('d1')).issuer_did, DID);
+  });
+
+  it('rolls the 2 -> 3 upgrade back when it fails: version 2 and the rows stay', async () => {
+    const db = openExpoSqliteDouble();
+    // A v2 file that somehow has the column already: ADD COLUMN fails, nothing is stamped.
+    db.raw.exec(V2_TABLE.replace('created_at TEXT NOT NULL', 'created_at TEXT NOT NULL, issuer_did TEXT'));
+    db.raw.prepare("INSERT INTO credentials (id, vct, issuer, key_id, ciphertext, created_at) VALUES ('r1', 'v', 'i', 'k', 'sealed', 'now')").run();
+    await assert.rejects(migrateWalletDatabase(db));
+    assert.equal(db.raw.prepare('PRAGMA user_version').get().user_version, 2);
+    assert.equal(db.raw.prepare('SELECT count(*) AS n FROM credentials').get().n, 1);
+  });
+
+  it('opens a credential the previous app version stored (schema 2) after the upgrade', async () => {
+    const secrets = createInMemorySecretStorage();
+    const clock = { now: () => new Date('2026-11-19T00:00:00Z') };
+    // What the previous app wrote: the SDK vault's X.509 row, in the 8 columns of schema 2.
+    const old = new Map();
+    const oldVault = createCredentialVault({ repository: createInMemoryCredentialRepository(old), secrets, random, clock });
+    const id = await oldVault.save({ compact: COMPACT, vct: 'https://identra.awncorp.vn/vct/bang-tot-nghiep/v1', issuer: 'https://dai-hoc.example.vn', keyId: 'AAAAAAAAAAAAAAAAAAAAAA' });
+    const r = old.get(id);
+    assert.equal(r.issuer_did, undefined);
+    const db = openExpoSqliteDouble();
+    db.raw.exec(V2_TABLE);
+    db.raw.prepare('INSERT INTO credentials VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(r.id, r.vct, r.issuer, r.key_id, r.ciphertext, r.status_cache, r.status_checked_at, r.created_at);
+
+    const vault = createCredentialVault({ repository: createSqliteCredentialRepository(async () => db), secrets, random, clock });
+    assert.equal(await vault.open(id), COMPACT);
+    assert.equal(typeof (await vault.list())[0].issuer_did, 'undefined', 'reads as X.509');
+  });
+
+  it('round-trips a DID-path row: stored with its issuer DID, reopened by a new repository; without the column it would not open', async () => {
+    const db = openExpoSqliteDouble();
+    const secrets = createInMemorySecretStorage();
+    const clock = { now: () => new Date('2026-11-19T00:00:00Z') };
+    const first = createCredentialVault({ repository: createSqliteCredentialRepository(async () => db), secrets, random, clock });
+    const id = await first.save({ compact: COMPACT, vct: 'https://identra.awncorp.vn/vct/bang-tot-nghiep/v1', issuer: 'https://api-identra.awncorp.vn/issuers/truong-did', issuerDid: DID, keyId: 'AAAAAAAAAAAAAAAAAAAAAA' });
+    assert.equal(db.raw.prepare('SELECT issuer_did FROM credentials WHERE id = ?').get(id).issuer_did, DID);
+
+    // The app restarts: a new repository and vault on the same file.
+    const again = createCredentialVault({ repository: createSqliteCredentialRepository(async () => db), secrets, random, clock });
+    assert.equal(await again.open(id), COMPACT);
+    assert.equal((await again.getMeta(id)).issuer_did, DID);
+
+    // The DID is bound to the ciphertext: a repository that dropped it would make the row unreadable.
+    db.raw.prepare('UPDATE credentials SET issuer_did = NULL WHERE id = ?').run(id);
+    await assert.rejects(again.open(id), (e) => e.code === 'UNDECRYPTABLE');
   });
 
   it('carries the SDK vault end to end: sealed rows on disk, plaintext only through open()', async () => {

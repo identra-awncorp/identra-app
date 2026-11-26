@@ -6,7 +6,7 @@ export const MAX_RESPONSE_BYTES = 256 * 1024;
 /** The canonical origin of every Identra URL (identra-server CANONICAL_PUBLIC_BASE_URL). */
 export const CANONICAL_API_ORIGIN = 'https://api-identra.awncorp.vn';
 
-export type HttpFetchErrorCode = 'INSECURE_URL' | 'TIMEOUT' | 'TOO_LARGE' | 'REDIRECT' | 'NETWORK';
+export type HttpFetchErrorCode = 'INSECURE_URL' | 'ORIGIN_NOT_ALLOWED' | 'TIMEOUT' | 'TOO_LARGE' | 'REDIRECT' | 'NETWORK';
 
 /** Carries a code only: never the URL (it may hold request ids) or a body. */
 export class HttpFetchError extends Error {
@@ -144,4 +144,22 @@ export function createWalletHttpFetch(options: { fetch: PlatformFetch; apiUrl?: 
   const actual = new URL(raw.includes('://') ? raw : `http://${raw}`).origin;
   if (actual === CANONICAL_API_ORIGIN) return createHttpFetch({ fetch: options.fetch });
   return createMappedFetch(createHttpFetch({ fetch: options.fetch, insecureOrigins: [actual] }), { [CANONICAL_API_ORIGIN]: actual });
+}
+
+/**
+ * The HttpFetch of the CertNet gateway clients (ADR-0020 §9): the same adapter (https only, no
+ * redirect, no cookies, `timeoutMs`, `maxBytes`), and only URLs on the gateway's own origin.
+ */
+export function createGatewayHttpFetch(options: { fetch: PlatformFetch; gatewayUrl: string }): HttpFetch {
+  const origin = new URL(options.gatewayUrl).origin;
+  const inner = createHttpFetch({ fetch: options.fetch });
+  return (url, init) => {
+    let target: string;
+    try {
+      target = new URL(url).origin;
+    } catch {
+      return Promise.reject(new HttpFetchError('INSECURE_URL'));
+    }
+    return target === origin ? inner(url, init) : Promise.reject(new HttpFetchError('ORIGIN_NOT_ALLOWED'));
+  };
 }

@@ -47,9 +47,9 @@ describe('receive flow', () => {
     assert.equal(receiveReducer(initialReceiveState, resolvedOk), initialReceiveState, 'nothing is resolved before the device check');
     assert.equal(ready.phase, 'resolving');
     assert.deepEqual(consent, { phase: 'consent', offer, failure: null, attempt: 0 });
-    assert.deepEqual(accepting, { phase: 'accepting', offer, attempt: 1, resuming: false });
+    assert.deepEqual(accepting, { phase: 'accepting', offer, attempt: 1, resuming: false, keyPrompt: true });
     const received = receiveReducer(accepting, { type: 'accepted', result: { ok: true, credentialId: 'c1', vct: VCT.diploma, issuerName: 'Trường Mẫu (TEST)' } });
-    assert.deepEqual(received, { phase: 'received', credentialId: 'c1', vct: VCT.diploma, issuerName: 'Trường Mẫu (TEST)', issuerUri: ISS, status: 'valid' });
+    assert.deepEqual(received, { phase: 'received', credentialId: 'c1', vct: VCT.diploma, issuerName: 'Trường Mẫu (TEST)', issuerDid: null, issuerUri: ISS, status: 'valid', keyAuthenticated: true });
     // The lists were unreachable at receipt: kept, shown as "not checked yet" rather than failed.
     const unchecked = receiveReducer(accepting, { type: 'accepted', result: { ok: true, credentialId: 'c2', vct: VCT.diploma, issuerName: 'X', status: 'unknown' } });
     assert.equal(unchecked.status, 'unknown');
@@ -291,5 +291,108 @@ describe('restore flow', () => {
     assert.equal(restoreReducer(initialRestoreState, { type: 'load-failed', code: 'DEVICE_LOCKED' }).failure.action, 'retry');
     const views = documentsToRequestViews(items, 'vi');
     assert.deepEqual(views.map((v) => [v.issuerName, v.portalUrl]), [['Trường Đại học Mẫu (DEMO)', 'https://identra.awncorp.vn/vi/school-portal'], ['other.example.vn', null]]);
+  });
+});
+
+describe('DID trust path (ADR-0020): receipt, views and re-check results', () => {
+  const { documentChoices } = require('../.tmp-test/src/native/domain/wallet/presentationFlow');
+  const { isTestNetworkIssuer, issuerText, issuerViewOf, shortIssuerId, statusSentenceKeys, trustPathKey } = require('../.tmp-test/src/native/domain/wallet/walletViews');
+  const translate = require('../.tmp-test/src/native/i18n').translate;
+  const DID = 'did:certnet:mainnet:4f9c2a7e1b3d8f60a5c4e2b9d7f1a3c8';
+  const DID_TEST = 'did:certnet:testnet:truongdid0001';
+  const consent = receiveReducer(receiveReducer(initialReceiveState, { type: 'device-checked', ready: true }), resolvedOk);
+  const accepting = receiveReducer(consent, { type: 'submit' });
+  const check = (id, code = null, extra = {}) => ({ id, ok: code === null, code, ...extra });
+  const unresolved = { ok: false, code: 'NETWORK_ERROR', retryable: true, codeRedeemed: true, checks: [check('structure'), check('did_resolution', 'DID_RESOLUTION_UNAVAILABLE'), check('signature', 'SKIPPED', { skipped: true })] };
+
+  it('an unresolved issuer at receipt: its own sentence, retry without the PIN and without a key prompt, then received under the DID', async () => {
+    const resume = receiveReducer(accepting, { type: 'accepted', result: unresolved });
+    assert.deepEqual([resume.phase, resume.failure.code, resume.failure.action], ['resume', 'DID_RESOLUTION_UNAVAILABLE', 'retry']);
+    assert.equal(resume.failure.sentenceKey, 'wallet.receive.resume.DID_RESOLUTION_UNAVAILABLE');
+    const sentence = translate('vi', resume.failure.sentenceKey);
+    assert.match(sentence, /CertNet chưa trả lời/);
+    assert.match(sentence, /chưa lưu gì/);
+    assert.match(sentence, /không cần nhập lại mã PIN/);
+    assert.equal(/nơi cấp\. Khi/.test(sentence) || /Mất kết nối với nơi cấp/.test(sentence), false, 'not the issuer\'s network');
+    assert.deepEqual(acceptInput(resume, '123456', 6), {}, 'no PIN on the retry');
+
+    // The screen's submit: the SDK is called without a PIN, the attempt asks for no new key.
+    const calls = [];
+    const wallet = { offers: { accept: async (o, input) => (calls.push(input), { ok: true, credentialId: 'd1', vct: VCT.diploma, issuerName: 'Tên tự khai', issuerDid: DID, status: 'valid' }), discard: async () => undefined } };
+    const box = { state: resume };
+    const seen = [];
+    await runAccept({ get: () => box.state, dispatch: (e) => (seen.push(receiveReducer(box.state, e)), (box.state = seen.at(-1))) }, wallet, '123456', 6);
+    assert.deepEqual(calls, [{}]);
+    assert.deepEqual([seen[0].phase, seen[0].keyPrompt], ['accepting', false]);
+    assert.deepEqual(
+      { phase: box.state.phase, issuerDid: box.state.issuerDid, issuerName: box.state.issuerName, keyAuthenticated: box.state.keyAuthenticated },
+      { phase: 'received', issuerDid: DID, issuerName: null, keyAuthenticated: false },
+      'never a name on the DID path, and no access-gate pass without a prompt',
+    );
+    const shown = issuerViewOf(box.state, 'vi');
+    assert.deepEqual([shown.trustPath, shown.issuerName, trustPathKey(shown)], ['did', '4f9c2a7e…f1a3c8', 'wallet.trustPath.did']);
+
+    // Other resumes still prompt (a new key), and a plain network loss keeps its own sentence.
+    const cancelled = receiveReducer(accepting, { type: 'accepted', result: { ok: false, code: 'USER_CANCELLED', retryable: true, codeRedeemed: true } });
+    assert.equal(receiveReducer(cancelled, { type: 'submit' }).keyPrompt, true);
+    const offline = receiveReducer(accepting, { type: 'accepted', result: { ok: false, code: 'NETWORK_ERROR', retryable: true, codeRedeemed: true } });
+    assert.equal(offline.failure.sentenceKey, 'wallet.receive.resume.NETWORK_ERROR');
+  });
+
+  it('a DID-path document never gets a display name, even when its issuer URL is a key of the known-issuer table', () => {
+    assert.ok(require('../.tmp-test/src/native/domain/wallet/walletViews').knownIssuers[ISS], 'ISS is a key of the static map');
+    const summary = { id: 'd', vct: VCT.diploma, issuerUri: ISS, issuerName: 'Trường Đại học Mẫu (DEMO)', trustPath: 'did', issuerDid: DID, status: 'valid', statusCheckedAt: null, createdAt: '2026-11-20T00:00:00Z' };
+    for (const locale of ['vi', 'en']) {
+      const [item] = credentialListItems([summary], locale);
+      assert.deepEqual([item.trustPath, item.issuerName, item.issuerDid], ['did', '4f9c2a7e…f1a3c8', DID]);
+      const view = credentialDetailView({ ...summary, iat: 1, claims: {} }, locale);
+      assert.equal(view.issuerName, '4f9c2a7e…f1a3c8');
+      const text = JSON.stringify([item, view]);
+      for (const name of ['Trường Đại học Mẫu', 'Sample University', 'api-identra.awncorp.vn']) assert.equal(text.includes(name), false, `${locale}: ${name}`);
+    }
+    // The sharing screen's document card: the same rule on a PresentationMatch.
+    const request = { matches: [{ credentialId: 'd', vct: VCT.diploma, issuerName: null, trustPath: 'did', issuerDid: DID_TEST, claimSets: [] }, { credentialId: 'x', vct: VCT.diploma, issuerName: 'Trường Mẫu (TEST)', trustPath: 'x509', issuerDid: null, claimSets: [] }] };
+    const [didChoice, x509Choice] = documentChoices(request, { d: ISS, x: ISS }, 'vi');
+    assert.deepEqual([didChoice.trustPath, didChoice.issuerName, didChoice.issuerDid], ['did', 'truongdid0001', DID_TEST]);
+    assert.deepEqual([x509Choice.trustPath, x509Choice.issuerName], ['x509', 'Trường Mẫu (TEST)']);
+    // X.509 is exactly as before: the trusted name, the table, the host.
+    assert.deepEqual(credentialListItems([{ ...summary, trustPath: 'x509', issuerDid: null, issuerName: null }], 'vi')[0].issuerName, 'Trường Đại học Mẫu (DEMO)');
+  });
+
+  it('shortens the identifier readably, says how the issuer was checked, and flags a test network', () => {
+    assert.equal(shortIssuerId('did:certnet:testnet:truongdid0001'), 'truongdid0001');
+    assert.equal(shortIssuerId('did:certnet:mainnet:abcdefghijklmnop'), 'abcdefghijklmnop', '16 characters stay whole');
+    assert.equal(shortIssuerId('did:certnet:mainnet:abcdefghijklmnopq'), 'abcdefgh…lmnopq');
+    const t = (key, p) => translate('vi', key, p);
+    assert.equal(issuerText({ trustPath: 'did', issuerName: 'truongdid0001' }, t), 'Mã nơi cấp truongdid0001');
+    assert.equal(issuerText({ trustPath: 'x509', issuerName: 'Trường Mẫu' }, t), 'Trường Mẫu');
+    assert.equal(t(trustPathKey({ trustPath: 'x509', issuerDid: null })), 'Xác minh qua chứng nhận số');
+    assert.equal(t(trustPathKey({ trustPath: 'did', issuerDid: DID })), 'Xác minh qua CertNet');
+    assert.equal(t(trustPathKey({ trustPath: 'did', issuerDid: DID_TEST })), 'Xác minh qua CertNet (mạng thử nghiệm)');
+    assert.deepEqual([isTestNetworkIssuer({ issuerDid: DID }), isTestNetworkIssuer({ issuerDid: 'did:certnet:local:x' }), isTestNetworkIssuer({ issuerDid: null })], [false, true, false]);
+  });
+
+  it('maps each re-check result to the right sentences: valid, not checked (CertNet silent), issuer no longer recognised', () => {
+    const base = [check('structure'), check('did_resolution'), check('signature')];
+    const tirDown = [...base, check('issuer_trust', 'TRUST_LIST_UNAVAILABLE'), check('status', 'SKIPPED', { skipped: true })];
+    const resolverDown = [check('structure'), check('did_resolution', 'DID_RESOLUTION_UNAVAILABLE'), check('signature', 'SKIPPED', { skipped: true })];
+    const rejected = [...base, check('issuer_trust', 'ISSUER_NOT_TRUSTED'), check('status', 'SKIPPED', { skipped: true })];
+    assert.deepEqual(statusSentenceKeys('verified', 'did', base), ['identity.detail.statuses.verified.description']);
+    assert.deepEqual(statusSentenceKeys('unknown', 'did', tirDown), ['wallet.didPath.TRUST_LIST_UNAVAILABLE']);
+    assert.deepEqual(statusSentenceKeys('unknown', 'did', resolverDown), ['wallet.errors.DID_RESOLUTION_UNAVAILABLE']);
+    assert.deepEqual(statusSentenceKeys('invalid', 'did', rejected), ['identity.detail.statuses.invalid.description', 'wallet.didPath.ISSUER_NOT_TRUSTED']);
+    // Before any re-check (no checks): the status meaning only, on both paths.
+    assert.deepEqual(statusSentenceKeys('unknown', 'did', null), ['identity.detail.statuses.unknown.description']);
+    // X.509 unchanged: unknown says only its meaning; invalid adds the failed check.
+    const x509Down = [check('certificate_chain'), check('issuer_trust', 'TRUST_LIST_UNAVAILABLE')];
+    assert.deepEqual(statusSentenceKeys('unknown', 'x509', x509Down), ['identity.detail.statuses.unknown.description']);
+    assert.deepEqual(statusSentenceKeys('invalid', 'x509', [check('certificate_chain'), check('issuer_trust', 'ISSUER_NOT_TRUSTED')]), ['identity.detail.statuses.invalid.description', 'wallet.errors.ISSUER_NOT_TRUSTED']);
+    for (const key of ['identity.detail.statuses.invalid.description', 'wallet.didPath.TRUST_LIST_UNAVAILABLE', 'wallet.didPath.ISSUER_NOT_TRUSTED']) {
+      for (const locale of ['vi', 'en']) assert.notEqual(translate(locale, key), key);
+    }
+    // "Not checked yet" is never shown as valid: the reducer keeps the SDK's status.
+    let s = detailReducer(initialDetailState, { type: 'loaded', result: { ok: true, credential: { id: 'd', vct: VCT.diploma, issuerUri: ISS, issuerName: null, trustPath: 'did', issuerDid: DID, status: 'valid', statusCheckedAt: '2026-11-19T00:00:00Z', createdAt: 'x', iat: 1, claims: {} } } });
+    s = detailReducer(detailReducer(s, { type: 'refresh' }), { type: 'refreshed', result: { ok: true, status: 'unknown', checks: tirDown, checkedAt: '2026-11-20T00:00:00Z', lastValidAt: '2026-11-19T00:00:00Z' }, checkedAt: 'x' });
+    assert.deepEqual([credentialDetailView(s.details, 'vi').status, s.refreshChecks], ['unknown', tirDown]);
   });
 });

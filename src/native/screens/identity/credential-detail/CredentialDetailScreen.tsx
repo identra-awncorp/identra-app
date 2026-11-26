@@ -1,10 +1,18 @@
-import { Building2, CalendarDays, Eye, EyeOff, RefreshCw } from 'lucide-react-native';
+import { Building2, CalendarDays, Eye, EyeOff, RefreshCw, ShieldCheck } from 'lucide-react-native';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader, CredentialIcon, PrimaryButton, ScreenScroll, StatusPill } from '../../../components/AppUiPrimitives';
 import type { DetailState } from '../../../domain/wallet/walletFlows';
-import { displayedValue, formatWalletDate, MASKED_VALUE, type CredentialDetailView } from '../../../domain/wallet/walletViews';
-import { failureView } from '../../../domain/wallet/walletMessages';
+import {
+  displayedValue,
+  formatWalletDate,
+  isTestNetworkIssuer,
+  issuerText,
+  MASKED_VALUE,
+  statusSentenceKeys,
+  trustPathKey,
+  type CredentialDetailView,
+} from '../../../domain/wallet/walletViews';
 import { useI18n } from '../../../i18n';
 import type { AppColors } from '../../../theme';
 import { spacing } from '../../../theme';
@@ -41,17 +49,8 @@ export function CredentialDetailScreen({
 }) {
   const { locale, t } = useI18n();
   const [revealed, setRevealed] = useRevealedWhileActive();
-  const statusMeaning: Record<CredentialStatus, string> = {
-    verified: t('identity.detail.statuses.verified.description'),
-    pending: t('identity.detail.statuses.pending.description'),
-    expired: t('identity.detail.statuses.expired.description'),
-    revoked: t('identity.detail.statuses.revoked.description'),
-    suspended: t('identity.detail.statuses.suspended.description'),
-    unknown: t('identity.detail.statuses.unknown.description'),
-    invalid: t('identity.detail.statuses.invalid.description'),
-  };
-  /** Why an `invalid` document fails, when the last check said so (checks of the refresh). */
-  const invalidReason = state.phase === 'loaded' && state.refreshChecks ? failureView('CREDENTIAL_INVALID', state.refreshChecks).detailKey : null;
+  /** The status meaning, then why when the last check (the refresh's checks) said so; worded for the trust path. */
+  const statusSentences = view && state.phase === 'loaded' ? statusSentenceKeys(view.status, view.trustPath, state.refreshChecks) : [];
   /** Definite answers are successful checks; unknown / invalid are only the latest attempt. */
   const checkedLabel = (status: CredentialStatus, date: string) =>
     status === 'unknown' || status === 'invalid' ? t('wallet.detail.lastAttemptOn', { date }) : t('wallet.detail.checkedOn', { date });
@@ -96,7 +95,11 @@ export function CredentialDetailScreen({
                 <Text style={[walletStyles.title, styles.heroTitle, { color: colors.text }]}>{t(view.nameKey)}</Text>
                 <View style={styles.inline}>
                   <Building2 color={colors.textSecondary} size={15} />
-                  <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{view.issuerName}</Text>
+                  <Text style={[walletStyles.meta, styles.shrink, { color: colors.textSecondary }]}>{issuerText(view, t)}</Text>
+                </View>
+                <View style={styles.inline}>
+                  <ShieldCheck color={colors.textSecondary} size={15} />
+                  <Text style={[walletStyles.meta, styles.shrink, { color: colors.textSecondary }]}>{t(trustPathKey(view))}</Text>
                 </View>
                 <View style={styles.inline}>
                   <CalendarDays color={colors.textSecondary} size={15} />
@@ -112,8 +115,9 @@ export function CredentialDetailScreen({
               <View style={styles.pillRow}>
                 <StatusPill status={view.status} colors={colors} />
               </View>
-              <Text style={[walletStyles.lead, { color: colors.text }]}>{statusMeaning[view.status]}</Text>
-              {view.status === 'invalid' && invalidReason ? <Text style={[walletStyles.lead, { color: colors.text }]}>{t(invalidReason)}</Text> : null}
+              {statusSentences.map((key) => (
+                <Text key={key} style={[walletStyles.lead, { color: colors.text }]}>{t(key)}</Text>
+              ))}
               {view.statusCheckedDate ? (
                 <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{checkedLabel(view.status, view.statusCheckedDate)}</Text>
               ) : null}
@@ -135,6 +139,28 @@ export function CredentialDetailScreen({
             {view.status === 'revoked' || view.status === 'suspended' ? (
               view.portalUrl ? <TextAction colors={colors} label={t('wallet.detail.contactIssuer')} onPress={() => onOpenPortal(view.portalUrl!)} /> : null
             ) : null}
+          </View>
+
+          <View style={styles.section}>
+            <Text style={[walletStyles.sectionTitle, { color: colors.text }]}>{t('wallet.trustPath.section')}</Text>
+            <Panel colors={colors} style={styles.statusPanel}>
+              <Text style={[walletStyles.value, { color: colors.text }]}>{t(trustPathKey(view))}</Text>
+              {view.trustPath === 'did' ? (
+                <>
+                  <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.trustPath.certNetMeaning')}</Text>
+                  <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.trustPath.didNoName')}</Text>
+                  <View style={[styles.idBlock, { borderTopColor: colors.border }]}>
+                    <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.trustPath.fullIdLabel')}</Text>
+                    {/* The whole identifier, selectable, so a person can compare it with the issuer's own. */}
+                    <Text selectable style={[walletStyles.value, styles.identifier, { color: colors.text }]}>{view.issuerDid}</Text>
+                  </View>
+                  {isTestNetworkIssuer(view) ? <Text style={[walletStyles.meta, { color: colors.text }]}>{t('wallet.trustPath.testNetwork')}</Text> : null}
+                  <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.trustPath.compareHint')}</Text>
+                </>
+              ) : (
+                <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.trustPath.x509Body')}</Text>
+              )}
+            </Panel>
           </View>
 
           <View style={styles.section}>
@@ -207,6 +233,9 @@ const styles = StyleSheet.create({
   heroTop: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
   heroTitle: { fontSize: 22, lineHeight: 28 },
   inline: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs + 2 },
+  shrink: { flexShrink: 1 },
+  idBlock: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spacing.md, marginTop: spacing.xs, gap: 2 },
+  identifier: { fontVariant: ['tabular-nums'] },
   revealButton: { minHeight: 44, minWidth: 44, paddingHorizontal: spacing.sm, justifyContent: 'center' },
   section: { gap: spacing.sm },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 },

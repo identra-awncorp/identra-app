@@ -25,7 +25,7 @@ import {
 } from '../../../domain/wallet/presentationFlow';
 import type { WalletApi, WalletCredentialSummary } from '../../../domain/wallet/walletContainer';
 import { failureCodeOfError, MAYBE_SENT_CODES } from '../../../domain/wallet/walletMessages';
-import { formatWalletDate, issuerPortalUrl, MASKED_VALUE, type Locale } from '../../../domain/wallet/walletViews';
+import { formatWalletDate, issuerPortalUrl, issuerText, MASKED_VALUE, trustPathKey, type Locale } from '../../../domain/wallet/walletViews';
 import { useI18n, type I18nKey } from '../../../i18n';
 import type { AppColors } from '../../../theme';
 import { border, radius, spacing, typography } from '../../../theme';
@@ -435,7 +435,8 @@ function ConsentBody({
                 <CredentialIcon icon="graduation" boxSize={44} size={24} colors={colors} />
                 <View style={styles.flex}>
                   <Text style={[walletStyles.value, { color: colors.text }]}>{t(c.nameKey)}</Text>
-                  <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{c.issuerName}</Text>
+                  <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{issuerText(c, t)}</Text>
+                  <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t(trustPathKey(c))}</Text>
                   {summaries[c.credentialId] ? (
                     <Text style={[walletStyles.meta, { color: colors.textSecondary }]}>{t('wallet.list.receivedOn', { date: formatWalletDate(summaries[c.credentialId]!.createdAt, locale) })}</Text>
                   ) : null}
